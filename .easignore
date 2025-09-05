@@ -1,0 +1,10 @@
+node_modules
+.expo
+.expo-shared
+dist
+build
+*.log
+.env*
+*.keystore
+.DS_Store
+Thumbs.db
