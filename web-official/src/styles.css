@@ -182,6 +182,7 @@ select:focus {
   border: 1px solid transparent;
   border-radius: 12px;
   padding: 10px 14px;
+  min-height: 42px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -1782,6 +1783,57 @@ select:focus {
   }
 }
 
+@media (max-width: 900px) {
+  .container {
+    width: min(1160px, calc(100% - 24px));
+  }
+
+  .site-header {
+    backdrop-filter: blur(7px);
+  }
+
+  .header-content {
+    min-height: 72px;
+    gap: 10px;
+  }
+
+  .home {
+    gap: 46px;
+    padding: 18px 0 52px;
+  }
+
+  .section {
+    gap: 12px;
+  }
+
+  .panel,
+  .info-card,
+  .feature-card,
+  .content-card {
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .page-wrap {
+    padding: 22px 0 48px;
+    gap: 18px;
+  }
+
+  .hero-copy p,
+  .page-head p,
+  .lead {
+    font-size: 0.97rem;
+  }
+
+  .teacher-inline-actions {
+    width: 100%;
+  }
+
+  .teacher-inline-actions .btn {
+    flex: 1;
+  }
+}
+
 @media (max-width: 980px) {
   .desktop-cta {
     display: none;
@@ -1863,6 +1915,10 @@ select:focus {
     padding: 14px;
   }
 
+  .hero {
+    gap: 14px;
+  }
+
   .hero-actions,
   .signup-actions {
     flex-direction: column;
@@ -1887,6 +1943,10 @@ select:focus {
 
   .page-wrap {
     padding-top: 16px;
+  }
+
+  .page-head {
+    gap: 8px;
   }
 
   .teacher-kpi-grid,
@@ -1925,6 +1985,19 @@ select:focus {
     flex: 1;
   }
 
+  .parent-table {
+    min-width: 0;
+  }
+
+  .parent-table th:nth-child(4),
+  .parent-table td:nth-child(4),
+  .parent-table th:nth-child(5),
+  .parent-table td:nth-child(5),
+  .parent-table th:nth-child(6),
+  .parent-table td:nth-child(6) {
+    display: none;
+  }
+
   .signup-success-toast {
     right: 10px;
     left: 10px;
@@ -1933,7 +2006,55 @@ select:focus {
   }
 }
 
+@media (max-width: 640px) {
+  body {
+    background:
+      radial-gradient(640px 420px at -20% -10%, rgba(78, 151, 255, 0.2) 0%, rgba(78, 151, 255, 0) 62%),
+      radial-gradient(640px 420px at 120% 0%, rgba(20, 184, 132, 0.17) 0%, rgba(20, 184, 132, 0) 62%),
+      var(--bg);
+  }
+
+  .site-nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: 78px;
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
+    box-shadow: 0 16px 36px rgba(14, 37, 78, 0.16);
+    z-index: 70;
+  }
+
+  .nav-link,
+  .nav-mobile-cta {
+    min-height: 44px;
+  }
+
+  .visual-stage,
+  .visual-stage img {
+    min-height: 220px;
+  }
+
+  .thumb {
+    padding: 11px 9px;
+    font-size: 0.82rem;
+  }
+
+  .signup-pill {
+    padding: 9px;
+  }
+
+  .parent-day-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 @media (max-width: 560px) {
+  .container {
+    width: min(1160px, calc(100% - 14px));
+  }
+
   .header-content {
     gap: 8px;
     min-height: 70px;
@@ -1960,6 +2081,31 @@ select:focus {
   .page-head p,
   .lead {
     font-size: 0.96rem;
+  }
+
+  .hero-copy,
+  .hero-visual,
+  .panel,
+  .info-card,
+  .feature-card,
+  .content-card,
+  .parent-panel,
+  .parent-student-card,
+  .parent-form-card,
+  .teacher-panel {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .parent-table th,
+  .parent-table td {
+    padding: 8px 6px;
+    font-size: 0.78rem;
+  }
+
+  .parent-table th:nth-child(3),
+  .parent-table td:nth-child(3) {
+    display: none;
   }
 
   .teacher-kpi-grid,

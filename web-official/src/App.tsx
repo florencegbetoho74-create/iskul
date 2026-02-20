@@ -184,13 +184,19 @@ function AppHeader() {
           </span>
         </NavLink>
 
-        <button className="menu-toggle" onClick={() => setMenuOpen((current) => !current)} aria-label="Ouvrir le menu">
+        <button
+          className="menu-toggle"
+          onClick={() => setMenuOpen((current) => !current)}
+          aria-label="Ouvrir le menu"
+          aria-expanded={menuOpen}
+          aria-controls="site-main-nav"
+        >
           <span />
           <span />
           <span />
         </button>
 
-        <nav className={menuOpen ? "site-nav open" : "site-nav"}>
+        <nav id="site-main-nav" className={menuOpen ? "site-nav open" : "site-nav"}>
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
