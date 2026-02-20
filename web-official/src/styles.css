@@ -683,6 +683,82 @@ select:focus {
   gap: 10px;
 }
 
+.signup-success-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 18, 42, 0.62);
+  backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 16px;
+  animation: fade-in 0.2s ease;
+}
+
+.signup-success-modal {
+  width: min(520px, 100%);
+  border: 1px solid #d5e3ff;
+  border-radius: 18px;
+  background: linear-gradient(165deg, #ffffff 0%, #f2f8ff 100%);
+  box-shadow: 0 26px 46px rgba(5, 18, 47, 0.35);
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  animation: rise-up 0.25s ease both;
+}
+
+.signup-success-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #15b784 0%, #39cf9b 100%);
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.signup-success-modal h3 {
+  font-size: clamp(1.2rem, 3.2vw, 1.6rem);
+}
+
+.signup-success-modal p {
+  color: var(--muted);
+}
+
+.signup-success-email {
+  font-weight: 700;
+  color: #1f3f70 !important;
+  background: #ebf3ff;
+  border: 1px solid #d0def8;
+  border-radius: 10px;
+  padding: 8px 10px;
+  word-break: break-word;
+}
+
+.signup-success-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signup-success-tags span {
+  border: 1px solid #d4e3ff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fff;
+  color: #305788;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.signup-success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .notice {
   border: 1px solid #cde0ff;
   border-radius: 12px;
@@ -785,6 +861,15 @@ select:focus {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 1150px) {
   .hero {
     grid-template-columns: 1fr;
@@ -874,7 +959,8 @@ select:focus {
   }
 
   .hero-actions .btn,
-  .signup-actions .btn {
+  .signup-actions .btn,
+  .signup-success-actions .btn {
     width: 100%;
   }
 

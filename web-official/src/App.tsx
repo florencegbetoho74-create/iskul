@@ -398,7 +398,23 @@ function TeacherSignupPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [successEmail, setSuccessEmail] = useState<string>("");
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
   const strength = useMemo(() => getPasswordStrength(password), [password]);
+
+  useEffect(() => {
+    if (!successModalOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSuccessModalOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [successModalOpen]);
 
   const disabled = useMemo(() => {
     if (busy || OFFICIAL_WEB_ENV_ERROR) return true;
@@ -435,7 +451,10 @@ function TeacherSignupPage() {
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || "registration_failed");
 
+      const normalizedEmail = email.trim().toLowerCase();
       setSuccess("Compte professeur cree. Vous pouvez vous connecter sur l'application mobile iSkul.");
+      setSuccessEmail(normalizedEmail);
+      setSuccessModalOpen(true);
       setName("");
       setEmail("");
       setPassword("");
@@ -582,8 +601,6 @@ function TeacherSignupPage() {
           </label>
 
           {error ? <p className="notice error">{error}</p> : null}
-          {success ? <p className="notice success">{success}</p> : null}
-
           <div className="signup-actions">
             <button className="btn primary" disabled={disabled}>
               {busy ? "Creation..." : "Creer mon compte professeur"}
@@ -597,6 +614,35 @@ function TeacherSignupPage() {
           </div>
         </form>
       </section>
+
+      {successModalOpen ? (
+        <div className="signup-success-backdrop" role="dialog" aria-modal="true">
+          <div className="signup-success-modal">
+            <span className="signup-success-icon" aria-hidden="true">
+              ✓
+            </span>
+            <span className="kicker">Compte active</span>
+            <h3>Inscription finalisee avec succes</h3>
+            <p>{success || "Le compte professeur a ete cree avec succes."}</p>
+            <p className="signup-success-email">{successEmail}</p>
+
+            <div className="signup-success-tags">
+              <span>Role: Teacher</span>
+              <span>Statut: Actif</span>
+              <span>Acces: iSkul App</span>
+            </div>
+
+            <div className="signup-success-actions">
+              <a className="btn secondary" href={ANDROID_URL} target="_blank" rel="noreferrer">
+                Ouvrir l'application Android
+              </a>
+              <button className="btn ghost" type="button" onClick={() => setSuccessModalOpen(false)}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
