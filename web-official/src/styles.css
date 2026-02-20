@@ -683,48 +683,63 @@ select:focus {
   gap: 10px;
 }
 
-.signup-success-backdrop {
+.signup-success-toast {
   position: fixed;
-  inset: 0;
-  background: rgba(8, 18, 42, 0.62);
-  backdrop-filter: blur(5px);
+  right: 18px;
+  bottom: 18px;
+  width: min(460px, calc(100vw - 36px));
+  border: 1px solid #d5e3ff;
+  border-radius: 16px;
+  background: linear-gradient(165deg, #ffffff 0%, #f2f8ff 100%);
+  box-shadow: 0 24px 42px rgba(5, 18, 47, 0.26);
+  padding: 14px;
   display: grid;
-  place-items: center;
+  gap: 10px;
   z-index: 100;
-  padding: 16px;
   animation: fade-in 0.2s ease;
 }
 
-.signup-success-modal {
-  width: min(520px, 100%);
-  border: 1px solid #d5e3ff;
-  border-radius: 18px;
-  background: linear-gradient(165deg, #ffffff 0%, #f2f8ff 100%);
-  box-shadow: 0 26px 46px rgba(5, 18, 47, 0.35);
-  padding: 20px;
+.signup-success-head {
   display: grid;
-  gap: 12px;
-  animation: rise-up 0.25s ease both;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
 }
 
 .signup-success-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   background: linear-gradient(145deg, #15b784 0%, #39cf9b 100%);
   color: #fff;
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.signup-success-modal h3 {
-  font-size: clamp(1.2rem, 3.2vw, 1.6rem);
+.signup-success-head strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.2;
 }
 
-.signup-success-modal p {
+.signup-success-head p {
+  margin-top: 3px;
   color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.signup-success-close {
+  border: 1px solid #d8e4fc;
+  border-radius: 8px;
+  background: #fff;
+  color: #365e8f;
+  width: 28px;
+  height: 28px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .signup-success-email {
@@ -975,6 +990,13 @@ select:focus {
 
   .page-wrap {
     padding-top: 16px;
+  }
+
+  .signup-success-toast {
+    right: 10px;
+    left: 10px;
+    bottom: 10px;
+    width: auto;
   }
 }
 

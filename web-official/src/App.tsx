@@ -399,22 +399,14 @@ function TeacherSignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [successEmail, setSuccessEmail] = useState<string>("");
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const strength = useMemo(() => getPasswordStrength(password), [password]);
 
   useEffect(() => {
-    if (!successModalOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSuccessModalOpen(false);
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [successModalOpen]);
+    if (!showSuccessToast) return;
+    const timerId = window.setTimeout(() => setShowSuccessToast(false), 7000);
+    return () => window.clearTimeout(timerId);
+  }, [showSuccessToast]);
 
   const disabled = useMemo(() => {
     if (busy || OFFICIAL_WEB_ENV_ERROR) return true;
@@ -454,7 +446,7 @@ function TeacherSignupPage() {
       const normalizedEmail = email.trim().toLowerCase();
       setSuccess("Compte professeur cree. Vous pouvez vous connecter sur l'application mobile iSkul.");
       setSuccessEmail(normalizedEmail);
-      setSuccessModalOpen(true);
+      setShowSuccessToast(true);
       setName("");
       setEmail("");
       setPassword("");
@@ -614,32 +606,35 @@ function TeacherSignupPage() {
           </div>
         </form>
       </section>
-
-      {successModalOpen ? (
-        <div className="signup-success-backdrop" role="dialog" aria-modal="true">
-          <div className="signup-success-modal">
+      {showSuccessToast ? (
+        <div className="signup-success-toast" role="status" aria-live="polite">
+          <div className="signup-success-head">
             <span className="signup-success-icon" aria-hidden="true">
-              ✓
+              OK
             </span>
-            <span className="kicker">Compte active</span>
-            <h3>Inscription finalisee avec succes</h3>
-            <p>{success || "Le compte professeur a ete cree avec succes."}</p>
-            <p className="signup-success-email">{successEmail}</p>
-
-            <div className="signup-success-tags">
-              <span>Role: Teacher</span>
-              <span>Statut: Actif</span>
-              <span>Acces: iSkul App</span>
+            <div>
+              <strong>Inscription finalisee</strong>
+              <p>{success || "Le compte professeur a ete cree avec succes."}</p>
             </div>
-
-            <div className="signup-success-actions">
-              <a className="btn secondary" href={ANDROID_URL} target="_blank" rel="noreferrer">
-                Ouvrir l'application Android
-              </a>
-              <button className="btn ghost" type="button" onClick={() => setSuccessModalOpen(false)}>
-                Fermer
-              </button>
-            </div>
+            <button
+              className="signup-success-close"
+              type="button"
+              aria-label="Fermer la notification"
+              onClick={() => setShowSuccessToast(false)}
+            >
+              x
+            </button>
+          </div>
+          <p className="signup-success-email">{successEmail}</p>
+          <div className="signup-success-tags">
+            <span>Role: Teacher</span>
+            <span>Statut: Actif</span>
+            <span>Acces: iSkul App</span>
+          </div>
+          <div className="signup-success-actions">
+            <a className="btn secondary" href={ANDROID_URL} target="_blank" rel="noreferrer">
+              Ouvrir l'application Android
+            </a>
           </div>
         </div>
       ) : null}
@@ -806,3 +801,4 @@ export function App() {
     </div>
   );
 }
+
