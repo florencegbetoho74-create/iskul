@@ -3,6 +3,8 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-route
 
 import iskulLogo from "./assets/iskul-logo.png";
 import { OFFICIAL_WEB_ENV_ERROR, supabase } from "./lib/supabase";
+import ParentTrackingPage from "./pages/ParentTrackingPage";
+import TeacherWorkspacePage from "./pages/TeacherWorkspacePage";
 import "./styles.css";
 
 type FeatureVisual = {
@@ -41,6 +43,7 @@ const NAV_ITEMS = [
   { to: "/parents", label: "Espace Parents" },
   { to: "/open-classroom", label: "Open Classroom" },
   { to: "/a-propos", label: "A Propos" },
+  { to: "/espace-professeur", label: "Espace Prof" },
 ];
 
 const HERO_VISUALS: FeatureVisual[] = [
@@ -371,6 +374,11 @@ function HomePage() {
           Avec le suivi parental iSkul, vous recevez des rapports clairs sur l'assiduite et les resultats de vos
           enfants. Investissez dans leur avenir avec des donnees concretes, pas des suppositions.
         </p>
+        <div className="hero-actions">
+          <Link className="btn ghost" to="/parents">
+            Acceder au suivi parental
+          </Link>
+        </div>
       </section>
 
       <section className="section container panel library-panel">
@@ -632,6 +640,9 @@ function TeacherSignupPage() {
             <span>Acces: iSkul App</span>
           </div>
           <div className="signup-success-actions">
+            <Link className="btn ghost" to="/espace-professeur">
+              Ouvrir l'espace professeur
+            </Link>
             <a className="btn secondary" href={ANDROID_URL} target="_blank" rel="noreferrer">
               Ouvrir l'application Android
             </a>
@@ -791,9 +802,10 @@ export function App() {
           <Route path="/inscription-professeur" element={<TeacherSignupPage />} />
           <Route path="/cours" element={<CoursesPage />} />
           <Route path="/bibliotheque" element={<LibraryPage />} />
-          <Route path="/parents" element={<ParentsPage />} />
+          <Route path="/parents" element={<ParentTrackingPage />} />
           <Route path="/open-classroom" element={<OpenClassroomPage />} />
           <Route path="/a-propos" element={<AboutPage />} />
+          <Route path="/espace-professeur" element={<TeacherWorkspacePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
