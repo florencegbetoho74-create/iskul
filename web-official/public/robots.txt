@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://iskul-ten.vercel.app/sitemap.xml

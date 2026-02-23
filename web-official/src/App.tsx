@@ -5,6 +5,7 @@ import iskulLogo from "./assets/iskul-logo.png";
 import { OFFICIAL_WEB_ENV_ERROR, supabase } from "./lib/supabase";
 import ParentTrackingPage from "./pages/ParentTrackingPage";
 import TeacherWorkspacePage from "./pages/TeacherWorkspacePage";
+import { useRouteSeo } from "./seo";
 import "./styles.css";
 
 type FeatureVisual = {
@@ -162,6 +163,12 @@ function ScrollToTop() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pathname]);
+  return null;
+}
+
+function SeoHead() {
+  const { pathname } = useLocation();
+  useRouteSeo(pathname);
   return null;
 }
 
@@ -801,6 +808,7 @@ export function App() {
   return (
     <div className="site-root">
       <ScrollToTop />
+      <SeoHead />
       <AppHeader />
       <main>
         <Routes>

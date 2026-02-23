@@ -22,6 +22,7 @@ Copier `.env.example` vers `.env` et ajuster:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_SITE_URL`
 - `VITE_ANDROID_URL`
 - `VITE_IOS_URL`
 - `VITE_CONTACT_URL`
@@ -41,6 +42,7 @@ Copier `.env.example` vers `.env` et ajuster:
 3. Ajouter les variables d'environnement Vercel:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SITE_URL`
    - `VITE_ANDROID_URL`
    - `VITE_IOS_URL`
    - `VITE_CONTACT_URL`
