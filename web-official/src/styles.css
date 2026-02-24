@@ -1851,28 +1851,50 @@ select:focus {
   }
 
   .site-nav {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(84vw, 320px);
+    height: 100dvh;
     flex-direction: column;
+    justify-content: flex-start;
+    display: flex;
+    gap: 10px;
+    padding: 84px 16px 20px;
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 8px;
-    margin-bottom: 12px;
+    border-left: 1px solid var(--line);
+    box-shadow: -14px 0 30px rgba(14, 37, 78, 0.18);
+    transform: translateX(105%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.25s ease, opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 50;
   }
 
   .site-nav.open {
-    display: flex;
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .nav-link {
     border-radius: 10px;
+    display: block;
+    width: 100%;
+  }
+
+  .nav-link.active {
+    background: rgba(11, 106, 255, 0.12);
+    color: var(--primary);
+    border: 1px solid rgba(11, 106, 255, 0.24);
   }
 
   .nav-mobile-cta {
     display: inline-flex;
-    margin-top: 6px;
+    margin-top: 8px;
+    width: 100%;
   }
 
   .three-cols {
@@ -2014,17 +2036,6 @@ select:focus {
       var(--bg);
   }
 
-  .site-nav {
-    position: fixed;
-    left: 10px;
-    right: 10px;
-    top: 78px;
-    max-height: calc(100vh - 92px);
-    overflow-y: auto;
-    box-shadow: 0 16px 36px rgba(14, 37, 78, 0.16);
-    z-index: 70;
-  }
-
   .nav-link,
   .nav-mobile-cta {
     min-height: 44px;
@@ -2141,27 +2152,4 @@ select:focus {
   inset: 0;
   background: rgba(0,0,0,0.45);
   z-index: 40;
-}
-
-@media (max-width: 900px){
-  .site-nav{
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 290px;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 80px 20px 20px;
-    transform: translateX(110%);
-    transition: transform 0.25s ease;
-    z-index: 50;
-  }
-  .site-nav.open{ transform: translateX(0); }
-
-  .nav-mobile-cta{
-    margin-top: 14px;
-  }
 }
