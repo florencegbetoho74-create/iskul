@@ -7,7 +7,7 @@ const HAS_SUPABASE_CONFIG = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 export const OFFICIAL_WEB_ENV_READY = HAS_SUPABASE_CONFIG;
 export const OFFICIAL_WEB_ENV_ERROR = HAS_SUPABASE_CONFIG
   ? null
-  : "Le service d'inscription est temporairement indisponible.";
+  : "Le service iSkul est temporairement indisponible.";
 
 if (!HAS_SUPABASE_CONFIG && import.meta.env.DEV) {
   const missingEnv: string[] = [];

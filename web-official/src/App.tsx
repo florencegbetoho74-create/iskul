@@ -129,6 +129,55 @@ async function resolveTeacherSignupError(err: unknown): Promise<string> {
   return mapTeacherSignupError({ message });
 }
 
+function mapContactError(err: unknown): string {
+  const msg = String((err as { message?: string })?.message || "").toLowerCase();
+  if (!msg) return "Impossible d'envoyer le message pour le moment.";
+  if (msg.includes("missing_fields")) return "Veuillez remplir tous les champs obligatoires.";
+  if (msg.includes("invalid_email")) return "Adresse email invalide.";
+  if (msg.includes("message_too_short")) return "Votre message est trop court.";
+  if (msg.includes("message_too_long")) return "Votre message est trop long.";
+  if (msg.includes("contact_storage_not_configured")) {
+    return "Le service de contact est temporairement indisponible.";
+  }
+  if (msg.includes("contact_store_failed") || msg.includes("internal_error")) {
+    return "Le service de contact est temporairement indisponible.";
+  }
+  if (msg.includes("invalid_payload")) return "Le message n'a pas pu etre traite.";
+  if (msg.includes("server_misconfigured")) return "Le service de contact est temporairement indisponible.";
+  if (
+    msg.includes("failed to fetch") ||
+    msg.includes("functionsfetcherror") ||
+    msg.includes("failed to send a request to the edge function")
+  ) {
+    return "Connexion au serveur impossible. Verifiez votre connexion puis reessayez.";
+  }
+  if (msg.includes("404") || msg.includes("function not found") || msg.includes("non-2xx")) {
+    return "Le service de contact n'est pas encore deploye.";
+  }
+  return "Impossible d'envoyer le message pour le moment. Reessayez dans quelques instants.";
+}
+
+async function resolveContactError(err: unknown): Promise<string> {
+  const anyErr = err as {
+    message?: string;
+    context?: { json?: () => Promise<{ error?: string; message?: string }> };
+  };
+
+  let message = String(anyErr?.message || "");
+
+  if (anyErr?.context?.json) {
+    try {
+      const payload = await anyErr.context.json();
+      if (payload?.error) message += ` ${payload.error}`;
+      if (payload?.message) message += ` ${payload.message}`;
+    } catch {
+      // ignore context parsing issues
+    }
+  }
+
+  return mapContactError({ message });
+}
+
 function getPasswordStrength(password: string): PasswordStrength {
   let score = 0;
   if (password.length >= 8) score += 1;
@@ -711,7 +760,7 @@ function ContactPage() {
   const [error, setError] = useState<string | null>(null);
 
   const disabled = useMemo(() => {
-    if (busy) return true;
+    if (busy || OFFICIAL_WEB_ENV_ERROR) return true;
     if (!name.trim() || !email.trim() || !message.trim()) return true;
     if (!isEmail(email.trim())) return true;
     return false;
@@ -735,15 +784,16 @@ function ContactPage() {
       });
 
       if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error || "contact_failed");
+      if (!data?.ok) {
+        throw new Error(`${data?.error || "contact_failed"} ${data?.message || ""}`.trim());
+      }
 
       setSent(true);
       setName("");
       setEmail("");
       setMessage("");
     } catch (err) {
-      setError("Impossible d’envoyer le message pour le moment. Réessayez dans quelques instants.");
-      // Optionnel : console.log(err)
+      setError(await resolveContactError(err));
     } finally {
       setBusy(false);
     }
@@ -756,6 +806,8 @@ function ContactPage() {
         <h1>Écrivez-nous</h1>
         <p>Une question, une collaboration, une demande institutionnelle ? Envoyez-nous un message.</p>
       </header>
+
+      {OFFICIAL_WEB_ENV_ERROR ? <p className="notice error">{OFFICIAL_WEB_ENV_ERROR}</p> : null}
 
       {sent ? (
         <p className="notice success">Votre message a bien été envoyé. Nous vous répondrons dès que possible.</p>
