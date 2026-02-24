@@ -30,6 +30,7 @@ const INDEX_ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-vi
 const NOINDEX_ROBOTS = "noindex,nofollow,max-snippet:-1,max-image-preview:none,max-video-preview:-1";
 const THEME_COLOR = "#0b6aff";
 
+// NB: c'est un email support (ok d'être public). L'email akpiricardo@gmail.com reste côté serveur (contact-message).
 const SUPPORT_EMAIL = String(import.meta.env.VITE_SUPPORT_EMAIL || "support@iskul.app").trim();
 
 function normalizeSiteUrl(value: string): string {
@@ -58,112 +59,233 @@ const SITE_URL = normalizeSiteUrl(String(import.meta.env.VITE_SITE_URL || DEFAUL
 const SITE_ROOT_URL = `${SITE_URL}/`;
 const OG_IMAGE_URL = new URL("/og-image.png", SITE_ROOT_URL).toString();
 
+/** Mots-clés communs — plus naturels et "produit" */
 const COMMON_KEYWORDS = [
   "iSkul",
-  "education",
-  "edtech",
-  "plateforme educative",
-  "cours bilingues",
-  "apprentissage en ligne",
+  "EdTech",
+  "éducation",
+  "apprentissage",
+  "vidéos de cours",
+  "quiz de compréhension",
+  "statistiques de progression",
   "Afrique francophone",
+  "cours en ligne",
+  "plateforme éducative",
 ];
 
+/** SEO par route */
 const ROUTE_SEO: Record<string, SeoRoute> = {
   "/": {
     path: "/",
-    title: "iSkul | Plateforme EdTech bilingue pour eleves, parents et enseignants",
+    title: "iSkul — Comprendre ses cours avec vidéos, quiz et statistiques",
     description:
-      "iSkul aide les eleves a mieux comprendre leurs cours en francais et en langues locales avec quiz, bibliotheque et sessions live.",
-    keywords: [...COMMON_KEYWORDS, "open classroom", "suivi parental", "bibliotheque numerique"],
+      "iSkul aide les élèves à mieux comprendre leurs cours grâce à des vidéos par chapitre (en français et langues locales), des quiz par séquence et un suivi de progression. Open Classroom en live et bibliothèque pédagogique.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "Open Classroom",
+      "bibliothèque pédagogique",
+      "langues locales",
+      "cours bilingues",
+    ],
     breadcrumb: "Accueil",
     ogType: "website",
     includeInSitemap: true,
     changeFrequency: "weekly",
     priority: 1,
   },
+
   "/cours": {
     path: "/cours",
-    title: "Cours iSkul | Catalogue pedagogique bilingue",
+    title: "Cours & Quiz — iSkul",
     description:
-      "Decouvrez les cours iSkul en francais et langues locales: mathematiques, sciences, communication et parcours adaptes au niveau de l'eleve.",
-    keywords: [...COMMON_KEYWORDS, "cours en ligne", "mathematiques", "sciences", "francais"],
-    breadcrumb: "Nos cours",
+      "Des cours structurés pour comprendre avant de mémoriser : vidéo par chapitre, quiz de compréhension par séquence et statistiques de progression.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "cours & quiz",
+      "vidéo par chapitre",
+      "quiz par séquence",
+      "révisions",
+      "collège",
+      "lycée",
+    ],
+    breadcrumb: "Cours & Quiz",
     ogType: "website",
     includeInSitemap: true,
     changeFrequency: "weekly",
     priority: 0.9,
   },
+
   "/bibliotheque": {
     path: "/bibliotheque",
-    title: "Bibliotheque iSkul | E-books et resumes scolaires",
+    title: "Bibliothèque — iSkul",
     description:
-      "Accedez a la bibliotheque iSkul: e-books, resumes intelligents et ressources pedagogiques gratuites ou premium pour progresser rapidement.",
-    keywords: [...COMMON_KEYWORDS, "bibliotheque numerique", "ebooks scolaires", "resumes de cours"],
-    breadcrumb: "La bibliotheque",
+      "Bibliothèque iSkul : documents pédagogiques, supports de révision et ressources utiles pour apprendre, consolider et approfondir.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "bibliothèque",
+      "documents pédagogiques",
+      "supports de cours",
+      "livres",
+      "ressources éducatives",
+    ],
+    breadcrumb: "Bibliothèque",
     ogType: "website",
     includeInSitemap: true,
     changeFrequency: "weekly",
     priority: 0.8,
   },
-  "/parents": {
-    path: "/parents",
-    title: "Espace Parents iSkul | Suivi scolaire en temps reel",
-    description:
-      "Suivez la progression des enfants avec des donnees claires: temps d'etude, quiz, lives et activite quotidienne dans l'espace parents iSkul.",
-    keywords: [...COMMON_KEYWORDS, "suivi parental", "performance scolaire", "statistiques eleves"],
-    breadcrumb: "Espace parents",
-    ogType: "website",
-    includeInSitemap: true,
-    changeFrequency: "daily",
-    priority: 0.85,
-  },
+
   "/open-classroom": {
     path: "/open-classroom",
-    title: "Open Classroom iSkul | Sessions live educatives",
+    title: "Open Classroom (Live) — iSkul",
     description:
-      "Consultez le planning Open Classroom iSkul: sessions live interactives, questions-reponses et replays pour reviser a votre rythme.",
-    keywords: [...COMMON_KEYWORDS, "open classroom", "cours en direct", "sessions live"],
+      "Planning Open Classroom iSkul : sessions live interactives, questions-réponses, méthodologie et replays pour réviser à son rythme.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "Open Classroom",
+      "cours en direct",
+      "sessions live",
+      "questions-réponses",
+      "replays",
+    ],
     breadcrumb: "Open Classroom",
     ogType: "website",
     includeInSitemap: true,
     changeFrequency: "daily",
     priority: 0.8,
   },
+
+  "/parents": {
+    path: "/parents",
+    title: "Espace parents — iSkul",
+    description:
+      "Espace parents iSkul : consultez les statistiques liées à l’élève (progression, scores, régularité) pour suivre sans pression inutile.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "espace parents",
+      "suivi parental",
+      "progression",
+      "scores",
+      "statistiques",
+    ],
+    breadcrumb: "Espace parents",
+    ogType: "website",
+    includeInSitemap: true,
+    changeFrequency: "daily",
+    priority: 0.85,
+  },
+
   "/a-propos": {
     path: "/a-propos",
-    title: "A propos de iSkul | Mission et vision EdTech",
+    title: "À propos — iSkul",
     description:
-      "Decouvrez la mission de iSkul: rendre l'excellence scolaire accessible en respectant la langue, la culture et le rythme de chaque eleve.",
-    keywords: [...COMMON_KEYWORDS, "mission iSkul", "edtech afrique", "education inclusive"],
-    breadcrumb: "A propos",
+      "Découvrez iSkul : une plateforme EdTech qui remet la compréhension au centre grâce aux vidéos, quiz et statistiques, en français et langues locales.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "mission",
+      "vision",
+      "éducation inclusive",
+      "langues locales",
+    ],
+    breadcrumb: "À propos",
     ogType: "website",
     includeInSitemap: true,
     changeFrequency: "monthly",
     priority: 0.7,
   },
+
   "/inscription-professeur": {
     path: "/inscription-professeur",
-    title: "Inscription professeur iSkul | Creer un compte enseignant",
+    title: "Devenir professeur — iSkul",
     description:
-      "Portail officiel d'inscription professeur iSkul: creation de compte enseignant, verification et activation securisee.",
-    keywords: [...COMMON_KEYWORDS, "inscription enseignant", "portail professeur", "compte enseignant"],
-    breadcrumb: "Inscription professeur",
+      "Inscription professeur iSkul : créez votre compte enseignant. Sur le web, consultez des statistiques détaillées ; l’expérience complète de création/organisation se fait dans l’application iSkul.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "devenir professeur",
+      "inscription enseignant",
+      "portail professeur",
+      "statistiques enseignants",
+    ],
+    breadcrumb: "Devenir professeur",
     ogType: "website",
     includeInSitemap: true,
     changeFrequency: "weekly",
     priority: 0.75,
   },
+
   "/espace-professeur": {
     path: "/espace-professeur",
-    title: "Espace professeur iSkul | Workspace enseignant",
+    title: "Espace professeur — iSkul",
     description:
-      "Workspace enseignant iSkul pour gerer cours, livres, lives et quiz dans un espace pedagogique securise.",
-    keywords: [...COMMON_KEYWORDS, "workspace enseignant", "gestion pedagogique", "console professeur"],
+      "Espace professeur iSkul : indicateurs et statistiques détaillées. Pour créer et organiser les contenus, utilisez l’application iSkul.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "espace professeur",
+      "statistiques",
+      "performance",
+      "engagement",
+    ],
     breadcrumb: "Espace professeur",
     ogType: "website",
     noIndex: true,
     includeInSitemap: false,
     changeFrequency: "weekly",
+    priority: 0.3,
+  },
+
+  "/contact": {
+    path: "/contact",
+    title: "Contact — iSkul",
+    description:
+      "Contactez l’équipe iSkul via le formulaire : questions, partenariats, demandes institutionnelles. Réponse dès que possible.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "contact",
+      "partenariat",
+      "support",
+      "institution",
+    ],
+    breadcrumb: "Contact",
+    ogType: "website",
+    includeInSitemap: true,
+    changeFrequency: "monthly",
+    priority: 0.5,
+  },
+
+  "/faq": {
+    path: "/faq",
+    title: "FAQ — iSkul",
+    description:
+      "FAQ iSkul : disponibilité de l’application, langues, fonctionnement des quiz, espace parents et espace professeur.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "FAQ",
+      "questions fréquentes",
+      "aide",
+      "support",
+    ],
+    breadcrumb: "FAQ",
+    ogType: "website",
+    includeInSitemap: true,
+    changeFrequency: "monthly",
+    priority: 0.45,
+  },
+
+  "/mentions-legales": {
+    path: "/mentions-legales",
+    title: "Mentions légales — iSkul",
+    description:
+      "Mentions légales et informations relatives au site iSkul.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "mentions légales",
+      "informations légales",
+      "confidentialité",
+    ],
+    breadcrumb: "Mentions légales",
+    ogType: "website",
+    includeInSitemap: true,
+    changeFrequency: "yearly",
     priority: 0.3,
   },
 };
@@ -177,6 +299,8 @@ function resolveRouteSeo(pathname: string): SeoRoute {
   return {
     ...DEFAULT_ROUTE,
     path: normalizedPath,
+    // Par défaut : on indexe, mais si tu veux éviter d’indexer les 404 virtuelles,
+    // tu peux ajouter noIndex: true ici.
   };
 }
 
@@ -257,6 +381,7 @@ function buildStructuredData(route: SeoRoute, canonicalUrl: string): JsonLdObjec
       "@type": "ImageObject",
       url: OG_IMAGE_URL,
     },
+    // Support public ok. (Ton email privé de réception contact reste côté serveur.)
     email: `mailto:${SUPPORT_EMAIL}`,
   };
 
