@@ -1,16 +1,16 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from "react-native";
-import { COLOR } from "@/theme/colors";
+import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import * as Clipboard from "expo-clipboard";
-import { Attachment } from "@/types/chat";
-import { Ionicons } from "@expo/vector-icons";
+import { ChatAttachment } from "@/types/chat";
+import { COLOR, FONT } from "@/theme/colors";
 
-export default function ChatBubble({ text, mine, attachments }: { text?: string; mine: boolean; attachments?: Attachment[] }) {
+export default function ChatBubble({ text, mine, attachments }: { text?: string; mine: boolean; attachments?: ChatAttachment[] }) {
   const onLong = async () => {
     if (!text) return;
     await Clipboard.setStringAsync(text);
-    Alert.alert("Copié", "Texte copié dans le presse-papiers.");
+    Alert.alert("Copie", "Texte copie dans le presse-papiers.");
   };
 
   return (
@@ -21,7 +21,7 @@ export default function ChatBubble({ text, mine, attachments }: { text?: string;
         disabled={!text}
         style={[styles.bubble, mine ? styles.me : styles.other]}
       >
-        {!!text && <Text style={styles.txt}>{text}</Text>}
+        {!!text && <Text style={[styles.txt, !mine && { color: COLOR.text }]}>{text}</Text>}
 
         {!!attachments?.length && (
           <View style={{ gap: 8, marginTop: text ? 8 : 0 }}>
@@ -32,12 +32,12 @@ export default function ChatBubble({ text, mine, attachments }: { text?: string;
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity key={att.id} onPress={() => WebBrowser.openBrowserAsync(att.uri)} activeOpacity={0.9} style={styles.fileRow}>
-                  <Ionicons name="document-text-outline" size={18} color="#fff" />
+                  <Ionicons name="document-text-outline" size={18} color={mine ? COLOR.text : COLOR.text} />
                   <View style={{ flex: 1 }}>
                     <Text numberOfLines={1} style={styles.fileName}>{att.name || "Fichier"}</Text>
                     {att.mime ? <Text style={styles.fileMeta}>{att.mime}</Text> : null}
                   </View>
-                  <Ionicons name="open-outline" size={18} color="#cbd5e1" />
+                  <Ionicons name="open-outline" size={18} color={COLOR.sub} />
                 </TouchableOpacity>
               )
             ))}
@@ -52,13 +52,13 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 8, marginVertical: 4, flexDirection: "row" },
   left: { justifyContent: "flex-start" },
   right: { justifyContent: "flex-end" },
-  bubble: { maxWidth: "85%", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1 },
-  me: { backgroundColor: "#6C5CE7", borderColor: "#5A4ED3" },
-  other: { backgroundColor: "#111214", borderColor: "#1F2023" },
-  txt: { color: "#fff" },
+  bubble: { maxWidth: "85%", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1 },
+  me: { backgroundColor: COLOR.primary, borderColor: "transparent" },
+  other: { backgroundColor: COLOR.surface, borderColor: COLOR.border },
+  txt: { color: "#fff", fontFamily: FONT.body, lineHeight: 20 },
 
-  img: { width: 220, height: 160, borderRadius: 12, backgroundColor: "#0b0b0c", borderWidth: 1, borderColor: "#2a2b2f" },
-  fileRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#0f1013", borderColor: "#1F2023", borderWidth: 1, padding: 10, borderRadius: 12 },
-  fileName: { color: "#fff", fontWeight: "800" },
-  fileMeta: { color: "#cbd5e1", fontSize: 12 }
+  img: { width: 220, height: 160, borderRadius: 12, backgroundColor: COLOR.muted, borderWidth: 1, borderColor: COLOR.border },
+  fileRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLOR.tint, borderColor: COLOR.border, borderWidth: 1, padding: 10, borderRadius: 12 },
+  fileName: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  fileMeta: { color: COLOR.sub, fontSize: 12, fontFamily: FONT.body }
 });

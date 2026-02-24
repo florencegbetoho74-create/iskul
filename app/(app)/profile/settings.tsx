@@ -1,19 +1,20 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from "react-native";
-import { COLOR } from "@/theme/colors";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet, Switch, Pressable, Alert, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+
+import { COLOR, FONT } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 
 const Row = ({ icon, title, subtitle, right, onPress }: any) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.9 : 1} style={styles.row}>
+  <Pressable onPress={onPress} style={styles.row}>
     {icon}
     <View style={{ flex: 1 }}>
       <Text style={styles.rowTitle}>{title}</Text>
       {subtitle ? <Text style={styles.rowSub}>{subtitle}</Text> : null}
     </View>
     {right}
-  </TouchableOpacity>
+  </Pressable>
 );
 
 export default function Settings() {
@@ -21,42 +22,65 @@ export default function Settings() {
   const [notif, setNotif] = useState(true);
 
   const clearLocal = async () => {
-    Alert.alert("Vider le cache", "Effacer les données locales (progression, chats, etc.) ?", [
+    Alert.alert("Vider le cache", "Effacer les donnees locales (progression, chats, etc.) ?", [
       { text: "Annuler" },
-      { text: "Oui, effacer", style: "destructive", onPress: async () => {
-        // ⚠️ efface tout le sandbox AsyncStorage (app iSkul)
-        await AsyncStorage.clear();
-        Alert.alert("OK", "Cache local vidé. Veuillez vous reconnecter.");
-      }}
+      {
+        text: "Oui, effacer",
+        style: "destructive",
+        onPress: async () => {
+          await AsyncStorage.clear();
+          Alert.alert("OK", "Cache local vide. Veuillez vous reconnecter.");
+        },
+      },
     ]);
+  };
+
+  const openAdminWeb = async () => {
+    const url = String((process.env as any)?.EXPO_PUBLIC_WEB_ADMIN_URL || "http://localhost:5173/admin/login");
+    const canOpen = await Linking.canOpenURL(url).catch(() => false);
+    if (!canOpen) {
+      Alert.alert("Lien indisponible", `Impossible d'ouvrir: ${url}`);
+      return;
+    }
+    await Linking.openURL(url).catch(() => {
+      Alert.alert("Erreur", "Ouverture de la console web impossible.");
+    });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Réglages</Text>
+      <Text style={styles.title}>Reglages</Text>
 
       <Row
-        icon={<Ionicons name="notifications-outline" size={18} color="#cbd5e1" />}
+        icon={<Ionicons name="notifications-outline" size={18} color={COLOR.text} />}
         title="Notifications"
-        subtitle="Alerte nouveaux messages, cours publiés"
+        subtitle="Alertes pour messages et cours publies"
         right={<Switch value={notif} onValueChange={setNotif} />}
       />
 
       <Row
-        icon={<Ionicons name="globe-outline" size={18} color="#cbd5e1" />}
+        icon={<Ionicons name="globe-outline" size={18} color={COLOR.text} />}
         title="Langue"
-        subtitle="Français"
+        subtitle="Francais"
+        right={<Text style={styles.rowSub}>FR</Text>}
       />
 
       <Row
-        icon={<Ionicons name="trash-outline" size={18} color="#e11d48" />}
+        icon={<Ionicons name="trash-outline" size={18} color={COLOR.danger} />}
         title="Vider le cache local"
-        subtitle="Réinitialise les données stockées sur cet appareil"
+        subtitle="Reinitialise les donnees stockees sur cet appareil"
         onPress={clearLocal}
       />
 
+      <Row
+        icon={<Ionicons name="speedometer-outline" size={18} color={COLOR.text} />}
+        title="Console admin (web)"
+        subtitle="Ouvrir la console desktop externe"
+        onPress={openAdminWeb}
+      />
+
       <View style={{ marginTop: 18 }}>
-        <Text style={styles.caption}>Connecté en tant que</Text>
+        <Text style={styles.caption}>Connecte en tant que</Text>
         <Text style={styles.userLine}>{user?.name} ({user?.role})</Text>
       </View>
     </View>
@@ -65,10 +89,19 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLOR.bg, padding: 16, gap: 10 },
-  title: { color: COLOR.text, fontSize: 20, fontWeight: "900" },
-  row: { backgroundColor: "#111214", borderColor: "#1F2023", borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", gap: 10 },
-  rowTitle: { color: "#fff", fontWeight: "800" },
-  rowSub: { color: COLOR.sub, marginTop: 2 },
-  caption: { color: COLOR.sub, marginBottom: 4 },
-  userLine: { color: COLOR.text, fontWeight: "800" }
+  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
+  row: {
+    backgroundColor: COLOR.surface,
+    borderColor: COLOR.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  rowTitle: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  rowSub: { color: COLOR.sub, marginTop: 2, fontFamily: FONT.body },
+  caption: { color: COLOR.sub, marginBottom: 4, fontFamily: FONT.body },
+  userLine: { color: COLOR.text, fontFamily: FONT.bodyBold },
 });

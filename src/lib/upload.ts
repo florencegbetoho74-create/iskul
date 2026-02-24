@@ -1,71 +1,41 @@
-import { storage } from "@/lib/firebase";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import * as FileSystem from "expo-file-system";
+// src/lib/upload.ts - Supabase Storage wrapper (Expo / React Native)
+import { uploadVideoSupabase } from "@/lib/uploadSupabase";
 
-/** Types */
 export type UploadInput = { uri: string; name: string; contentType?: string };
-export type UploadOut = { url: string; path: string; name: string; fullPath: string };
+export type UploadOut = { url: string; path: string; name: string; fullPath: string; bucket: string };
+export type UploadOpts = { onProgress?: (pct: number) => void };
 
-/** Helpers */
-function inferContentType(name: string, fallback = "application/octet-stream") {
-  const ext = (name.split(".").pop() || "").toLowerCase();
-  switch (ext) {
-    case "mp4":
-    case "m4v":
-      return "video/mp4";
-    case "mov":
-      return "video/quicktime";
-    case "webm":
-      return "video/webm";
-    case "mkv":
-      return "video/x-matroska";
-    case "png":
-      return "image/png";
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "pdf":
-      return "application/pdf";
-    default:
-      return fallback;
-  }
-}
-function safePath(s: string) {
-  return s.replace(/[^\w.\-\/]/g, "_");
-}
-/** Android: transforme content:// en file:// lisible */
-async function ensureFileUriReadable(uri: string, name?: string) {
-  if (uri.startsWith("content://")) {
-    const to = `${FileSystem.cacheDirectory}${Date.now()}-${name || "upload.bin"}`;
-    await FileSystem.copyAsync({ from: uri, to });
-    return to;
-  }
-  return uri;
+function safeName(name: string) {
+  const normalized = (name || "file")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return normalized.replace(/\s+/g, "_").replace(/[^\w.\-]/g, "_");
 }
 
-/** Upload via base64 (100% compatible Expo Go) */
-export async function uploadOne(
-  file: UploadInput,
-  destFolder: string
-): Promise<UploadOut> {
-  let { uri, name, contentType } = file;
-  uri = await ensureFileUriReadable(uri, name);
-  contentType = contentType || inferContentType(name);
+function getExt(name: string) {
+  const m = (name || "").match(/\.([a-zA-Z0-9]{1,10})$/);
+  return m ? `.${m[1]}` : "";
+}
 
-  // 1) lire le fichier en base64
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+export async function uploadOne(input: UploadInput, destFolder: string, opts?: UploadOpts): Promise<UploadOut> {
+  const clean = safeName(input.name || "file");
+  const ext = getExt(clean);
+  const base = ext ? clean.slice(0, -ext.length) : clean;
 
-  // 2) envoyer en base64 (pas de Blob/ArrayBuffer)
-  const path = safePath(`${destFolder}/${Date.now()}-${name.replace(/\s+/g, "_")}`);
-  const r = ref(storage, path);
+  const filename = `${Date.now()}-${base}${ext}`;
 
-  await uploadString(r, base64, "base64", {
-    contentType,
-    cacheControl: "public,max-age=3600",
-    contentDisposition: `inline; filename="${name.replace(/"/g, "_")}"`
+  const result = await uploadVideoSupabase(input.uri, {
+    folder: destFolder,
+    filename,
+    contentType: input.contentType,
+    onProgress: opts?.onProgress,
   });
 
-  // 3) URL publique
-  const url = await getDownloadURL(r);
-  return { url, path, name, fullPath: r.fullPath };
+  return {
+    url: result.url,
+    path: result.path,
+    name: input.name,
+    fullPath: result.path,
+    bucket: result.bucket,
+  };
 }

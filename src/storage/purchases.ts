@@ -1,23 +1,28 @@
-import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, getDocs, query, collection, where } from "firebase/firestore";
-
-const COL = "purchases";
-
-function pid(userId: string, bookId: string) { return `${userId}_${bookId}`; }
+import { supabase } from "@/lib/supabase";
 
 export async function hasPurchased(userId: string, bookId: string) {
-  const snap = await getDoc(doc(db, COL, pid(userId, bookId)));
-  return snap.exists();
+  const { data, error } = await supabase
+    .from("purchases")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("book_id", bookId)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
 }
 
 export async function addPurchase(userId: string, bookId: string) {
-  await setDoc(doc(db, COL, pid(userId, bookId)), {
-    userId, bookId, createdAt: Date.now()
-  }, { merge: true });
+  const { error } = await supabase
+    .from("purchases")
+    .upsert(
+      { user_id: userId, book_id: bookId, created_at_ms: Date.now() },
+      { onConflict: "user_id,book_id" }
+    );
+  if (error) throw error;
 }
 
 export async function listPurchased(userId: string) {
-  const q = query(collection(db, COL), where("userId", "==", userId));
-  const s = await getDocs(q);
-  return s.docs.map(d => d.data().bookId as string);
+  const { data, error } = await supabase.from("purchases").select("book_id").eq("user_id", userId);
+  if (error || !data) return [];
+  return data.map((d: any) => d.book_id as string);
 }

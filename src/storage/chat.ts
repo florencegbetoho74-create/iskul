@@ -1,11 +1,18 @@
-import { db } from "@/lib/firebase";
-import {
-  doc, getDoc, setDoc, updateDoc, onSnapshot,
-  collection, addDoc, query, where, orderBy
-} from "firebase/firestore";
+// @/storage/chat.ts - Supabase implementation
+import { supabase } from "@/lib/supabase";
 import type { ChatAttachment, Message, Thread } from "@/types/chat";
 
-/** Crée un id déterministe pour éviter les doublons */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function assertUuid(value: string, label: string) {
+  const v = String(value || "").trim();
+  if (!v || !UUID_RE.test(v)) {
+    throw new Error(`Identifiant ${label} invalide.`);
+  }
+  return v;
+}
+
+/** Create deterministic thread id to avoid duplicates */
 function makeThreadId(teacherId: string, studentId: string, courseId?: string | null) {
   const pair = [teacherId, studentId].sort().join("__");
   const c = courseId?.replace(/[^\w\-]/g, "_") || "none";
@@ -13,114 +20,217 @@ function makeThreadId(teacherId: string, studentId: string, courseId?: string | 
   return `th_${raw.replace(/[^\w\-]/g, "_").slice(0, 250)}`;
 }
 
-function mapThread(d: any): Thread {
-  const data = d.data ? d.data() : d;
+function mapThread(row: any): Thread {
   return {
-    id: d.id ?? data.id,
-    teacherId: data.teacherId,
-    teacherName: data.teacherName ?? "",
-    studentId: data.studentId,
-    studentName: data.studentName ?? "",
-    participants: Array.isArray(data.participants) ? data.participants : [data.teacherId, data.studentId],
-    courseId: data.courseId ?? null,
-    courseTitle: data.courseTitle ?? null,
-    createdAtMs: data.createdAtMs ?? Date.now(),
-    lastAtMs: data.lastAtMs ?? Date.now(),
-    lastFromId: data.lastFromId ?? "",
-    lastText: data.lastText ?? null,
-    lastReadAtMs: data.lastReadAtMs ?? {}
+    id: row.id,
+    teacherId: row.teacher_id,
+    teacherName: row.teacher_name ?? "",
+    studentId: row.student_id,
+    studentName: row.student_name ?? "",
+    participants: row.participants ?? [row.teacher_id, row.student_id],
+    courseId: row.course_id ?? null,
+    courseTitle: row.course_title ?? null,
+    createdAtMs: row.created_at_ms ?? Date.now(),
+    lastAtMs: row.last_at_ms ?? Date.now(),
+    lastFromId: row.last_from_id ?? "",
+    lastText: row.last_text ?? null,
+    lastReadAtMs: row.last_read_at_ms ?? {},
   };
 }
 
-/** Crée (ou récupère) un thread 1:1 */
+function mapMessage(row: any): Message {
+  return {
+    id: row.id,
+    fromId: row.from_id,
+    text: row.text ?? null,
+    attachments: row.attachments ?? [],
+    atMs: row.at_ms ?? Date.now(),
+  };
+}
+
+export function hasUnread(t: Thread, userId: string) {
+  const lastRead = t.lastReadAtMs?.[userId] ?? 0;
+  return !!(t.lastFromId && t.lastFromId !== userId && (t.lastAtMs ?? 0) > lastRead);
+}
+
 export async function startThread(params: {
-  teacherId: string; teacherName?: string;
-  studentId: string; studentName?: string;
-  courseId?: string | null; courseTitle?: string | null;
+  teacherId: string;
+  teacherName?: string;
+  studentId: string;
+  studentName?: string;
+  courseId?: string | null;
+  courseTitle?: string | null;
 }): Promise<Thread> {
-  const id = makeThreadId(params.teacherId, params.studentId, params.courseId);
-  const ref = doc(db, "threads", id);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
+  const teacherId = assertUuid(params.teacherId, "enseignant");
+  const studentId = assertUuid(params.studentId, "eleve");
+  const courseId = params.courseId?.trim() || null;
+  const courseTitle = params.courseTitle?.trim() || null;
+  const id = makeThreadId(teacherId, studentId, courseId);
+  const { data } = await supabase.from("chat_threads").select("*").eq("id", id).maybeSingle();
+  if (!data) {
     const now = Date.now();
-    const payload: Thread = {
+    const payload = {
       id,
-      teacherId: params.teacherId,
-      teacherName: params.teacherName ?? "",
-      studentId: params.studentId,
-      studentName: params.studentName ?? "",
-      participants: [params.teacherId, params.studentId],
-      courseId: params.courseId ?? null,
-      courseTitle: params.courseTitle ?? null,
-      createdAtMs: now,
-      lastAtMs: now,
-      lastFromId: "",
-      lastText: null,
-      lastReadAtMs: {}
+      teacher_id: teacherId,
+      teacher_name: params.teacherName ?? "",
+      student_id: studentId,
+      student_name: params.studentName ?? "",
+      participants: [teacherId, studentId],
+      course_id: courseId,
+      course_title: courseTitle,
+      created_at_ms: now,
+      last_at_ms: now,
+      last_from_id: null,
+      last_text: null,
+      last_read_at_ms: {},
     };
-    await setDoc(ref, payload as any);
-    return payload;
+    const { data: created, error } = await supabase.from("chat_threads").insert(payload).select("*").single();
+    if (error || !created) throw error || new Error("Thread creation failed.");
+    return mapThread(created);
   }
-  return mapThread({ id: snap.id, ...snap.data() });
+  return mapThread(data);
 }
 
-/** Inbox temps réel pour un utilisateur */
 export function watchInbox(userId: string, cb: (rows: Thread[]) => void) {
-  const qy = query(collection(db, "threads"), where("participants", "array-contains", userId));
-  return onSnapshot(qy, (ss) => {
-    const rows = ss.docs.map((d) => mapThread(d));
-    rows.sort((a, b) => (b.lastAtMs ?? 0) - (a.lastAtMs ?? 0)); // tri client (évite index composite)
+  let active = true;
+  const fetchOnce = async () => {
+    const { data } = await supabase
+      .from("chat_threads")
+      .select("*")
+      .contains("participants", [userId])
+      .order("last_at_ms", { ascending: false });
+    if (!active) return;
+    const rows = ((data as any[]) || []).map(mapThread);
     cb(rows);
-  });
+  };
+  fetchOnce();
+  const channel = supabase
+    .channel(`threads-${userId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "chat_threads" }, () => fetchOnce())
+    .subscribe();
+  return () => {
+    active = false;
+    supabase.removeChannel(channel);
+  };
 }
 
-/** Thread en temps réel */
 export function watchThread(threadId: string, cb: (t: Thread | null) => void) {
-  const ref = doc(db, "threads", threadId);
-  return onSnapshot(ref, (snap) => {
-    if (!snap.exists()) return cb(null);
-    cb(mapThread({ id: snap.id, ...snap.data() }));
-  });
+  let active = true;
+  const fetchOnce = async () => {
+    const { data } = await supabase.from("chat_threads").select("*").eq("id", threadId).maybeSingle();
+    if (!active) return;
+    cb(data ? mapThread(data) : null);
+  };
+  fetchOnce();
+  const channel = supabase
+    .channel(`thread-${threadId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "chat_threads", filter: `id=eq.${threadId}` },
+      () => fetchOnce()
+    )
+    .subscribe();
+  return () => {
+    active = false;
+    supabase.removeChannel(channel);
+  };
 }
 
-/** Messages en temps réel (triés ascendant) */
 export function watchMessages(threadId: string, cb: (rows: Message[]) => void) {
-  const qy = query(collection(db, "threads", threadId, "messages"), orderBy("atMs", "asc"));
-  return onSnapshot(qy, (ss) => {
-    const rows = ss.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Message[];
-    cb(rows);
-  });
+  let active = true;
+  const fetchOnce = async () => {
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("thread_id", threadId)
+      .order("at_ms", { ascending: true });
+    if (!active) return;
+    cb(((data as any[]) || []).map(mapMessage));
+  };
+  fetchOnce();
+  const channel = supabase
+    .channel(`messages-${threadId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "chat_messages", filter: `thread_id=eq.${threadId}` },
+      () => fetchOnce()
+    )
+    .subscribe();
+  return () => {
+    active = false;
+    supabase.removeChannel(channel);
+  };
 }
 
-/** Envoie un message (+ MAJ du thread) */
 export async function addMessage(
   threadId: string,
   fromId: string,
   text?: string | null,
   attachments?: ChatAttachment[]
-) {
+): Promise<Message> {
   const atMs = Date.now();
   const m: Omit<Message, "id"> = { fromId, text: text ?? null, attachments: attachments ?? [], atMs };
-  await addDoc(collection(db, "threads", threadId, "messages"), m as any);
 
-  // MAJ meta du thread
-  const ref = doc(db, "threads", threadId);
-  const lastText = (text && text.trim()) ? text.trim().slice(0, 140) : (attachments?.length ? `📎 ${attachments.length} pièce(s)` : "");
-  await updateDoc(ref, {
-    lastAtMs: atMs,
-    lastFromId: fromId,
-    lastText
-  } as any);
+  const { data: inserted, error: msgError } = await supabase
+    .from("chat_messages")
+    .insert({
+      thread_id: threadId,
+      from_id: fromId,
+      text: m.text,
+      attachments: m.attachments ?? [],
+      at_ms: atMs,
+    })
+    .select("*")
+    .single();
+  if (msgError || !inserted) throw msgError || new Error("Message insert failed.");
+
+  const lastText =
+    text && text.trim()
+      ? text.trim().slice(0, 140)
+      : attachments?.length
+      ? `[att] ${attachments.length} piece(s)`
+      : "";
+  await supabase
+    .from("chat_threads")
+    .update({ last_at_ms: atMs, last_from_id: fromId, last_text: lastText })
+    .eq("id", threadId);
+
+  return mapMessage(inserted);
 }
 
-/** Marque comme lu pour un utilisateur (timestamp) */
 export async function markRead(threadId: string, userId: string) {
-  const ref = doc(db, "threads", threadId);
-  await updateDoc(ref, { [`lastReadAtMs.${userId}`]: Date.now() } as any);
+  const { data } = await supabase
+    .from("chat_threads")
+    .select("last_read_at_ms")
+    .eq("id", threadId)
+    .maybeSingle();
+  const prev = (data as any)?.last_read_at_ms || {};
+  const next = { ...prev, [userId]: Date.now() };
+  await supabase.from("chat_threads").update({ last_read_at_ms: next }).eq("id", threadId);
 }
 
-/** Petit helper de confort pour l’UI : y a-t-il du non-lu ? */
-export function hasUnread(t: Thread, userId: string) {
-  const lastRead = t.lastReadAtMs?.[userId] ?? 0;
-  return (t.lastFromId && t.lastFromId !== userId && (t.lastAtMs ?? 0) > lastRead);
+export async function listThreadsForUser(
+  userId: string,
+  role?: "student" | "teacher",
+  topN = 50
+): Promise<(Thread & { unreadForStudent?: number; unreadForTeacher?: number })[]> {
+  const { data } = await supabase
+    .from("chat_threads")
+    .select("*")
+    .contains("participants", [userId])
+    .order("last_at_ms", { ascending: false })
+    .limit(topN);
+  const rows = ((data as any[]) || []).map(mapThread);
+  const out = rows.map((t) => {
+    const base: any = { ...t };
+    const unread = hasUnread(t, userId) ? 1 : 0;
+    if (role === "student") base.unreadForStudent = unread;
+    else if (role === "teacher") base.unreadForTeacher = unread;
+    else {
+      base.unreadForStudent = unread;
+      base.unreadForTeacher = unread;
+    }
+    return base;
+  });
+  return out;
 }

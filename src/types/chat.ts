@@ -4,6 +4,8 @@ export type ChatAttachment = {
   name: string;
   mime?: string | null;
   size?: number | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 export type Message = {

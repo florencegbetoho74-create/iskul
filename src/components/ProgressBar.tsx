@@ -11,6 +11,6 @@ export default function ProgressBar({ value }: { value: number }) {
   );
 }
 const styles = StyleSheet.create({
-  track: { height: 8, borderRadius: 999, backgroundColor: "#1A1B1E", overflow: "hidden" },
-  bar: { height: 8, borderRadius: 999, backgroundColor: COLOR.primary }
+  track: { height: 9, borderRadius: 999, backgroundColor: "rgba(47,91,255,0.12)", overflow: "hidden" },
+  bar: { height: 9, borderRadius: 999, backgroundColor: COLOR.primary }
 });

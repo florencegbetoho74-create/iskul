@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { COLOR } from "@/theme/colors";
+import { COLOR, FONT } from "@/theme/colors";
 
 type Q = { id: string; question: string; choices: string[]; answer: number };
 export default function QuizCard({ data }: { data: Q }) {
@@ -26,8 +26,8 @@ export default function QuizCard({ data }: { data: Q }) {
         <Text style={styles.submitText}>Valider</Text>
       </TouchableOpacity>
       {result !== null ? (
-        <Text style={[styles.feedback, { color: result ? "#10b981" : "#ef4444" }]}>
-          {result ? "Bonne réponse ✅" : "Mauvaise réponse ❌"}
+        <Text style={[styles.feedback, { color: result ? COLOR.success : COLOR.danger }]}>
+          {result ? "Bonne reponse" : "Mauvaise reponse"}
         </Text>
       ) : null}
     </View>
@@ -35,13 +35,25 @@ export default function QuizCard({ data }: { data: Q }) {
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: COLOR.card, borderRadius: 16, borderColor: COLOR.border, borderWidth: 1, padding: 14 },
-  q: { color: COLOR.text, fontWeight: "800" },
-  choice: { borderWidth: 1, borderColor: COLOR.border, borderRadius: 12, padding: 10, marginTop: 8, backgroundColor: "#111214" },
-  choiceActive: { borderColor: COLOR.primary, backgroundColor: "#17181b" },
-  choiceText: { color: COLOR.sub, fontWeight: "700" },
-  choiceTextActive: { color: "#fff" },
+  card: {
+    backgroundColor: COLOR.surface,
+    borderRadius: 18,
+    borderColor: COLOR.border,
+    borderWidth: 1,
+    padding: 14,
+    shadowColor: "#0B1D39",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  q: { color: COLOR.text, fontFamily: FONT.headingAlt },
+  choice: { borderWidth: 1, borderColor: COLOR.border, borderRadius: 12, padding: 10, marginTop: 8, backgroundColor: COLOR.surface },
+  choiceActive: { borderColor: COLOR.primary, backgroundColor: "rgba(29,78,216,0.08)" },
+  choiceText: { color: COLOR.sub, fontFamily: FONT.bodyBold },
+  choiceTextActive: { color: COLOR.text },
   submit: { marginTop: 12, backgroundColor: COLOR.primary, padding: 12, borderRadius: 12, alignItems: "center" },
-  submitText: { color: "#fff", fontWeight: "800" },
-  feedback: { marginTop: 10, fontWeight: "800" }
+  submitText: { color: "#fff", fontFamily: FONT.bodyBold },
+  feedback: { marginTop: 10, fontFamily: FONT.bodyBold }
 });
+

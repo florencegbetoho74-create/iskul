@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
-import { COLOR } from "@/theme/colors";
+import { COLOR, FONT, RADIUS, SPACE } from "@/theme/colors";
 
 type Props = { title: string; href?: string; cta?: string };
 export default function SectionHeader({ title, href, cta = "Voir tout" }: Props) {
@@ -18,7 +18,25 @@ export default function SectionHeader({ title, href, cta = "Voir tout" }: Props)
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, marginBottom: 6 },
-  title: { color: COLOR.text, fontSize: 16, fontWeight: "800" },
-  cta: { color: COLOR.sub, fontWeight: "700", textDecorationLine: "underline" }
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACE.xs,
+    marginBottom: SPACE.xs,
+    gap: SPACE.sm,
+  },
+  title: { color: COLOR.text, fontSize: 17, fontFamily: FONT.headingAlt, flex: 1 },
+  cta: {
+    color: COLOR.primary,
+    fontFamily: FONT.bodyBold,
+    fontSize: 12,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    backgroundColor: COLOR.tint,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: 5,
+    overflow: "hidden",
+  }
 });

@@ -1,5 +1,5 @@
-import * as FileSystem from "expo-file-system";
-import { Attachment } from "@/types/chat";
+import * as FileSystem from "expo-file-system/legacy";
+import { ChatAttachment } from "@/types/chat";
 
 const DIR = FileSystem.documentDirectory + "attachments";
 
@@ -25,9 +25,9 @@ export type PickedFileInput = {
 };
 
 /** Copie les fichiers choisis dans le sandbox de l'app et renvoie des Attachments persistés */
-export async function persistAttachments(files: PickedFileInput[]): Promise<Attachment[]> {
+export async function persistAttachments(files: PickedFileInput[]): Promise<ChatAttachment[]> {
   await ensureDir();
-  const out: Attachment[] = [];
+  const out: ChatAttachment[] = [];
   for (const f of files) {
     const filename = safeName(f.name);
     const dest = `${DIR}/${filename}`;

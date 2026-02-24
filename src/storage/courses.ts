@@ -1,109 +1,215 @@
-import { db } from "@/lib/firebase";
-import {
-  addDoc, collection, deleteDoc, doc, getDoc,
-  onSnapshot, orderBy, query, updateDoc, limit as qLimit, where
-} from "firebase/firestore";
-import type { Course, Chapter } from "@/types/course";
+// src/storage/courses.ts - Supabase implementation
+import { supabase } from "@/lib/supabase";
+import type { Course, Chapter, LangKey } from "@/types/course";
 
-const COL = "courses";
+type CourseRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  level: string;
+  subject: string;
+  cover_url?: string | null;
+  published: boolean;
+  owner_id: string;
+  owner_name?: string | null;
+  created_at_ms?: number | null;
+  updated_at_ms?: number | null;
+  chapters?: ChapterRow[] | null;
+};
 
-function mapDoc(d: any): Course {
-  const data = d.data ? d.data() : d;
-  return {
-    id: d.id ?? data.id,
-    title: data.title ?? "",
-    level: data.level ?? "",
-    subject: data.subject ?? "",
-    coverUrl: data.coverUrl ?? null,
-    chapters: Array.isArray(data.chapters) ? data.chapters : [],
-    published: !!data.published,
-    ownerId: data.ownerId ?? "",
-    ownerName: data.ownerName ?? "",
-    createdAtMs: data.createdAtMs ?? Date.now(),
-    updatedAtMs: data.updatedAtMs ?? Date.now()
-  };
-}
+type ChapterRow = {
+  id: string;
+  course_id: string;
+  title: string;
+  order_index?: number | null;
+  video_url?: string | null;
+  video_by_lang?: Partial<Record<LangKey, string>> | null;
+};
+
+const mapChapter = (row: ChapterRow): Chapter => ({
+  id: row.id,
+  title: row.title,
+  order: row.order_index ?? undefined,
+  videoUrl: row.video_url ?? undefined,
+  videoByLang: row.video_by_lang ?? undefined,
+});
+
+const mapCourse = (row: CourseRow): Course => ({
+  id: row.id,
+  title: row.title ?? "",
+  description: row.description ?? undefined,
+  level: row.level ?? "",
+  subject: row.subject ?? "",
+  coverUrl: row.cover_url ?? null,
+  chapters: Array.isArray(row.chapters) ? row.chapters.map(mapChapter) : [],
+  published: !!row.published,
+  ownerId: row.owner_id ?? "",
+  ownerName: row.owner_name ?? undefined,
+  createdAtMs: row.created_at_ms ?? Date.now(),
+  updatedAtMs: row.updated_at_ms ?? Date.now(),
+});
+
+const courseSelect =
+  "id,title,description,level,subject,cover_url,published,owner_id,owner_name,created_at_ms,updated_at_ms," +
+  "chapters ( id, course_id, title, order_index, video_url, video_by_lang )";
 
 export async function createCourse(input: Partial<Course>): Promise<Course> {
   const now = Date.now();
   const payload = {
     title: input.title ?? "",
+    description: input.description ?? null,
     level: input.level ?? "",
     subject: input.subject ?? "",
-    coverUrl: input.coverUrl ?? null,
-    chapters: Array.isArray(input.chapters) ? input.chapters : [],
+    cover_url: input.coverUrl ?? null,
     published: !!input.published,
-    ownerId: input.ownerId!,
-    ownerName: input.ownerName ?? "",
-    createdAtMs: now,
-    updatedAtMs: now
+    owner_id: input.ownerId!,
+    owner_name: input.ownerName ?? null,
+    created_at_ms: now,
+    updated_at_ms: now,
   };
-  const ref = await addDoc(collection(db, COL), payload as any);
-  return mapDoc({ id: ref.id, ...payload });
+  const { data, error } = await supabase.from("courses").insert(payload).select(courseSelect).single();
+  if (error || !data) throw error || new Error("Create course failed.");
+  return mapCourse(data as unknown as CourseRow);
 }
 
 export async function updateCourse(id: string, patch: Partial<Course>) {
-  const ref = doc(db, COL, id);
-  await updateDoc(ref, { ...patch, updatedAtMs: Date.now() });
-  const snap = await getDoc(ref);
-  return snap.exists() ? mapDoc({ id, ...snap.data() }) : null;
+  const payload: Record<string, any> = {
+    updated_at_ms: Date.now(),
+  };
+  if (patch.title !== undefined) payload.title = patch.title;
+  if (patch.description !== undefined) payload.description = patch.description ?? null;
+  if (patch.level !== undefined) payload.level = patch.level;
+  if (patch.subject !== undefined) payload.subject = patch.subject;
+  if (patch.coverUrl !== undefined) payload.cover_url = patch.coverUrl ?? null;
+  if (patch.published !== undefined) payload.published = patch.published;
+  if (patch.ownerName !== undefined) payload.owner_name = patch.ownerName ?? null;
+
+  const { data, error } = await supabase
+    .from("courses")
+    .update(payload)
+    .eq("id", id)
+    .select(courseSelect)
+    .single();
+  if (error || !data) throw error || new Error("Update course failed.");
+  return mapCourse(data as unknown as CourseRow);
 }
 
 export async function deleteCourse(id: string) {
-  await deleteDoc(doc(db, COL, id));
+  const { error } = await supabase.from("courses").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function getCourse(id: string): Promise<Course | null> {
-  const snap = await getDoc(doc(db, COL, id));
-  return snap.exists() ? mapDoc({ id: snap.id, ...snap.data() }) : null;
+  const { data, error } = await supabase.from("courses").select(courseSelect).eq("id", id).single();
+  if (error || !data) return null;
+  return mapCourse(data as unknown as CourseRow);
 }
 
-/** Temps réel : récupère les derniers cours (sans filtre serveur) */
+async function listCoursesOrdered(topN = 50): Promise<Course[]> {
+  const { data, error } = await supabase
+    .from("courses")
+    .select(courseSelect)
+    .order("updated_at_ms", { ascending: false })
+    .order("order_index", { foreignTable: "chapters", ascending: true })
+    .limit(topN);
+  if (error || !data) return [];
+  return (data as unknown as CourseRow[]).map(mapCourse);
+}
+
 export function watchCoursesOrdered(cb: (rows: Course[]) => void, topN = 50) {
-  const qy = query(collection(db, COL), orderBy("updatedAtMs", "desc"), qLimit(topN));
-  return onSnapshot(qy, (snap) => cb(snap.docs.map((d) => mapDoc(d))));
-}
-
-/** ✅ Temps réel : tous les cours d’un professeur (sans index composite) */
-export function watchByOwner(ownerId: string, cb: (rows: Course[]) => void) {
-  const qy = query(collection(db, COL), where("ownerId", "==", ownerId));
-  return onSnapshot(qy, (snap) => {
-    const rows = snap.docs.map((d) => mapDoc(d));
-    // Tri côté client pour éviter de forcer un index composite en dev
-    rows.sort((a, b) => (b.updatedAtMs ?? 0) - (a.updatedAtMs ?? 0));
-    cb(rows);
-  });
-}
-
-/* ===== Chapitres ===== */
-
-function genId() {
-  return (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).toUpperCase();
-}
-
-export async function addChapter(courseId: string, input: { title: string; videoUrl?: string | null; order?: number }) {
-  const ref = doc(db, COL, courseId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error("Cours introuvable");
-  const data = snap.data() as any;
-  const cur: Chapter[] = Array.isArray(data.chapters) ? data.chapters : [];
-  const ch: Chapter = {
-    id: genId(),
-    title: input.title,
-    videoUrl: input.videoUrl ?? undefined,
-    order: input.order ?? (cur.length ? Math.max(...cur.map((c: any) => c?.order ?? 0)) + 1 : 1)
+  let active = true;
+  const fetchOnce = async () => {
+    const rows = await listCoursesOrdered(topN);
+    if (active) cb(rows);
   };
-  const next = [...cur, ch];
-  await updateDoc(ref, { chapters: next, updatedAtMs: Date.now() });
-  return ch;
+  fetchOnce();
+
+  const channel = supabase
+    .channel("courses-watch")
+    .on("postgres_changes", { event: "*", schema: "public", table: "courses" }, () => fetchOnce())
+    .on("postgres_changes", { event: "*", schema: "public", table: "chapters" }, () => fetchOnce())
+    .subscribe();
+
+  return () => {
+    active = false;
+    supabase.removeChannel(channel);
+  };
+}
+
+export function watchByOwner(ownerId: string, cb: (rows: Course[]) => void) {
+  let active = true;
+  const fetchOnce = async () => {
+    const { data } = await supabase
+      .from("courses")
+      .select(courseSelect)
+      .eq("owner_id", ownerId)
+      .order("updated_at_ms", { ascending: false })
+      .order("order_index", { foreignTable: "chapters", ascending: true });
+    const rows = (data as CourseRow[] | null) || [];
+    if (active) cb(rows.map(mapCourse));
+  };
+  fetchOnce();
+
+  const channel = supabase
+    .channel(`courses-owner-${ownerId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "courses", filter: `owner_id=eq.${ownerId}` }, () => fetchOnce())
+    .on("postgres_changes", { event: "*", schema: "public", table: "chapters" }, () => fetchOnce())
+    .subscribe();
+  return () => {
+    active = false;
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function listByOwner(ownerId: string): Promise<Course[]> {
+  const { data, error } = await supabase
+    .from("courses")
+    .select(courseSelect)
+    .eq("owner_id", ownerId)
+    .order("updated_at_ms", { ascending: false })
+    .order("order_index", { foreignTable: "chapters", ascending: true });
+  if (error || !data) return [];
+  return (data as unknown as CourseRow[]).map(mapCourse);
+}
+
+export async function addChapter(
+  courseId: string,
+  input: {
+    title: string;
+    videoUrl?: string | null;
+    videoByLang?: Partial<Record<LangKey, string>>;
+    order?: number;
+  }
+) {
+  const cleanByLang: Partial<Record<LangKey, string>> = {};
+  if (input.videoByLang) {
+    Object.entries(input.videoByLang).forEach(([k, v]) => {
+      const val = String(v || "").trim();
+      if (val) cleanByLang[k as LangKey] = val;
+    });
+  }
+  const { data: last } = await supabase
+    .from("chapters")
+    .select("order_index")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextOrder = input.order ?? ((last as any)?.order_index ?? 0) + 1;
+  const payload = {
+    course_id: courseId,
+    title: input.title,
+    order_index: nextOrder,
+    video_url: input.videoUrl ?? null,
+    video_by_lang: Object.keys(cleanByLang).length ? cleanByLang : null,
+  };
+  const { data, error } = await supabase.from("chapters").insert(payload).select("*").single();
+  if (error || !data) throw error || new Error("Add chapter failed.");
+  return mapChapter(data as ChapterRow);
 }
 
 export async function deleteChapter(courseId: string, chapterId: string) {
-  const ref = doc(db, COL, courseId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-  const data = snap.data() as any;
-  const cur: Chapter[] = Array.isArray(data.chapters) ? data.chapters : [];
-  const next = cur.filter((c) => c.id !== chapterId);
-  await updateDoc(ref, { chapters: next, updatedAtMs: Date.now() });
+  const { error } = await supabase.from("chapters").delete().eq("id", chapterId).eq("course_id", courseId);
+  if (error) throw error;
 }

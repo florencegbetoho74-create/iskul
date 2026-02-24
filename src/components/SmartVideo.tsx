@@ -26,7 +26,24 @@ const SmartVideo = React.forwardRef<SmartVideoHandle, Props>(({ url, onProgress 
 
   // injecte la source fichier quand url change (non-YouTube)
   useEffect(() => {
-    if (!isYT && url) player.replace(url);
+    if (isYT || !url) return;
+    let active = true;
+    (async () => {
+      try {
+        if (typeof (player as any).replaceAsync === "function") {
+          await (player as any).replaceAsync(url);
+        } else {
+          player.replace(url);
+        }
+      } catch {
+        // ignore replace failures
+      } finally {
+        if (!active) return;
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [isYT, url]);
 
   const [cur, setCur] = useState(0);
@@ -77,6 +94,7 @@ const SmartVideo = React.forwardRef<SmartVideoHandle, Props>(({ url, onProgress 
         <VideoView
           style={styles.video}
           player={player}
+          nativeControls={false}
           allowsFullscreen
           allowsPictureInPicture
         />

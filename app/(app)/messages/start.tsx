@@ -1,10 +1,12 @@
 import React, { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getCourse } from "@/storage/courses";
-import { getOrCreateThread } from "@/storage/chat";
+import { startThread } from "@/storage/chat";
 import { useAuth } from "@/providers/AuthProvider";
 import { COLOR } from "@/theme/colors";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function StartMsg() {
   const { courseId } = useLocalSearchParams<{ courseId: string }>();
@@ -16,15 +18,24 @@ export default function StartMsg() {
       if (!user || !courseId) return;
       const c = await getCourse(courseId);
       if (!c) return router.back();
-      const t = await getOrCreateThread({
-        courseId: c.id,
-        courseTitle: c.title,
-        studentId: user.id,
-        studentName: user.name,
-        teacherId: c.ownerId,
-        teacherName: c.ownerName
-      });
-      router.replace(`/(app)/messages/${t.id}`);
+      if (!c.ownerId || !UUID_RE.test(c.ownerId)) {
+        Alert.alert("Impossible", "Ce cours n'est pas associe a un professeur valide.");
+        return router.back();
+      }
+      try {
+        const t = await startThread({
+          courseId: c.id,
+          courseTitle: c.title,
+          studentId: user.id,
+          studentName: user.name,
+          teacherId: c.ownerId,
+          teacherName: c.ownerName,
+        });
+        router.replace(`/(app)/messages/${t.id}`);
+      } catch (e: any) {
+        Alert.alert("Erreur", e?.message || "Impossible de demarrer la discussion.");
+        router.back();
+      }
     })();
   }, [user?.id, courseId]);
 

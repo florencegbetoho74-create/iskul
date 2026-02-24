@@ -1,49 +1,33 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { COLOR } from "@/theme/colors";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import { isYouTubeUrl, getYouTubeId } from "@/utils/youtube";
+import { COLOR, FONT } from "@/theme/colors";
 
-// Type minimal accepté partout
 export type Course = {
   id: string;
   title: string;
   level: string;
-  // optionnels si l'item vient du storage complet
-  chapters?: Array<{ id: string; title: string; videoUrl?: string }>;
-  coverUrl?: string; // si on ajoute un jour une image de couverture
+  chapters?: Array<{ id: string; title: string; videoUrl?: string; videoByLang?: Record<string, string> }>;
+  coverUrl?: string;
 };
-
-function getThumbUrl(item: any): string | null {
-  // priorité à une cover explicite si tu en ajoutes plus tard
-  if (item.coverUrl) return item.coverUrl;
-
-  // sinon, première vidéo YouTube du 1er chapitre
-  const firstVideo = item?.chapters?.find?.((ch: any) => !!ch.videoUrl)?.videoUrl;
-  if (firstVideo && isYouTubeUrl(firstVideo)) {
-    const id = getYouTubeId(firstVideo);
-    if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-  }
-  // pas d'image dispo
-  return null;
-}
 
 export default function CourseItem({ item }: { item: any }) {
   const title = item.title ?? "Cours";
   const level = item.level ?? "";
-  const thumb = getThumbUrl(item);
+  const fallbackTitle = item?.chapters?.[0]?.title || title;
+  const fallbackMeta = `${item?.chapters?.length || 0} lecons`;
 
   return (
     <Link href={`/(app)/course/${item.id}`} asChild>
       <TouchableOpacity style={styles.card} activeOpacity={0.92}>
-        {thumb ? (
-          <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
-        ) : (
-          <View style={[styles.thumb, styles.thumbFallback]}>
-            <Ionicons name="play-circle" size={28} color="#cbd5e1" />
+        <View style={[styles.thumb, styles.thumbFallback]}>
+          <View style={styles.thumbIcon}>
+            <Ionicons name="play" size={16} color="#fff" />
           </View>
-        )}
+          <Text numberOfLines={2} style={styles.thumbTitle}>{fallbackTitle}</Text>
+          <Text style={styles.thumbMeta}>{fallbackMeta}</Text>
+        </View>
 
         <View style={styles.meta}>
           <Text numberOfLines={2} style={styles.title}>{title}</Text>
@@ -56,15 +40,30 @@ export default function CourseItem({ item }: { item: any }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLOR.card,
-    borderRadius: 16,
+    backgroundColor: COLOR.surface,
+    borderRadius: 18,
     borderColor: COLOR.border,
     borderWidth: 1,
-    overflow: "hidden"
+    overflow: "hidden",
+    shadowColor: "#0B1D39",
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
-  thumb: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#0b0b0c" },
-  thumbFallback: { alignItems: "center", justifyContent: "center" },
+  thumb: { width: "100%", aspectRatio: 16 / 9, backgroundColor: COLOR.muted },
+  thumbFallback: { padding: 12, justifyContent: "flex-end", gap: 6, backgroundColor: "#0f172a" },
+  thumbIcon: {
+    height: 28,
+    width: 28,
+    borderRadius: 9,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbTitle: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: FONT.body, fontSize: 11 },
   meta: { padding: 12, gap: 6 },
-  title: { color: COLOR.text, fontWeight: "800" },
-  level: { color: COLOR.sub }
+  title: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 15 },
+  level: { color: COLOR.sub, fontFamily: FONT.body }
 });

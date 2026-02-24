@@ -3,16 +3,34 @@
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://muqnhymvbscnnpatjsku.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_AySlIh3eXO6p3qNevnfa1A_jzZ6fT37",
+        "EXPO_PUBLIC_SUPABASE_BUCKET": "iskul",
+        "EXPO_PUBLIC_AGORA_APP_ID": "43e30d99341342d2b81b14e67ad3edd0"
+      }
     },
     "production": {
       "distribution": "store",
-      "android": { "buildType": "app-bundle" }
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://muqnhymvbscnnpatjsku.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_AySlIh3eXO6p3qNevnfa1A_jzZ6fT37",
+        "EXPO_PUBLIC_SUPABASE_BUCKET": "iskul",
+        "EXPO_PUBLIC_AGORA_APP_ID": "43e30d99341342d2b81b14e67ad3edd0"
+      }
     },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://muqnhymvbscnnpatjsku.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_AySlIh3eXO6p3qNevnfa1A_jzZ6fT37",
+        "EXPO_PUBLIC_SUPABASE_BUCKET": "iskul",
+        "EXPO_PUBLIC_AGORA_APP_ID": "43e30d99341342d2b81b14e67ad3edd0"
+      }
     }
   }
 }
