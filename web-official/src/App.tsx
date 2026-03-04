@@ -32,7 +32,7 @@ const APP_RELEASE_STATUS: AppReleaseStatus =
 
 const IS_APP_LIVE = APP_RELEASE_STATUS === "live";
 
-const ANDROID_URL = (import.meta.env.VITE_ANDROID_URL || "https://hq1dn0ktxxls453p.public.blob.vercel-storage.com/iSkul").trim();
+const ANDROID_URL = "https://hq1dn0ktxxls453p.public.blob.vercel-storage.com/iSkul";
 const IOS_URL = (import.meta.env.VITE_IOS_URL || "").trim();
 
 // Optionnel : blog externe si tu veux
