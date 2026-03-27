@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://iskul-ten.vercel.app/sitemap.xml
+Sitemap: https://iskuledu.space/sitemap.xml

@@ -24,7 +24,7 @@ type SeoRoute = {
 
 type JsonLdObject = Record<string, unknown>;
 
-const DEFAULT_SITE_URL = "https://iskul-ten.vercel.app";
+const DEFAULT_SITE_URL = "https://iskuledu.space";
 const JSON_LD_ID = "iskul-seo-jsonld";
 const INDEX_ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1";
 const NOINDEX_ROBOTS = "noindex,nofollow,max-snippet:-1,max-image-preview:none,max-video-preview:-1";

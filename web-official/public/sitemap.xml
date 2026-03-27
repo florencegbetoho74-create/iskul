@@ -1,61 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://iskul-ten.vercel.app/</loc>
+    <loc>https://iskuledu.space/</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/cours</loc>
+    <loc>https://iskuledu.space/cours</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/bibliotheque</loc>
+    <loc>https://iskuledu.space/bibliotheque</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/parents</loc>
+    <loc>https://iskuledu.space/parents</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/open-classroom</loc>
+    <loc>https://iskuledu.space/open-classroom</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/a-propos</loc>
+    <loc>https://iskuledu.space/a-propos</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/contact</loc>
+    <loc>https://iskuledu.space/contact</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/faq</loc>
+    <loc>https://iskuledu.space/faq</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.55</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/mentions-legales</loc>
+    <loc>https://iskuledu.space/mentions-legales</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://iskul-ten.vercel.app/inscription-professeur</loc>
+    <loc>https://iskuledu.space/inscription-professeur</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
