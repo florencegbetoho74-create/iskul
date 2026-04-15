@@ -271,6 +271,26 @@ const ROUTE_SEO: Record<string, SeoRoute> = {
     priority: 0.45,
   },
 
+  "/politique-confidentialite": {
+    path: "/politique-confidentialite",
+    title: "Politique de confidentialite - iSkul",
+    description:
+      "Politique de confidentialite iSkul : donnees de compte, camera, microphone, messagerie, fichiers, notifications et droits des utilisateurs.",
+    keywords: [
+      ...COMMON_KEYWORDS,
+      "politique de confidentialite",
+      "donnees personnelles",
+      "camera",
+      "microphone",
+      "protection des donnees",
+    ],
+    breadcrumb: "Politique de confidentialite",
+    ogType: "website",
+    includeInSitemap: true,
+    changeFrequency: "yearly",
+    priority: 0.5,
+  },
+
   "/mentions-legales": {
     path: "/mentions-legales",
     title: "Mentions légales — iSkul",

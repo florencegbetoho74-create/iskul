@@ -49,6 +49,12 @@
     <priority>0.55</priority>
   </url>
   <url>
+    <loc>https://iskuledu.space/politique-confidentialite</loc>
+    <lastmod>2026-04-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://iskuledu.space/mentions-legales</loc>
     <lastmod>2026-02-24</lastmod>
     <changefreq>yearly</changefreq>
