@@ -52,11 +52,11 @@ const NAV_ITEMS = [
 /** Photographie (élèves du secondaire) — traitée en duotone de marque côté CSS.
  *  Remplaçable par de vraies photos d'élèves béninois aux mêmes emplacements. */
 const PHOTOS = {
-  hero: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1300&q=80",
-  understand: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1100&q=80",
-  classroom: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1100&q=80",
-  live: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1100&q=80",
-  parents: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1100&q=80",
+  hero: "https://images.pexels.com/photos/34162714/pexels-photo-34162714.jpeg?auto=compress&cs=tinysrgb&w=1300",
+  understand: "https://images.pexels.com/photos/34526416/pexels-photo-34526416.jpeg?auto=compress&cs=tinysrgb&w=1100",
+  classroom: "https://images.pexels.com/photos/34526414/pexels-photo-34526414.jpeg?auto=compress&cs=tinysrgb&w=1100",
+  live: "https://images.pexels.com/photos/34211750/pexels-photo-34211750.jpeg?auto=compress&cs=tinysrgb&w=1100",
+  parents: "https://images.pexels.com/photos/34211744/pexels-photo-34211744.jpeg?auto=compress&cs=tinysrgb&w=1100",
 } as const;
 
 const LEVELS = ["6ᵉ", "5ᵉ", "4ᵉ", "3ᵉ", "2ⁿᵈᵉ", "1ʳᵉ", "Tˡᵉ"];
@@ -722,7 +722,7 @@ function HomePage() {
       {/* PARENTS & PROF */}
       <section className="sec container">
         <div className="split split-reverse">
-          <Photo src={PHOTOS.parents} alt="Parent et élève au Bénin" className="split-media" />
+          <Photo src={PHOTOS.parents} alt="Élèves du secondaire béninois en classe" className="split-media" />
           <div className="split-copy">
             <span className="eyebrow">Parents &amp; professeurs</span>
             <h2 className="sec-title">Accompagner, sans surveiller.</h2>
