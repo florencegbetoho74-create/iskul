@@ -1,17 +1,24 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
 
 :root {
-  --bg: #f5f8ff;
+  --bg: #f4f7ff;
   --surface: #ffffff;
   --surface-soft: #eff4ff;
-  --text: #10213f;
+  --text: #0f2244;
   --muted: #586985;
-  --line: #d6def0;
+  --line: #dbe3f3;
   --primary: #0b6aff;
+  --primary-strong: #0954d6;
   --primary-ink: #ffffff;
   --secondary: #13b989;
   --accent: #ff7b39;
-  --shadow-soft: 0 16px 30px rgba(14, 37, 78, 0.1);
+  --ink-deep: #0c1f44;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --shadow-soft: 0 18px 40px rgba(14, 37, 78, 0.12);
+  --shadow-card: 0 12px 28px rgba(20, 43, 82, 0.08);
+  --ring: 0 0 0 4px rgba(11, 106, 255, 0.16);
 }
 
 * {
@@ -216,6 +223,96 @@ select:focus {
   border-color: var(--line);
   color: var(--text);
   background: #fff;
+}
+
+.btn:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.header-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- Store badges (Google Play / App Store) ---------- */
+.store-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 16px 8px 13px;
+  border-radius: 13px;
+  border: 1px solid #1d2c4a;
+  background: linear-gradient(160deg, #16233f 0%, #0c1830 100%);
+  color: #ffffff;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.store-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(8, 22, 48, 0.28);
+}
+
+.store-badge-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+}
+
+.store-badge-text {
+  display: grid;
+  gap: 1px;
+  line-height: 1.05;
+  text-align: left;
+}
+
+.store-badge-text small {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b9c8e6;
+}
+
+.store-badge-text strong {
+  font-size: 1.04rem;
+  font-family: "Sora", "Outfit", sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.store-badge.soon {
+  opacity: 0.62;
+  cursor: default;
+}
+
+.store-badge.soon:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.store-badge-tag {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0c1830;
+  background: linear-gradient(140deg, #ffd34d 0%, #ff9d2e 100%);
+  padding: 3px 7px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(255, 157, 46, 0.4);
 }
 
 .nav-mobile-cta {
@@ -431,6 +528,92 @@ select:focus {
 .archive-panel {
   margin-top: 14px;
   background: linear-gradient(145deg, #ffffff 0%, #f2f7ff 100%);
+}
+
+/* ---------- App download band ---------- */
+.app-cta-band {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #1c3f7d;
+  border-radius: 24px;
+  background:
+    radial-gradient(620px 320px at 92% -20%, rgba(56, 146, 255, 0.55) 0%, rgba(56, 146, 255, 0) 60%),
+    radial-gradient(520px 320px at 8% 120%, rgba(20, 184, 132, 0.4) 0%, rgba(20, 184, 132, 0) 60%),
+    linear-gradient(140deg, #0b2150 0%, #123a7c 55%, #14528f 100%);
+  color: #eef5ff;
+  padding: clamp(24px, 4vw, 44px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.9fr);
+  gap: 24px;
+  align-items: center;
+  box-shadow: 0 30px 60px rgba(8, 24, 53, 0.32);
+}
+
+.app-cta-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.app-cta-kicker {
+  border-color: rgba(186, 211, 255, 0.45);
+  color: #ffffff;
+  background: rgba(226, 238, 255, 0.14);
+}
+
+.app-cta-band h2 {
+  font-size: clamp(1.5rem, 3.4vw, 2.4rem);
+  color: #ffffff;
+  max-width: 600px;
+}
+
+.app-cta-band p {
+  color: #cfe0ff;
+  max-width: 560px;
+  font-size: 1.02rem;
+}
+
+.app-cta-badges {
+  margin-top: 4px;
+}
+
+.app-cta-band .store-badge {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(160deg, #0a1730 0%, #060f22 100%);
+}
+
+.app-cta-note {
+  color: #aac4ee !important;
+  font-size: 0.86rem !important;
+}
+
+.app-cta-glow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+}
+
+.app-cta-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(120, 180, 255, 0.55) 0%, rgba(120, 180, 255, 0) 70%);
+  filter: blur(4px);
+}
+
+.app-cta-logo {
+  position: relative;
+  width: clamp(110px, 16vw, 168px);
+  height: clamp(110px, 16vw, 168px);
+  object-fit: contain;
+  border-radius: 32px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: 0 26px 50px rgba(6, 16, 38, 0.5);
 }
 
 .page-wrap {
@@ -1692,58 +1875,138 @@ select:focus {
 }
 
 .footer-grid {
-  padding: 24px 0;
+  padding: 36px 0 28px;
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1.6fr 1fr 1fr 1.1fr;
+  gap: 28px 20px;
+}
+
+.footer-app-note {
+  color: #9fb6dd !important;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-width: 230px;
+}
+
+.footer-brand {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  max-width: 360px;
+}
+
+.footer-brand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px;
 }
 
 .footer-title {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-family: "Sora", "Outfit", sans-serif;
   color: #fff;
 }
 
 .footer-brand p {
   color: #c2d4f8;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.footer-download {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.footer-download .store-badge {
+  min-height: 46px;
+  padding: 6px 13px 6px 11px;
+}
+
+.footer-download .store-badge-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.footer-download .store-badge-text strong {
+  font-size: 0.92rem;
+}
+
+.footer-col {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.footer-col-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8fa9d8;
 }
 
 .footer-links {
   display: grid;
   align-content: start;
-  gap: 8px;
+  gap: 9px;
 }
 
 .footer-links a {
   width: fit-content;
   color: #d7e4ff;
+  font-size: 0.92rem;
+  transition: color 0.2s ease;
 }
 
 .footer-links a:hover {
+  color: #fff;
   text-decoration: underline;
 }
 
 .footer-social {
-  display: grid;
   align-content: start;
-  gap: 8px;
 }
 
 .social-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .social-row a {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(204, 224, 255, 0.35);
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(204, 224, 255, 0.28);
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 0.72rem;
-  font-weight: 700;
+  color: #d7e4ff;
+  background: rgba(255, 255, 255, 0.04);
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.social-row a:hover {
+  transform: translateY(-2px);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.social-row svg {
+  width: 18px;
+  height: 18px;
 }
 
 .footer-copy {
@@ -1778,6 +2041,24 @@ select:focus {
 @media (max-width: 1150px) {
   .hero {
     grid-template-columns: 1fr;
+  }
+
+  .app-cta-band {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .app-cta-glow {
+    display: none;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1.4fr 1fr 1fr;
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+    max-width: 520px;
   }
 
   .visual-stage,
@@ -1938,7 +2219,7 @@ select:focus {
   }
 
   .footer-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -1967,12 +2248,22 @@ select:focus {
   .hero-actions,
   .signup-actions {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .hero-actions .btn,
   .signup-actions .btn,
   .signup-success-actions .btn {
     width: 100%;
+  }
+
+  .store-badges {
+    width: 100%;
+  }
+
+  .store-badge {
+    flex: 1 1 160px;
+    justify-content: center;
   }
 
   .visual-thumbs {
@@ -2146,6 +2437,11 @@ select:focus {
   .parent-stats-grid {
     grid-template-columns: 1fr;
   }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
 }
 
 
@@ -2159,11 +2455,12 @@ select:focus {
 .trust-item{
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.08);
-  background: rgba(255,255,255,0.7);
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(20, 43, 82, 0.05);
 }
-.trust-item strong{ display:block; }
-.trust-item span{ display:block; opacity: 0.85; font-size: 0.95rem; }
+.trust-item strong{ display:block; font-size: 0.95rem; color: var(--text); }
+.trust-item span{ display:block; color: var(--muted); font-size: 0.85rem; margin-top: 3px; }
 
 @media (max-width: 900px){
   .hero-trust{ grid-template-columns: 1fr; }
