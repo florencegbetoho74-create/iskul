@@ -8,13 +8,6 @@ import TeacherWorkspacePage from "./pages/TeacherWorkspacePage";
 import { useRouteSeo } from "./seo";
 import "./styles.css";
 
-type FeatureVisual = {
-  id: string;
-  title: string;
-  caption: string;
-  imageUrl: string;
-};
-
 type PasswordStrength = {
   score: number;
   label: string;
@@ -56,34 +49,97 @@ const NAV_ITEMS = [
   { to: "/contact", label: "Contact" },
 ];
 
-const HERO_VISUALS: FeatureVisual[] = [
+/** Photographie (élèves du secondaire) — traitée en duotone de marque côté CSS.
+ *  Remplaçable par de vraies photos d'élèves béninois aux mêmes emplacements. */
+const PHOTOS = {
+  hero: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1300&q=80",
+  understand: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1100&q=80",
+  classroom: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1100&q=80",
+  live: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1100&q=80",
+  parents: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1100&q=80",
+} as const;
+
+const LEVELS = ["6ᵉ", "5ᵉ", "4ᵉ", "3ᵉ", "2ⁿᵈᵉ", "1ʳᵉ", "Tˡᵉ"];
+
+const SUBJECTS = [
+  "Mathématiques",
+  "PCT",
+  "SVT",
+  "Français",
+  "Anglais",
+  "Histoire-Géographie",
+  "Philosophie",
+  "Espagnol",
+];
+
+const HERO_STATS = [
+  { value: "6ᵉ → Tˡᵉ", label: "Tout le secondaire" },
+  { value: "8+", label: "Matières du programme" },
+  { value: "BEPC · BAC", label: "Préparation aux examens" },
+  { value: "FR + langues", label: "Fon, Yoruba, Dendi…" },
+];
+
+const PILLARS = [
   {
-    id: "classroom-live",
-    title: "Open Classroom (Live)",
-    caption: "Sessions en direct : explications, questions-reponses, methodologie et entrainements.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=80",
+    title: "La langue n'est plus un mur",
+    text: "Des explications en français et en langues locales (Fon, Yoruba, Dendi…) pour vraiment comprendre, pas seulement mémoriser.",
   },
   {
-    id: "local-language",
-    title: "Francais + langues locales",
-    caption: "Des explications accessibles pour comprendre rapidement, sans barriere de langue.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1600&q=80",
+    title: "Le programme béninois, chapitre par chapitre",
+    text: "Du collège à la terminale, aligné sur ce que l'élève voit réellement en classe au Bénin.",
   },
   {
-    id: "learning-metrics",
-    title: "Quiz & statistiques",
-    caption: "Quiz par sequence, progression, scores et regularite : des indicateurs clairs.",
-    imageUrl:
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80",
+    title: "Prêt pour le BEPC et le BAC",
+    text: "Quiz d'entraînement, annales et révisions ciblées pour aborder les examens nationaux en confiance.",
+  },
+];
+
+const STEPS = [
+  {
+    num: "01",
+    title: "Je regarde la vidéo",
+    text: "Chaque chapitre est expliqué clairement, avec des exemples concrets, en français et en langues locales.",
+  },
+  {
+    num: "02",
+    title: "Je fais le quiz",
+    text: "Des questions par séquence vérifient ce que j'ai vraiment compris — la compréhension, pas la chance.",
+  },
+  {
+    num: "03",
+    title: "Je suis ma progression",
+    text: "Scores, régularité et points faibles : je sais exactement quoi réviser avant le BEPC ou le BAC.",
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "Avant, je récitais sans comprendre. Avec les explications en fon, les maths sont enfin devenues claires.",
+    name: "Awa",
+    role: "Élève en 3ᵉ",
+    place: "Cotonou",
+  },
+  {
+    quote:
+      "Je vois où mon fils bloque sans avoir à le surveiller. Les statistiques sont simples à lire.",
+    name: "M. Hounkpatin",
+    role: "Parent",
+    place: "Porto-Novo",
+  },
+  {
+    quote:
+      "Je crée mes quiz et je suis l'engagement de mes classes. Un vrai gain de temps au quotidien.",
+    name: "Mme Adjovi",
+    role: "Professeure de SVT",
+    place: "Abomey",
   },
 ];
 
 const OPEN_CLASSROOM_EVENTS = [
-  { day: "Lundi", hour: "18h00", topic: "Mathematiques : fonctions et applications", teacher: "Equipe iSkul Maths" },
-  { day: "Mercredi", hour: "19h00", topic: "Francais : methode du commentaire de texte", teacher: "Equipe iSkul Langues" },
-  { day: "Samedi", hour: "10h00", topic: "Orientation + revision intelligente", teacher: "Mentors iSkul" },
+  { day: "Lundi", hour: "18h00", topic: "Maths 3ᵉ — Théorème de Thalès et applications", teacher: "Équipe iSkul Maths" },
+  { day: "Mercredi", hour: "19h00", topic: "Français Tˡᵉ — Méthode du commentaire de texte", teacher: "Équipe iSkul Lettres" },
+  { day: "Samedi", hour: "10h00", topic: "Spécial BEPC — Révisions PCT et SVT", teacher: "Mentors iSkul" },
 ];
 
 /** ---------------------------
@@ -281,6 +337,30 @@ function AppleIcon() {
   );
 }
 
+/** Photo avec traitement duotone de marque + repli propre si l'image échoue. */
+function Photo({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  return (
+    <span className={`photo${className ? ` ${className}` : ""}`}>
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onError={(event) => {
+          event.currentTarget.style.opacity = "0";
+        }}
+      />
+    </span>
+  );
+}
+
 /** ---------------------------
  *  Store Badges (Google Play / App Store)
  *  --------------------------*/
@@ -350,12 +430,13 @@ function AppHeader() {
 
   return (
     <header className="site-header">
+      <div className="site-topline" aria-hidden="true" />
       <div className="container header-content">
         <NavLink className="brand" to="/">
           <img src={iskulLogo} alt="Logo iSkul" className="brand-logo" />
           <span className="brand-text">
             <strong>iSkul</strong>
-            <small>Comprendre. Tester. Progresser.</small>
+            <small>Le secondaire, compris.</small>
           </span>
         </NavLink>
 
@@ -391,7 +472,7 @@ function AppHeader() {
             target="_blank"
             rel="noreferrer"
           >
-            Telecharger l'app
+            Télécharger l'app
           </a>
           <Link className="btn ghost nav-mobile-cta" to="/inscription-professeur">
             Devenir professeur
@@ -400,10 +481,10 @@ function AppHeader() {
 
         <div className="header-cta desktop-cta">
           <Link className="btn ghost" to="/inscription-professeur">
-            Devenir professeur
+            Devenir prof
           </Link>
           <a className="btn primary" href={ANDROID_URL} target="_blank" rel="noreferrer">
-            Telecharger l'app
+            Télécharger l'app
           </a>
         </div>
       </div>
@@ -421,8 +502,8 @@ function AppFooter() {
             <span className="footer-title">iSkul</span>
           </NavLink>
           <p>
-            Plateforme EdTech : videos par chapitre, quiz de comprehension, statistiques de progression, Open Classroom
-            en live, et bibliotheque pedagogique.
+            La plateforme scolaire des élèves du secondaire au Bénin : vidéos par chapitre, quiz de compréhension,
+            suivi de progression, Open Classroom en direct et bibliothèque pédagogique.
           </p>
         </div>
 
@@ -430,7 +511,7 @@ function AppFooter() {
           <span className="footer-col-title">Navigation</span>
           <div className="footer-links">
             <Link to="/cours">Cours &amp; Quiz</Link>
-            <Link to="/bibliotheque">Bibliotheque</Link>
+            <Link to="/bibliotheque">Bibliothèque</Link>
             <Link to="/open-classroom">Open Classroom</Link>
             <Link to="/parents">Espace parents</Link>
             <Link to="/inscription-professeur">Devenir professeur</Link>
@@ -442,9 +523,9 @@ function AppFooter() {
           <div className="footer-links">
             <Link to="/contact">Contact</Link>
             <Link to="/faq">FAQ</Link>
-            <Link to="/politique-confidentialite">Politique de confidentialite</Link>
+            <Link to="/politique-confidentialite">Politique de confidentialité</Link>
             <Link to="/delete-account">Suppression de compte</Link>
-            <Link to="/mentions-legales">Mentions legales</Link>
+            <Link to="/mentions-legales">Mentions légales</Link>
             {BLOG_URL ? (
               <a href={BLOG_URL} target="_blank" rel="noreferrer">
                 Blog
@@ -459,10 +540,10 @@ function AppFooter() {
             <StoreButton platform="android" variant="primary" />
             <StoreButton platform="ios" variant="secondary" />
           </div>
-          <p className="footer-app-note">iSkul est disponible sur Google Play. Version iOS bientot disponible.</p>
+          <p className="footer-app-note">iSkul est disponible sur Google Play. Version iOS bientôt disponible.</p>
         </div>
       </div>
-      <p className="footer-copy">iSkul (c) 2026 - Comprendre, tester, progresser.</p>
+      <p className="footer-copy">iSkul © 2026 — Fait au Bénin, pour les élèves du secondaire.</p>
     </footer>
   );
 }
@@ -471,232 +552,240 @@ function AppFooter() {
  *  Pages
  *  --------------------------*/
 function HomePage() {
-  const [activeVisual, setActiveVisual] = useState(HERO_VISUALS[0].id);
-  const currentVisual = useMemo(
-    () => HERO_VISUALS.find((item) => item.id === activeVisual) || HERO_VISUALS[0],
-    [activeVisual]
-  );
-
   return (
-    <div className="home">
+    <div className="home2">
       {/* HERO */}
-      <section className="hero container">
-        <div className="hero-copy">
-          <span className="kicker">Videos - Quiz - Statistiques - Open Classroom</span>
-          <h1>Comprendre ses cours, vraiment.</h1>
-          <p className="lead">
-            iSkul transforme chaque chapitre en une video claire (en francais et en langues locales), suivie d'un quiz
-            et d'un suivi de progression. L'eleve avance avec confiance. Le parent suit sans pression. Le professeur
-            accompagne avec des indicateurs concrets.
+      <section className="hero2 container">
+        <div className="hero2-copy">
+          <span className="eyebrow">Plateforme scolaire · Bénin</span>
+          <h1 className="hero2-title">
+            Le secondaire, <em>enfin compris.</em>
+          </h1>
+          <p className="hero2-lead">
+            De la 6ᵉ à la terminale, iSkul explique chaque chapitre en vidéo — en français et en langues locales —
+            puis vérifie la compréhension par un quiz et suit la progression jusqu'au BEPC et au BAC.
           </p>
 
-          <div className="hero-actions">
-            <div className="store-badges">
-              <StoreButton platform="android" variant="primary" />
-              <StoreButton platform="ios" variant="secondary" />
-            </div>
-            <Link className="btn ghost" to="/inscription-professeur">
-              Devenir professeur iSkul
-            </Link>
+          <div className="hero2-badges store-badges">
+            <StoreButton platform="android" variant="primary" />
+            <StoreButton platform="ios" variant="secondary" />
           </div>
 
-          <div className="hero-trust">
-            <div className="trust-item">
-              <strong>Videos par chapitre</strong>
-              <span>Explications structurees et faciles a suivre</span>
-            </div>
-            <div className="trust-item">
-              <strong>Quiz par sequence</strong>
-              <span>On verifie la comprehension, pas la chance</span>
-            </div>
-            <div className="trust-item">
-              <strong>Statistiques</strong>
-              <span>Progression, scores, regularite</span>
-            </div>
-          </div>
+          <ul className="hero2-points">
+            <li>Vidéos par chapitre, alignées sur le programme béninois</li>
+            <li>Quiz de compréhension après chaque séquence</li>
+            <li>Suivi de progression pour l'élève et le parent</li>
+          </ul>
         </div>
 
-        <div className="hero-visual">
-          <div className="visual-stage">
-            <img src={currentVisual.imageUrl} alt={currentVisual.title} />
-            <div className="visual-overlay">
-              <strong>{currentVisual.title}</strong>
-              <p>{currentVisual.caption}</p>
-            </div>
+        <div className="hero2-media">
+          <Photo src={PHOTOS.hero} alt="Élèves du secondaire en cours au Bénin" className="hero2-photo" />
+          <div className="hero2-floatcard">
+            <span className="hero2-floatcard-label">Cette semaine</span>
+            <strong className="hero2-floatcard-value">Spécial BEPC</strong>
+            <span className="hero2-floatcard-sub">Révisions PCT &amp; SVT · samedi 10h</span>
           </div>
-
-          <div className="visual-thumbs" role="tablist" aria-label="Fonctionnalites iSkul">
-            {HERO_VISUALS.map((visual) => (
-              <button
-                key={visual.id}
-                className={visual.id === activeVisual ? "thumb active" : "thumb"}
-                onClick={() => setActiveVisual(visual.id)}
-                type="button"
-                role="tab"
-                aria-selected={visual.id === activeVisual}
-              >
-                {visual.title}
-              </button>
-            ))}
-          </div>
+          <div className="hero2-langchip">Fon · Yoruba · Dendi</div>
         </div>
       </section>
 
-      {/* PROMESSE */}
-      <section className="section container">
-        <div className="section-head">
-          <span className="kicker">Pourquoi iSkul</span>
-          <h2>Quand la langue devient une barriere, la comprehension s'effondre.</h2>
-        </div>
-
-        <p className="lead">
-          Beaucoup d'eleves finissent par "memoriser" sans comprendre. iSkul remet la comprehension au centre grace a
-          des explications accessibles, des quiz immediats et un suivi clair de la progression.
-        </p>
-
-        <div className="three-cols">
-          <article className="info-card">
-            <h3>Comprendre d'abord</h3>
-            <p>Une video par chapitre, construite pour expliquer clairement (et pas juste reciter).</p>
-          </article>
-
-          <article className="info-card">
-            <h3>Verifier ensuite</h3>
-            <p>Un quiz par sequence pour confirmer la comprehension et detecter les points a revoir.</p>
-          </article>
-
-          <article className="info-card">
-            <h3>Progresser durablement</h3>
-            <p>Statistiques personnelles : scores, progression, regularite, et points forts.</p>
-          </article>
+      {/* STATS */}
+      <section className="container">
+        <div className="stats-strip">
+          {HERO_STATS.map((stat) => (
+            <div key={stat.label} className="stat">
+              <strong className="stat-value">{stat.value}</strong>
+              <span className="stat-label">{stat.label}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* FLOW ELEVE */}
-      <section className="section container">
-        <div className="section-head">
-          <span className="kicker">Parcours eleve</span>
-          <h2>Un flow simple : apprendre, tester, suivre.</h2>
-        </div>
-
-        <div className="grid-cards">
-          <article className="content-card">
-            <h3>1. Je regarde la video</h3>
-            <p className="muted">Chaque chapitre est explique avec des exemples concrets, en francais et en langues locales.</p>
-          </article>
-
-          <article className="content-card">
-            <h3>2. Je fais le quiz</h3>
-            <p className="muted">
-              Les questions valident la comprehension. On identifie ce qui est acquis et ce qui doit etre revu.
+      {/* POURQUOI */}
+      <section className="sec container">
+        <div className="split">
+          <div className="split-copy">
+            <span className="eyebrow">Pourquoi iSkul</span>
+            <h2 className="sec-title">Quand la langue devient un mur, la compréhension s'effondre.</h2>
+            <p className="sec-text">
+              Trop d'élèves finissent par réciter sans comprendre. iSkul remet la compréhension au centre, avec des
+              explications accessibles, des quiz immédiats et un suivi clair — adaptés à la réalité des classes au Bénin.
             </p>
-          </article>
-
-          <article className="content-card">
-            <h3>3. Je consulte mes statistiques</h3>
-            <p className="muted">
-              Progression, scores par matiere, regularite : je sais exactement quoi reviser ensuite.
-            </p>
-          </article>
+            <div className="pillars">
+              {PILLARS.map((pillar) => (
+                <article key={pillar.title} className="pillar">
+                  <h3>{pillar.title}</h3>
+                  <p>{pillar.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <Photo src={PHOTOS.understand} alt="Élèves qui révisent ensemble" className="split-media" />
         </div>
+      </section>
 
-        <div className="hero-actions" style={{ marginTop: 18 }}>
-          <Link className="btn ghost" to="/cours">
-            Decouvrir Cours & Quiz
+      {/* COMMENT CA MARCHE */}
+      <section className="sec container">
+        <div className="sec-head">
+          <span className="eyebrow">Comment ça marche</span>
+          <h2 className="sec-title">Apprendre, se tester, progresser — en trois temps.</h2>
+        </div>
+        <div className="steps">
+          {STEPS.map((step) => (
+            <article key={step.num} className="step">
+              <span className="step-num">{step.num}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </article>
+          ))}
+        </div>
+        <div className="sec-actions">
+          <Link className="btn primary" to="/cours">
+            Découvrir Cours &amp; Quiz
           </Link>
           <Link className="btn ghost" to="/bibliotheque">
-            Explorer la bibliotheque
+            Explorer la bibliothèque
           </Link>
-          <Link className="btn ghost" to="/open-classroom">
-            Voir l'Open Classroom
-          </Link>
+        </div>
+      </section>
+
+      {/* NIVEAUX & MATIERES */}
+      <section className="sec container">
+        <div className="curriculum">
+          <div className="curriculum-head">
+            <span className="eyebrow">Programme béninois</span>
+            <h2 className="sec-title">Tout le secondaire, du collège au lycée.</h2>
+            <p className="sec-text">
+              Des contenus organisés par classe et par matière, pour réviser exactement ce qui est vu en cours et se
+              préparer aux examens nationaux.
+            </p>
+          </div>
+
+          <div className="curriculum-block">
+            <span className="curriculum-label">Niveaux</span>
+            <div className="chips">
+              {LEVELS.map((level) => (
+                <span key={level} className="chip">
+                  {level}
+                </span>
+              ))}
+              <span className="chip chip-exam">BEPC</span>
+              <span className="chip chip-exam">BAC</span>
+            </div>
+          </div>
+
+          <div className="curriculum-block">
+            <span className="curriculum-label">Matières</span>
+            <div className="chips">
+              {SUBJECTS.map((subject) => (
+                <span key={subject} className="chip">
+                  {subject}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* OPEN CLASSROOM */}
-      <section className="section container panel">
-        <div className="section-head">
-          <span className="kicker">Open Classroom</span>
-          <h2>Des sessions live pour debloquer les points difficiles.</h2>
-        </div>
-        <p>
-          L'Open Classroom iSkul, ce sont des sessions interactives : explications, questions-reponses, methodes et
-          entrainements. Ideal pour reprendre confiance et progresser plus vite.
-        </p>
-        <div className="hero-actions">
-          <Link className="btn primary" to="/open-classroom">
-            Voir le planning live
-          </Link>
-        </div>
-      </section>
-
-      {/* PARENTS */}
-      <section className="section container panel parents-panel">
-        <div className="section-head">
-          <span className="kicker">Espace parents</span>
-          <h2>Suivre la progression, sans surveiller l'enfant.</h2>
-        </div>
-        <p>
-          L'espace parents permet de consulter les statistiques liees au compte de l'eleve : progression, scores, et
-          regularite. Une vue claire, sans pression inutile.
-        </p>
-        <div className="hero-actions">
-          <Link className="btn ghost" to="/parents">
-            Acceder a l'espace parents
-          </Link>
-        </div>
-      </section>
-
-      {/* PROF */}
-      <section className="section container panel">
-        <div className="section-head">
-          <span className="kicker">Espace professeur</span>
-          <h2>Une vue claire sur la performance et l'engagement.</h2>
-        </div>
-        <p>
-          Sur le web, l'enseignant consulte des indicateurs detailles. Pour creer et organiser les contenus, l'experience
-          complete se fait dans l'application iSkul.
-        </p>
-        <div className="hero-actions">
-          <Link className="btn secondary" to="/inscription-professeur">
-            Devenir professeur iSkul
-          </Link>
-          <Link className="btn ghost" to="/espace-professeur">
-            Ouvrir l'espace professeur
-          </Link>
-        </div>
-      </section>
-
-      {/* BIBLIOTHEQUE */}
-      <section className="section container panel library-panel">
-        <div className="section-head">
-          <span className="kicker">Bibliotheque</span>
-          <h2>Documents pedagogiques et livres, a portee de main.</h2>
-        </div>
-        <p>
-          Une bibliotheque pour approfondir : documents pedagogiques, supports structures, et ressources de lecture. De
-          quoi reviser, comprendre et consolider.
-        </p>
-      </section>
-
-      {/* CTA FINAL - bande de telechargement */}
-      <section className="section container">
-        <div className="app-cta-band">
-          <div className="app-cta-copy">
-            <span className="kicker app-cta-kicker">Application iSkul</span>
-            <h2>Telechargez iSkul et apprenez ou que vous soyez.</h2>
-            <p>
-              Videos par chapitre, quiz de comprehension et statistiques de progression, directement sur votre
-              telephone. Gratuit, leger et pense pour le terrain.
+      <section className="sec container">
+        <div className="live-board">
+          <div className="live-copy">
+            <span className="eyebrow eyebrow-light">Open Classroom · en direct</span>
+            <h2 className="sec-title">Des sessions live pour débloquer les points difficiles.</h2>
+            <p className="sec-text-light">
+              Explications, questions-réponses, méthodologie et entraînements. Les replays restent disponibles pour
+              revoir un chapitre à son rythme.
             </p>
-            <div className="app-cta-badges store-badges">
+            <div className="live-list">
+              {OPEN_CLASSROOM_EVENTS.map((event) => (
+                <div key={`${event.day}-${event.hour}`} className="live-row">
+                  <span className="live-when">
+                    <strong>{event.day}</strong>
+                    <small>{event.hour}</small>
+                  </span>
+                  <span className="live-topic">
+                    {event.topic}
+                    <small>{event.teacher}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <Link className="btn gold" to="/open-classroom">
+              Voir tout le planning
+            </Link>
+          </div>
+          <Photo src={PHOTOS.live} alt="Session live avec des élèves" className="live-media" />
+        </div>
+      </section>
+
+      {/* PARENTS & PROF */}
+      <section className="sec container">
+        <div className="split split-reverse">
+          <Photo src={PHOTOS.parents} alt="Parent et élève au Bénin" className="split-media" />
+          <div className="split-copy">
+            <span className="eyebrow">Parents &amp; professeurs</span>
+            <h2 className="sec-title">Accompagner, sans surveiller.</h2>
+            <p className="sec-text">
+              Les parents suivent la progression de leur enfant — scores, régularité, points faibles — d'un coup d'œil,
+              sans pression inutile. Les professeurs, eux, créent leurs contenus et suivent l'engagement de leurs classes.
+            </p>
+            <div className="duo-actions">
+              <Link className="btn primary" to="/parents">
+                Espace parents
+              </Link>
+              <Link className="btn ghost" to="/inscription-professeur">
+                Devenir professeur
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TEMOIGNAGES */}
+      <section className="sec container">
+        <div className="sec-head">
+          <span className="eyebrow">Ils utilisent iSkul</span>
+          <h2 className="sec-title">Des élèves, des parents, des profs — au Bénin.</h2>
+        </div>
+        <div className="quotes">
+          {TESTIMONIALS.map((item) => (
+            <figure key={item.name} className="quote">
+              <blockquote>« {item.quote} »</blockquote>
+              <figcaption>
+                <span className="quote-avatar" aria-hidden="true">
+                  {item.name.replace(/^(M\.|Mme)\s*/, "").charAt(0)}
+                </span>
+                <span className="quote-id">
+                  <strong>{item.name}</strong>
+                  <small>
+                    {item.role} · {item.place}
+                  </small>
+                </span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      {/* TELECHARGEMENT */}
+      <section className="sec container">
+        <div className="download">
+          <div className="download-copy">
+            <span className="eyebrow eyebrow-light">Application iSkul</span>
+            <h2 className="download-title">Téléchargez iSkul et révisez où que vous soyez.</h2>
+            <p>
+              Vidéos, quiz et suivi de progression, directement sur votre téléphone. Gratuit, léger et pensé pour le
+              terrain — même avec une connexion limitée.
+            </p>
+            <div className="store-badges">
               <StoreButton platform="android" variant="primary" />
               <StoreButton platform="ios" variant="secondary" />
             </div>
-            <p className="app-cta-note">Disponible des maintenant sur Google Play - iOS bientot disponible.</p>
+            <p className="download-note">Disponible dès maintenant sur Google Play · iOS bientôt disponible.</p>
           </div>
-          <div className="app-cta-glow" aria-hidden="true">
-            <img src={iskulLogo} alt="" className="app-cta-logo" />
+          <div className="download-art" aria-hidden="true">
+            <img src={iskulLogo} alt="" className="download-logo" />
           </div>
         </div>
       </section>
@@ -708,10 +797,11 @@ function CoursesPage() {
   return (
     <div className="page-wrap container">
       <header className="page-head">
-        <span className="kicker">Cours & Quiz</span>
-        <h1>Des cours structures pour comprendre avant de memoriser</h1>
+        <span className="kicker">Cours &amp; Quiz</span>
+        <h1>Comprendre avant de mémoriser, du collège à la terminale</h1>
         <p>
-          Chaque cours iSkul suit la meme logique : video explicative, quiz de comprehension, statistiques de progression.
+          Chaque cours iSkul suit la même logique : une vidéo explicative par chapitre, un quiz de compréhension par
+          séquence, puis des statistiques de progression — alignés sur le programme béninois.
         </p>
       </header>
 
@@ -719,38 +809,38 @@ function CoursesPage() {
         <h2>Ce que contient un cours iSkul</h2>
         <div className="three-cols">
           <article className="content-card">
-            <h3>Video par chapitre</h3>
-            <p>Explication claire, structuree, en francais et en langues locales.</p>
+            <h3>Vidéo par chapitre</h3>
+            <p>Une explication claire et structurée, en français et en langues locales (Fon, Yoruba, Dendi…).</p>
           </article>
 
           <article className="content-card">
-            <h3>Quiz par sequence</h3>
-            <p>Questions ciblees pour tester la comprehension immediate.</p>
+            <h3>Quiz par séquence</h3>
+            <p>Des questions ciblées pour tester la compréhension immédiatement, séquence après séquence.</p>
           </article>
 
           <article className="content-card">
             <h3>Statistiques personnelles</h3>
-            <p>Suivi des scores, progression par matiere et par chapitre.</p>
+            <p>Le suivi des scores, de la progression par matière et par chapitre, pour savoir quoi réviser.</p>
           </article>
         </div>
       </section>
 
       <section className="section">
-        <h2>Niveaux concernes</h2>
+        <h2>Niveaux et examens couverts</h2>
         <div className="three-cols">
           <article className="content-card">
-            <h3>College</h3>
-            <p>Programmes structures par classe et matiere.</p>
+            <h3>Collège · 6ᵉ → 3ᵉ</h3>
+            <p>Les fondamentaux par classe et par matière, pour bâtir des bases solides jusqu'au BEPC.</p>
           </article>
 
           <article className="content-card">
-            <h3>Lycee</h3>
-            <p>Approfondissement, methodologie et preparation aux examens.</p>
+            <h3>Lycée · 2ⁿᵈᵉ → Tˡᵉ</h3>
+            <p>Approfondissement, méthodologie et préparation progressive au baccalauréat.</p>
           </article>
 
           <article className="content-card">
-            <h3>Examens</h3>
-            <p>Revisions ciblees et quiz d'entrainement.</p>
+            <h3>Examens · BEPC &amp; BAC</h3>
+            <p>Révisions ciblées, annales et quiz d'entraînement pour aborder les examens en confiance.</p>
           </article>
         </div>
       </section>
@@ -762,26 +852,26 @@ function LibraryPage() {
   return (
     <div className="page-wrap container">
       <header className="page-head">
-        <span className="kicker">Bibliotheque</span>
-        <h1>Documents pedagogiques, livres et ressources utiles</h1>
+        <span className="kicker">Bibliothèque</span>
+        <h1>Documents pédagogiques, livres et ressources utiles</h1>
         <p>
-          Une bibliotheque pour lire, reviser et approfondir : supports scolaires, documents pedagogiques et ressources
-          de reference.
+          Une bibliothèque pour lire, réviser et approfondir : supports scolaires, documents pédagogiques et ouvrages de
+          référence, adaptés aux élèves du secondaire au Bénin.
         </p>
       </header>
 
       <div className="three-cols">
         <article className="content-card">
-          <h3>Documents pedagogiques</h3>
-          <p>Fiches, supports de cours, exercices et documents structures par matiere et niveau.</p>
+          <h3>Documents pédagogiques</h3>
+          <p>Fiches, supports de cours, exercices et documents structurés par matière et par niveau.</p>
         </article>
         <article className="content-card">
-          <h3>Livres & lecture</h3>
-          <p>Ouvrages utiles pour la culture generale, la lecture et la consolidation des acquis.</p>
+          <h3>Livres &amp; lecture</h3>
+          <p>Des ouvrages utiles pour la culture générale, la lecture et la consolidation des acquis.</p>
         </article>
         <article className="content-card">
-          <h3>Ressources mises a jour</h3>
-          <p>Une amelioration continue des contenus pour rester aligne sur les besoins du terrain.</p>
+          <h3>Ressources à jour</h3>
+          <p>Une amélioration continue des contenus pour rester aligné sur le programme et les besoins du terrain.</p>
         </article>
       </div>
     </div>
@@ -792,16 +882,19 @@ function OpenClassroomPage() {
   return (
     <div className="page-wrap container">
       <header className="page-head">
-        <span className="kicker">Open Classroom</span>
+        <span className="kicker">Open Classroom · en direct</span>
         <h1>Le planning live pour apprendre en direct</h1>
-        <p>Sessions interactives : explications, questions-reponses, methodologie et entrainements.</p>
+        <p>
+          Des sessions interactives : explications, questions-réponses, méthodologie et entraînements, animées par
+          l'équipe iSkul.
+        </p>
       </header>
 
       <div className="grid-cards">
         {OPEN_CLASSROOM_EVENTS.map((event) => (
           <article key={`${event.day}-${event.hour}`} className="content-card">
             <h3>
-              {event.day} - {event.hour}
+              {event.day} · {event.hour}
             </h3>
             <p>{event.topic}</p>
             <p className="muted">{event.teacher}</p>
@@ -812,8 +905,8 @@ function OpenClassroomPage() {
       <section className="panel archive-panel">
         <h2>Archives (replays)</h2>
         <p>
-          Les replays restent disponibles pour revoir les points difficiles, avancer a son rythme et consolider chaque
-          chapitre.
+          Les replays restent disponibles pour revoir les points difficiles, avancer à son rythme et consolider chaque
+          chapitre avant le BEPC ou le BAC.
         </p>
       </section>
     </div>
@@ -824,19 +917,19 @@ function AboutPage() {
   return (
     <div className="page-wrap container">
       <header className="page-head">
-        <span className="kicker">A propos</span>
+        <span className="kicker">À propos</span>
         <h1>Pourquoi iSkul existe</h1>
         <p>
-          Notre mission : rendre la comprehension scolaire accessible, en respectant la langue, la culture et le rythme
-          d'apprentissage de chaque eleve.
+          Notre mission : rendre la compréhension scolaire accessible aux élèves du secondaire au Bénin, en respectant
+          leur langue, leur culture et leur rythme d'apprentissage.
         </p>
       </header>
 
       <section className="panel">
         <h2>Comprendre change tout</h2>
         <p>
-          Quand un eleve comprend vraiment, il reprend confiance. iSkul combine technologie et pedagogie pour transformer
-          la comprehension en progres mesurables.
+          Quand un élève comprend vraiment, il reprend confiance. iSkul combine technologie et pédagogie pour
+          transformer la compréhension en progrès mesurables — du collège jusqu'au baccalauréat.
         </p>
       </section>
     </div>
