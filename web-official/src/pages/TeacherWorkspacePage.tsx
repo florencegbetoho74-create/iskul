@@ -83,24 +83,6 @@ type QuizRow = {
   updated_at_ms: number | null;
 };
 
-type LessonProgressRow = {
-  user_id: string;
-  course_id: string;
-  chapter_id: string;
-  watched_sec: number | null;
-  duration_sec: number | null;
-  updated_at_ms: number | null;
-};
-
-type QuizAttemptRow = {
-  quiz_id: string;
-  user_id: string;
-  answers: unknown;
-  score: number | null;
-  max_score: number | null;
-  created_at_ms: number | null;
-};
-
 type QuizMetrics = {
   attempts: number;
   avgScorePct: number;
@@ -424,60 +406,6 @@ function prepareQuizQuestions(
   return { ok: true, value: prepared };
 }
 
-function extractAnswerIndex(rawAnswer: unknown): number | null {
-  if (Array.isArray(rawAnswer)) {
-    const first = Number(rawAnswer[0]);
-    if (!Number.isFinite(first)) return null;
-    return Math.floor(first);
-  }
-  const value = Number(rawAnswer);
-  if (!Number.isFinite(value)) return null;
-  return Math.floor(value);
-}
-
-function normalizeQuestionCorrectIndices(rawQuestion: unknown): number[] {
-  const question = (rawQuestion || {}) as QuizRawQuestion;
-  const options = Array.isArray(question.options) ? question.options : [];
-  const max = options.length;
-
-  const fromArray = Array.isArray(question.correctIndices)
-    ? question.correctIndices
-        .map((idx) => Number(idx))
-        .filter((idx) => Number.isFinite(idx))
-        .map((idx) => Math.floor(idx))
-        .filter((idx) => idx >= 0 && idx < max)
-    : [];
-
-  if (fromArray.length) return Array.from(new Set(fromArray));
-
-  const single = Number(question.correctIndex);
-  if (Number.isFinite(single) && single >= 0 && single < max) {
-    return [Math.floor(single)];
-  }
-
-  return [];
-}
-
-function dayKeyFromMs(ms: number) {
-  const date = new Date(ms);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function buildDayRange(days: number) {
-  const result: string[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let offset = days - 1; offset >= 0; offset -= 1) {
-    const day = new Date(today);
-    day.setDate(today.getDate() - offset);
-    result.push(dayKeyFromMs(day.getTime()));
-  }
-  return result;
-}
-
 function dayLabel(dayKey: string) {
   const parsed = new Date(`${dayKey}T00:00:00`);
   return parsed.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
@@ -655,312 +583,88 @@ export default function TeacherWorkspacePage() {
   const chartMaxAttempts = useMemo(() => Math.max(1, ...quizAttemptsSeries), [quizAttemptsSeries]);
 
   const loadTeacherAnalytics = useCallback(
-    async (courseRows: CourseRow[], chapterRows: ChapterRow[], quizRows: QuizRow[], periodDays: PeriodDays) => {
-      const courseIds = courseRows.map((course) => course.id);
-      const quizIds = quizRows.map((quiz) => quiz.id);
-      const sinceDate = new Date();
-      sinceDate.setHours(0, 0, 0, 0);
-      sinceDate.setDate(sinceDate.getDate() - (periodDays - 1));
-      const rawSinceMs = sinceDate.getTime();
-      const sinceMs = Number.isFinite(rawSinceMs) ? Math.floor(rawSinceMs) : 0;
+    async (chapterRows: ChapterRow[], periodDays: PeriodDays) => {
+      // Les agregats ne peuvent pas etre calcules ici : les politiques RLS de
+      // lesson_progress et quiz_attempts ne rendent que les lignes de
+      // l'appelant. La fonction teacher_dashboard verifie la propriete des
+      // contenus puis agrege cote serveur.
+      const { data, error } = await supabase.rpc("teacher_dashboard", {
+        p_days: periodDays,
+      });
+      if (error) throw error;
 
-      if (!courseIds.length && !quizIds.length) {
-        setOverview(EMPTY_OVERVIEW);
-        setQuizMetrics({});
-        setCourseInsights([]);
-        setChapterInsights([]);
-        setWeakQuestions([]);
-        setDailyInsights([]);
-        return;
-      }
+      const root = (data || {}) as Record<string, unknown>;
+      const totals = (root.totals || {}) as Record<string, unknown>;
+      const rows = (key: string): Record<string, unknown>[] =>
+        Array.isArray(root[key]) ? (root[key] as Record<string, unknown>[]) : [];
 
-      const [progressRes, attemptsRes] = await Promise.all([
-        courseIds.length
-          ? supabase
-              .from("lesson_progress")
-              .select("user_id,course_id,chapter_id,watched_sec,duration_sec,updated_at_ms")
-              .in("course_id", courseIds)
-              .gte("updated_at_ms", String(sinceMs))
-          : Promise.resolve({ data: [], error: null }),
-        quizIds.length
-          ? supabase
-              .from("quiz_attempts")
-              .select("quiz_id,user_id,answers,score,max_score,created_at_ms")
-              .in("quiz_id", quizIds)
-              .gte("created_at_ms", String(sinceMs))
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
-      if (progressRes.error) throw progressRes.error;
-      if (attemptsRes.error) throw attemptsRes.error;
-
-      const progressRows = (progressRes.data || []) as LessonProgressRow[];
-      const attempts = (attemptsRes.data || []) as QuizAttemptRow[];
-
-      const quizById = new Map(quizRows.map((quiz) => [quiz.id, quiz]));
-      const courseTitleById = new Map(courseRows.map((course) => [course.id, course.title]));
-      const chapterById = new Map(chapterRows.map((chapter) => [chapter.id, chapter]));
-
-      const learnerIds = new Set<string>();
-      const learnerProgressAgg = new Map<string, { sum: number; count: number }>();
-
-      const perCourseProgress = new Map<string, { learners: Set<string>; ratioSum: number; count: number }>();
-      const perChapterProgress = new Map<string, { learners: Set<string>; ratioSum: number; count: number }>();
-
-      let completionRatioSum = 0;
-      progressRows.forEach((row) => {
-        learnerIds.add(row.user_id);
-
-        const watched = Math.max(0, safeNumber(row.watched_sec));
-        const duration = Math.max(0, safeNumber(row.duration_sec));
-        const ratio = duration > 0 ? clamp01(watched / duration) : clamp01(watched / 600);
-
-        completionRatioSum += ratio;
-
-        const learnerAgg = learnerProgressAgg.get(row.user_id) || { sum: 0, count: 0 };
-        learnerProgressAgg.set(row.user_id, { sum: learnerAgg.sum + ratio, count: learnerAgg.count + 1 });
-
-        const courseAgg = perCourseProgress.get(row.course_id) || {
-          learners: new Set<string>(),
-          ratioSum: 0,
-          count: 0,
+      const courseTitleById = new Map<string, string>();
+      const nextCourseInsights: CourseInsight[] = rows("courses").map((row) => {
+        const courseId = String(row.courseId ?? "");
+        const title = String(row.title ?? "Cours");
+        courseTitleById.set(courseId, title);
+        return {
+          courseId,
+          title,
+          learners: safeNumber(row.learners),
+          completionRatePct: clamp01(safeNumber(row.completionRate)) * 100,
+          quizAttempts: 0,
+          quizAvgScorePct: 0,
         };
-        courseAgg.learners.add(row.user_id);
-        courseAgg.ratioSum += ratio;
-        courseAgg.count += 1;
-        perCourseProgress.set(row.course_id, courseAgg);
-
-        const chapterAgg = perChapterProgress.get(row.chapter_id) || {
-          learners: new Set<string>(),
-          ratioSum: 0,
-          count: 0,
-        };
-        chapterAgg.learners.add(row.user_id);
-        chapterAgg.ratioSum += ratio;
-        chapterAgg.count += 1;
-        perChapterProgress.set(row.chapter_id, chapterAgg);
       });
 
-      const atRiskLearners = Array.from(learnerProgressAgg.values()).filter(
-        (entry) => entry.count >= 2 && entry.sum / entry.count < 0.4
-      ).length;
+      const chapterCourseById = new Map(
+        chapterRows.map((chapter) => [chapter.id, chapter.course_id])
+      );
 
-      const perQuizAgg = new Map<string, { attempts: number; sumPct: number; bestPct: number }>();
-      const perCourseQuiz = new Map<string, { attempts: number; scoreSum: number; scoreCount: number }>();
-      const perChapterQuiz = new Map<string, { attempts: number; scoreSum: number; scoreCount: number }>();
-      const weakQuestionAgg = new Map<
-        string,
-        {
-          quizId: string;
-          quizTitle: string;
-          courseTitle: string;
-          chapterTitle: string;
-          prompt: string;
-          attempts: number;
-          correct: number;
-        }
-      >();
-
-      let quizScoreSum = 0;
-      let quizScoreCount = 0;
-
-      attempts.forEach((attempt) => {
-        learnerIds.add(attempt.user_id);
-        const score = Math.max(0, safeNumber(attempt.score));
-        const maxScore = Math.max(0, safeNumber(attempt.max_score));
-        const scorePct = maxScore > 0 ? (score / maxScore) * 100 : 0;
-
-        const quizAgg = perQuizAgg.get(attempt.quiz_id) || { attempts: 0, sumPct: 0, bestPct: 0 };
-        quizAgg.attempts += 1;
-        quizAgg.sumPct += scorePct;
-        quizAgg.bestPct = Math.max(quizAgg.bestPct, scorePct);
-        perQuizAgg.set(attempt.quiz_id, quizAgg);
-
-        if (maxScore > 0) {
-          quizScoreSum += scorePct;
-          quizScoreCount += 1;
-        }
-
-        const quiz = quizById.get(attempt.quiz_id);
-        if (quiz?.course_id) {
-          const courseQuiz = perCourseQuiz.get(quiz.course_id) || { attempts: 0, scoreSum: 0, scoreCount: 0 };
-          courseQuiz.attempts += 1;
-          if (maxScore > 0) {
-            courseQuiz.scoreSum += scorePct;
-            courseQuiz.scoreCount += 1;
-          }
-          perCourseQuiz.set(quiz.course_id, courseQuiz);
-        }
-
-        if (quiz?.chapter_id) {
-          const chapterQuiz = perChapterQuiz.get(quiz.chapter_id) || {
-            attempts: 0,
-            scoreSum: 0,
-            scoreCount: 0,
-          };
-          chapterQuiz.attempts += 1;
-          if (maxScore > 0) {
-            chapterQuiz.scoreSum += scorePct;
-            chapterQuiz.scoreCount += 1;
-          }
-          perChapterQuiz.set(quiz.chapter_id, chapterQuiz);
-        }
-
-        if (quiz) {
-          const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
-          const answers = Array.isArray(attempt.answers) ? attempt.answers : [];
-
-          questions.forEach((question, questionIndex) => {
-            const prompt = String((question as QuizRawQuestion)?.prompt || "").trim();
-            if (!prompt) return;
-
-            const selected = extractAnswerIndex(answers[questionIndex]);
-            if (selected === null) return;
-
-            const correctIndices = normalizeQuestionCorrectIndices(question);
-            const key = `${quiz.id}:${questionIndex}`;
-            const aggregate = weakQuestionAgg.get(key) || {
-              quizId: quiz.id,
-              quizTitle: quiz.title,
-              courseTitle: quiz.course_id ? courseTitleById.get(quiz.course_id) || "Cours inconnu" : "Standalone",
-              chapterTitle:
-                quiz.chapter_id && chapterById.get(quiz.chapter_id)
-                  ? chapterById.get(quiz.chapter_id)!.title
-                  : quiz.chapter_id
-                  ? "Chapitre"
-                  : "Standalone",
-              prompt,
-              attempts: 0,
-              correct: 0,
-            };
-
-            aggregate.attempts += 1;
-            if (correctIndices.includes(selected)) aggregate.correct += 1;
-            weakQuestionAgg.set(key, aggregate);
-          });
-        }
+      const nextChapterInsights: ChapterInsight[] = rows("chapters").map((row) => {
+        const chapterId = String(row.chapterId ?? "");
+        const courseId = String(row.courseId ?? chapterCourseById.get(chapterId) ?? "");
+        return {
+          chapterId,
+          courseId,
+          title: String(row.title ?? "Chapitre"),
+          courseTitle: courseTitleById.get(courseId) || "Cours",
+          learners: safeNumber(row.learners),
+          completionRatePct: clamp01(safeNumber(row.completionRate)) * 100,
+          quizAttempts: 0,
+          quizAvgScorePct: 0,
+        };
       });
 
       const metricsByQuiz: Record<string, QuizMetrics> = {};
-      perQuizAgg.forEach((value, quizId) => {
+      rows("quizzes").forEach((row) => {
+        const quizId = String(row.quizId ?? "");
+        if (!quizId) return;
+        const avg = safeNumber(row.avgScorePct);
         metricsByQuiz[quizId] = {
-          attempts: value.attempts,
-          avgScorePct: value.attempts ? value.sumPct / value.attempts : 0,
-          bestScorePct: value.bestPct,
+          attempts: safeNumber(row.attempts),
+          avgScorePct: avg,
+          bestScorePct: avg,
         };
       });
 
-      const nextCourseInsights: CourseInsight[] = courseRows
-        .map((course) => {
-          const progress = perCourseProgress.get(course.id);
-          const quiz = perCourseQuiz.get(course.id);
-          return {
-            courseId: course.id,
-            title: course.title,
-            learners: progress?.learners.size || 0,
-            completionRatePct: progress?.count ? (progress.ratioSum / progress.count) * 100 : 0,
-            quizAttempts: quiz?.attempts || 0,
-            quizAvgScorePct: quiz?.scoreCount ? quiz.scoreSum / quiz.scoreCount : 0,
-          };
-        })
-        .sort((a, b) => {
-          if (a.completionRatePct !== b.completionRatePct) return b.completionRatePct - a.completionRatePct;
-          return b.learners - a.learners;
-        });
-
-      const nextChapterInsights: ChapterInsight[] = chapterRows
-        .map((chapter) => {
-          const progress = perChapterProgress.get(chapter.id);
-          const quiz = perChapterQuiz.get(chapter.id);
-          return {
-            chapterId: chapter.id,
-            courseId: chapter.course_id,
-            title: chapter.title,
-            courseTitle: courseTitleById.get(chapter.course_id) || "Cours",
-            learners: progress?.learners.size || 0,
-            completionRatePct: progress?.count ? (progress.ratioSum / progress.count) * 100 : 0,
-            quizAttempts: quiz?.attempts || 0,
-            quizAvgScorePct: quiz?.scoreCount ? quiz.scoreSum / quiz.scoreCount : 0,
-          };
-        })
-        .sort((a, b) => {
-          if (a.completionRatePct !== b.completionRatePct) return b.completionRatePct - a.completionRatePct;
-          return b.learners - a.learners;
-        })
-        .slice(0, 10);
-
-      const nextWeakQuestions: WeakQuestionInsight[] = Array.from(weakQuestionAgg.entries())
-        .map(([key, entry]) => ({
-          key,
-          quizId: entry.quizId,
-          quizTitle: entry.quizTitle,
-          courseTitle: entry.courseTitle,
-          chapterTitle: entry.chapterTitle,
-          prompt: entry.prompt,
-          attempts: entry.attempts,
-          accuracyPct: entry.attempts ? (entry.correct / entry.attempts) * 100 : 0,
-        }))
-        .filter((entry) => entry.attempts >= 3)
-        .sort((a, b) => {
-          if (a.accuracyPct !== b.accuracyPct) return a.accuracyPct - b.accuracyPct;
-          return b.attempts - a.attempts;
-        })
-        .slice(0, 8);
-
-      const progressDaily = new Map<string, { ratioSum: number; count: number; learners: Set<string> }>();
-      progressRows.forEach((row) => {
-        const updatedMs = safeNumber(row.updated_at_ms);
-        if (!updatedMs || updatedMs < sinceMs) return;
-        const day = dayKeyFromMs(updatedMs);
-        const watched = Math.max(0, safeNumber(row.watched_sec));
-        const duration = Math.max(0, safeNumber(row.duration_sec));
-        const ratio = duration > 0 ? clamp01(watched / duration) : clamp01(watched / 600);
-        const aggregate = progressDaily.get(day) || { ratioSum: 0, count: 0, learners: new Set<string>() };
-        aggregate.ratioSum += ratio;
-        aggregate.count += 1;
-        aggregate.learners.add(row.user_id);
-        progressDaily.set(day, aggregate);
-      });
-
-      const attemptsDaily = new Map<
-        string,
-        { attempts: number; scoreSum: number; scoreCount: number; learners: Set<string> }
-      >();
-      attempts.forEach((attempt) => {
-        const createdMs = safeNumber(attempt.created_at_ms);
-        if (!createdMs || createdMs < sinceMs) return;
-        const day = dayKeyFromMs(createdMs);
-        const score = Math.max(0, safeNumber(attempt.score));
-        const maxScore = Math.max(0, safeNumber(attempt.max_score));
-        const aggregate = attemptsDaily.get(day) || {
-          attempts: 0,
-          scoreSum: 0,
-          scoreCount: 0,
-          learners: new Set<string>(),
-        };
-        aggregate.attempts += 1;
-        if (maxScore > 0) {
-          aggregate.scoreSum += (score / maxScore) * 100;
-          aggregate.scoreCount += 1;
-        }
-        aggregate.learners.add(attempt.user_id);
-        attemptsDaily.set(day, aggregate);
-      });
-
-      const nextDailyInsights: DailyInsight[] = buildDayRange(periodDays).map((day) => {
-        const progress = progressDaily.get(day);
-        const quiz = attemptsDaily.get(day);
-        const learners = new Set<string>();
-        progress?.learners.forEach((id) => learners.add(id));
-        quiz?.learners.forEach((id) => learners.add(id));
+      const nextWeakQuestions: WeakQuestionInsight[] = rows("weakQuestions").map((row) => {
+        const quizId = String(row.quizId ?? "");
         return {
-          day,
-          completionRatePct: progress?.count ? (progress.ratioSum / progress.count) * 100 : 0,
-          quizAttempts: quiz?.attempts || 0,
-          quizAvgScorePct: quiz?.scoreCount ? quiz.scoreSum / quiz.scoreCount : 0,
-          activeLearners: learners.size,
+          key: `${quizId}:${safeNumber(row.questionIndex)}`,
+          quizId,
+          quizTitle: String(row.quizTitle ?? "Quiz"),
+          courseTitle: "",
+          chapterTitle: "",
+          prompt: String(row.prompt ?? "Question"),
+          attempts: safeNumber(row.answers),
+          accuracyPct: clamp01(safeNumber(row.successRate)) * 100,
         };
       });
+
+      const nextDailyInsights: DailyInsight[] = rows("daily").map((row) => ({
+        day: String(row.day ?? ""),
+        completionRatePct: 0,
+        quizAttempts: safeNumber(row.attempts),
+        quizAvgScorePct: safeNumber(row.avgScorePct),
+        activeLearners: safeNumber(row.learners),
+      }));
 
       setQuizMetrics(metricsByQuiz);
       setCourseInsights(nextCourseInsights);
@@ -968,11 +672,14 @@ export default function TeacherWorkspacePage() {
       setWeakQuestions(nextWeakQuestions);
       setDailyInsights(nextDailyInsights);
       setOverview({
-        learners: learnerIds.size,
-        completionRatePct: progressRows.length ? (completionRatioSum / progressRows.length) * 100 : 0,
-        quizAttempts: attempts.length,
-        quizAvgScorePct: quizScoreCount ? quizScoreSum / quizScoreCount : 0,
-        atRiskLearners,
+        learners: safeNumber(totals.learners),
+        completionRatePct: clamp01(safeNumber(totals.completionRate)) * 100,
+        quizAttempts: safeNumber(totals.quizAttempts),
+        quizAvgScorePct: nextDailyInsights.length
+          ? nextDailyInsights.reduce((acc, d) => acc + d.quizAvgScorePct, 0) /
+            Math.max(nextDailyInsights.filter((d) => d.quizAttempts > 0).length, 1)
+          : 0,
+        atRiskLearners: safeNumber(totals.atRiskCount),
       });
     },
     []
@@ -1074,7 +781,7 @@ export default function TeacherWorkspacePage() {
           : nextCourses[0]?.id || "";
       setSelectedCourseId(preferredCourse);
 
-      await loadTeacherAnalytics(nextCourses, nextChapters, nextQuizzes, analyticsDays);
+      await loadTeacherAnalytics(nextChapters, analyticsDays);
     } catch (error) {
       setNotice({ kind: "error", text: toErrorMessage(error) });
     } finally {

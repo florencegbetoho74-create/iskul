@@ -171,7 +171,7 @@ export default function Home() {
     }
     let active = true;
     setTeacherDashLoading(true);
-    getTeacherDashboard(user.id)
+    getTeacherDashboard(30)
       .then((snap) => {
         if (active) setTeacherDash(snap);
       })
