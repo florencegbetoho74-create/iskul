@@ -15,6 +15,9 @@ export type Quiz = {
   lessonId?: string | null;
   level?: string;
   subject?: string;
+  countryCode?: string | null;
+  gradeLevelId?: string | null;
+  subjectId?: string | null;
   scope: "lesson" | "standalone";
   title: string;
   description?: string;
@@ -80,6 +83,9 @@ function mapQuiz(row: any): Quiz {
     lessonId,
     level: level || undefined,
     subject: subject || undefined,
+    countryCode: row.country_code ?? null,
+    gradeLevelId: row.grade_level_id ?? null,
+    subjectId: row.subject_id ?? null,
     scope: courseId && lessonId ? "lesson" : "standalone",
     title: row.title,
     description: row.description ?? undefined,
@@ -181,6 +187,9 @@ export async function saveQuiz(input: {
   questions: QuizQuestion[];
   published?: boolean;
   ownerId: string;
+  countryCode?: string | null;
+  gradeLevelId?: string | null;
+  subjectId?: string | null;
 }): Promise<Quiz> {
   if (!SUPABASE_READY) throw new Error("Supabase non configure.");
   const level = canonicalizeGradeLabel(input.level || "");
@@ -198,6 +207,9 @@ export async function saveQuiz(input: {
     id: input.id ?? undefined,
     course_id: input.courseId ?? null,
     chapter_id: input.lessonId ?? null,
+    country_code: input.countryCode ?? null,
+    grade_level_id: input.gradeLevelId ?? null,
+    subject_id: input.subjectId ?? null,
     title: input.title,
     description: input.description ?? null,
     questions: cleanedQuestions,

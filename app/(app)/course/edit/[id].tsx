@@ -22,8 +22,9 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { uploadOne } from "@/lib/upload";
 import SelectionSheetField from "@/components/SelectionSheetField";
-import { GRADE_LEVELS, canonicalizeGradeLabel, isKnownGradeLevel } from "@/constants/gradeLevels";
-import { COURSE_SUBJECTS, canonicalizeCourseSubject, isKnownCourseSubject } from "@/constants/courseSubjects";
+import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
+import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
+import { useAuth } from "@/providers/AuthProvider";
 
 /* --------------------- Palette / Constantes spacing --------------------- */
 const BLUE_START = "#1D4ED8";
@@ -59,10 +60,16 @@ export default function EditCourse() {
 
   // meta cours
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState("");
   const [subject, setSubject] = useState("");
+  const [gradeLevelId, setGradeLevelId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
   const [published, setPublished] = useState(false);
+
+  const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
+  const { gradeLevels, subjects, loadingGrades, scope } = useSchoolingOptions(countryCode);
 
   // chapitres
   const [chapters, setChapters] = useState<any[]>([]);
@@ -93,8 +100,10 @@ export default function EditCourse() {
         return;
       }
       setTitle(c.title || "");
-      setLevel(canonicalizeGradeLabel(c.level || ""));
-      setSubject(canonicalizeCourseSubject(c.subject || ""));
+      setLevel(c.level || "");
+      setSubject(c.subject || "");
+      setGradeLevelId(c.gradeLevelId || "");
+      setSubjectId(c.subjectId || "");
       setPublished(!!c.published);
       setChapters(c.chapters ?? []);
       setLoading(false);
@@ -113,15 +122,20 @@ export default function EditCourse() {
       Alert.alert("Champs requis", "Merci de compléter tous les champs.");
       return;
     }
-    if (!isKnownGradeLevel(level)) {
-      Alert.alert("Classe requise", "Veuillez selectionner une classe standard.");
+    if (!gradeLevelId) {
+      Alert.alert("Classe requise", "Veuillez selectionner une classe.");
       return;
     }
-    if (!isKnownCourseSubject(subject)) {
-      Alert.alert("Matiere requise", "Veuillez selectionner une matiere standard.");
+    if (!subjectId) {
+      Alert.alert("Matiere requise", "Veuillez selectionner une matiere.");
       return;
     }
-    await updateCourse(id, { title: title.trim(), level: level.trim(), subject: subject.trim() });
+    await updateCourse(id, {
+      title: title.trim(),
+      countryCode: scope?.countryCode ?? countryCode,
+      gradeLevelId,
+      subjectId,
+    });
     Alert.alert("Enregistré", "Modifications sauvegardées.");
   };
 
@@ -263,8 +277,26 @@ export default function EditCourse() {
     router.push(`/(app)/course/play${qs}`);
   };
 
-  const hasLegacyLevel = useMemo(() => !!level && !isKnownGradeLevel(level), [level]);
-  const hasLegacySubject = useMemo(() => !!subject && !isKnownCourseSubject(subject), [subject]);
+  const gradeOptions = useMemo(() => gradeLevels.map((l) => l.label), [gradeLevels]);
+  const subjectOptions = useMemo(() => subjects.map((x) => x.label), [subjects]);
+  const gradeLabel = useMemo(
+    () => gradeLevels.find((l) => l.id === gradeLevelId)?.label ?? "",
+    [gradeLevels, gradeLevelId]
+  );
+  const subjectLabel = useMemo(
+    () => subjects.find((x) => x.id === subjectId)?.label ?? "",
+    [subjects, subjectId]
+  );
+  // Un cours anterieur au referentiel garde un libelle texte sans equivalent :
+  // on le signale au professeur plutot que de le remplacer en silence.
+  const hasLegacyLevel = useMemo(
+    () => !loadingGrades && !gradeLevelId && !!level,
+    [loadingGrades, gradeLevelId, level]
+  );
+  const hasLegacySubject = useMemo(
+    () => !loadingGrades && !subjectId && !!subject,
+    [loadingGrades, subjectId, subject]
+  );
   const chapterCount = chapters.length;
   const chapterWithVideoCount = useMemo(
     () =>
@@ -344,21 +376,27 @@ export default function EditCourse() {
             <SelectionSheetField
               label="Classe"
               icon="school-outline"
-              value={isKnownGradeLevel(level) ? level : ""}
-              placeholder="Choisir une classe"
-              options={GRADE_LEVELS}
-              onChange={setLevel}
-              helperText="Selectionnez une classe standard pour harmoniser le catalogue eleve."
-              warningText={hasLegacyLevel ? `Classe actuelle non standard detectee: "${level}"` : undefined}
+              value={gradeLabel}
+              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une classe"}
+              options={gradeOptions}
+              onChange={(label) => {
+                const match = gradeLevels.find((l) => l.label === label);
+                if (match) setGradeLevelId(match.id);
+              }}
+              helperText="Le cours n'apparaitra qu'aux eleves de cette classe."
+              warningText={hasLegacyLevel ? `Classe non reconnue a reclasser : "${level}"` : undefined}
             />
             <SelectionSheetField
               label="Matiere"
               icon="albums-outline"
-              value={isKnownCourseSubject(subject) ? subject : ""}
-              placeholder="Choisir une matiere"
-              options={COURSE_SUBJECTS}
-              onChange={setSubject}
-              warningText={hasLegacySubject ? `Matiere actuelle non standard detectee: "${subject}"` : undefined}
+              value={subjectLabel}
+              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+              options={subjectOptions}
+              onChange={(label) => {
+                const match = subjects.find((x) => x.label === label);
+                if (match) setSubjectId(match.id);
+              }}
+              warningText={hasLegacySubject ? `Matiere non reconnue a reclasser : "${subject}"` : undefined}
             />
 
             <View style={styles.row}>

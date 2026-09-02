@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,8 +9,8 @@ import { COLOR, FONT } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 import { createCourse } from "@/storage/courses";
 import SelectionSheetField from "@/components/SelectionSheetField";
-import { GRADE_LEVELS, isKnownGradeLevel } from "@/constants/gradeLevels";
-import { COURSE_SUBJECTS, isKnownCourseSubject } from "@/constants/courseSubjects";
+import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
+import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
 const ACCENT = ["#1D4ED8", "#2563EB"] as const;
 
@@ -19,9 +19,30 @@ export default function NewCourse() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState("");
-  const [level, setLevel] = useState("");
-  const [subject, setSubject] = useState("");
+  const [gradeLevelId, setGradeLevelId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Un professeur publie dans le programme de son pays.
+  const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
+  const { gradeLevels, subjects, loadingGrades, scope, error: optionsError } =
+    useSchoolingOptions(countryCode);
+
+  const gradeOptions = useMemo(() => gradeLevels.map((l) => l.label), [gradeLevels]);
+  const subjectOptions = useMemo(() => subjects.map((x) => x.label), [subjects]);
+  const gradeLabel = useMemo(
+    () => gradeLevels.find((l) => l.id === gradeLevelId)?.label ?? "",
+    [gradeLevels, gradeLevelId]
+  );
+  const subjectLabel = useMemo(
+    () => subjects.find((x) => x.id === subjectId)?.label ?? "",
+    [subjects, subjectId]
+  );
+
+  useEffect(() => {
+    if (gradeLevelId && !gradeLevels.some((l) => l.id === gradeLevelId)) setGradeLevelId("");
+    if (subjectId && !subjects.some((x) => x.id === subjectId)) setSubjectId("");
+  }, [gradeLevels, subjects, gradeLevelId, subjectId]);
 
   const save = async () => {
     if (!user) return;
@@ -29,11 +50,11 @@ export default function NewCourse() {
       Alert.alert("Champs requis", "Merci de completer tous les champs.");
       return;
     }
-    if (!isKnownGradeLevel(level)) {
+    if (!gradeLevelId) {
       Alert.alert("Classe requise", "Veuillez selectionner une classe.");
       return;
     }
-    if (!isKnownCourseSubject(subject)) {
+    if (!subjectId) {
       Alert.alert("Matiere requise", "Veuillez selectionner une matiere.");
       return;
     }
@@ -41,8 +62,13 @@ export default function NewCourse() {
       setLoading(true);
       const created = await createCourse({
         title: title.trim(),
-        level: level.trim(),
-        subject: subject.trim(),
+        // level et subject sont derives du referentiel par un trigger : on les
+        // envoie quand meme pour satisfaire les colonnes non nulles a l'insert.
+        level: gradeLevels.find((l) => l.id === gradeLevelId)?.code ?? "",
+        subject: subjectLabel,
+        countryCode: scope?.countryCode ?? countryCode,
+        gradeLevelId,
+        subjectId,
         chapters: [],
         published: false,
         ownerId: user.id,
@@ -81,21 +107,29 @@ export default function NewCourse() {
           <SelectionSheetField
             label="Classe"
             icon="school-outline"
-            value={level}
-            placeholder="Choisir une classe"
-            options={GRADE_LEVELS}
-            onChange={setLevel}
-            helperText="Selectionnez une classe standard pour une recherche eleve plus propre."
+            value={gradeLabel}
+            placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une classe"}
+            options={gradeOptions}
+            onChange={(label) => {
+              const match = gradeLevels.find((l) => l.label === label);
+              if (match) setGradeLevelId(match.id);
+            }}
+            helperText="Le cours n'apparaitra qu'aux eleves de cette classe."
           />
 
           <SelectionSheetField
             label="Matiere"
             icon="albums-outline"
-            value={subject}
-            placeholder="Choisir une matiere"
-            options={COURSE_SUBJECTS}
-            onChange={setSubject}
+            value={subjectLabel}
+            placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+            options={subjectOptions}
+            onChange={(label) => {
+              const match = subjects.find((x) => x.label === label);
+              if (match) setSubjectId(match.id);
+            }}
           />
+
+          {optionsError ? <Text style={styles.errorText}>{optionsError}</Text> : null}
         </View>
 
         <Pressable style={[styles.primary, loading && { opacity: 0.7 }]} onPress={save} disabled={loading}>
@@ -143,6 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
+  errorText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, marginTop: 4 },
 });
 
 

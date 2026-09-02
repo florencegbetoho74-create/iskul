@@ -3,6 +3,9 @@ export type Book = {
   title: string;
   subject?: string;
   level?: string;
+  countryCode?: string | null;
+  gradeLevelId?: string | null;
+  subjectId?: string | null;
   price?: number;           // 0 ou undefined => Gratuit
   coverUrl?: string | null; // miniature
   fileUrl: string;          // lien Storage (PDF/EPUB)
@@ -10,8 +13,6 @@ export type Book = {
   ownerName?: string;
   published?: boolean;
 
-  createdAt?: any;          // serverTimestamp
-  updatedAt?: any;          // serverTimestamp
-  createdAtMs?: number;     // tri client
-  updatedAtMs?: number;     // tri côté client
+  createdAtMs?: number;
+  updatedAtMs?: number;
 };

@@ -30,8 +30,8 @@ import {
   QuizAttempt,
   QuizQuestion,
 } from "@/storage/quizzes";
-import { COURSE_SUBJECTS, isKnownCourseSubject } from "@/constants/courseSubjects";
-import { GRADE_LEVELS, isKnownGradeLevel } from "@/constants/gradeLevels";
+import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
+import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
 const SOUND_CORRECT = require("../../../assets/sounds/quiz-correct.wav");
 const SOUND_WRONG = require("../../../assets/sounds/quiz-wrong.wav");
@@ -71,6 +71,8 @@ export default function QuizPage() {
   const [published, setPublished] = useState(false);
   const [standaloneLevel, setStandaloneLevel] = useState("");
   const [standaloneSubject, setStandaloneSubject] = useState("");
+  const [standaloneGradeLevelId, setStandaloneGradeLevelId] = useState("");
+  const [standaloneSubjectId, setStandaloneSubjectId] = useState("");
 
   const [playPhase, setPlayPhase] = useState<PlayPhase>("intro");
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -91,6 +93,44 @@ export default function QuizPage() {
   const resolvedQuizId = Array.isArray(quizId) ? quizId[0] : quizId;
   const standaloneMode = normalizedMode === "standalone";
   const isStandaloneQuiz = !!(quiz?.scope === "standalone" || (!resolvedCourseId && !resolvedLessonId && standaloneMode));
+
+  // Referentiel du programme de l'auteur : un quiz autonome se classe comme un
+  // cours, sinon il n'atteint jamais les eleves de la bonne classe.
+  const authorCountry = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
+  const schooling = useSchoolingOptions(authorCountry);
+  const taxonomy = useMemo(
+    () => ({
+      gradeLevels: schooling.gradeLevels,
+      subjects: schooling.subjects,
+      loadingGrades: schooling.loadingGrades,
+      scope: schooling.scope,
+      gradeOptions: schooling.gradeLevels.map((l) => l.label),
+      subjectOptions: schooling.subjects.map((x) => x.label),
+      gradeLabel:
+        schooling.gradeLevels.find((l) => l.id === standaloneGradeLevelId)?.label ?? "",
+      subjectLabel:
+        schooling.subjects.find((x) => x.id === standaloneSubjectId)?.label ?? "",
+    }),
+    [schooling, standaloneGradeLevelId, standaloneSubjectId]
+  );
+
+  // Reprise d'un quiz existant : on retrouve les identifiants depuis les
+  // libelles stockes, sans quoi la sauvegarde les effacerait.
+  useEffect(() => {
+    if (!schooling.gradeLevels.length) return;
+    if (standaloneGradeLevelId) return;
+    const match = schooling.gradeLevels.find(
+      (l) => l.code === standaloneLevel || l.label === standaloneLevel
+    );
+    if (match) setStandaloneGradeLevelId(match.id);
+  }, [schooling.gradeLevels, standaloneLevel, standaloneGradeLevelId]);
+
+  useEffect(() => {
+    if (!schooling.subjects.length) return;
+    if (standaloneSubjectId) return;
+    const match = schooling.subjects.find((x) => x.label === standaloneSubject);
+    if (match) setStandaloneSubjectId(match.id);
+  }, [schooling.subjects, standaloneSubject, standaloneSubjectId]);
   const isOwnerCourse = !!user?.id && !!course?.ownerId && user.id === course.ownerId;
   const isOwnerStandalone = !!user?.id && (!quiz?.id || quiz.ownerId === user.id);
   const canEdit = isTeacher && (isStandaloneQuiz ? isOwnerStandalone : isOwnerCourse);
@@ -317,12 +357,12 @@ export default function QuizPage() {
     const targetLessonId = isStandaloneQuiz ? null : lesson?.id || null;
     if (!isStandaloneQuiz && (!targetCourseId || !targetLessonId)) return;
     if (isStandaloneQuiz) {
-      if (!isKnownGradeLevel(standaloneLevel)) {
-        Alert.alert("Classe requise", "Selectionnez une classe standard pour le quiz autonome.");
+      if (!standaloneGradeLevelId) {
+        Alert.alert("Classe requise", "Selectionnez une classe pour le quiz autonome.");
         return;
       }
-      if (!isKnownCourseSubject(standaloneSubject)) {
-        Alert.alert("Matiere requise", "Selectionnez une matiere standard pour le quiz autonome.");
+      if (!standaloneSubjectId) {
+        Alert.alert("Matiere requise", "Selectionnez une matiere pour le quiz autonome.");
         return;
       }
     }
@@ -345,6 +385,11 @@ export default function QuizPage() {
         lessonId: targetLessonId,
         level: isStandaloneQuiz ? standaloneLevel.trim() : course?.level || null,
         subject: isStandaloneQuiz ? standaloneSubject.trim() : course?.subject || null,
+        countryCode: isStandaloneQuiz
+          ? taxonomy.scope?.countryCode ?? authorCountry
+          : course?.countryCode ?? null,
+        gradeLevelId: isStandaloneQuiz ? standaloneGradeLevelId : course?.gradeLevelId ?? null,
+        subjectId: isStandaloneQuiz ? standaloneSubjectId : course?.subjectId ?? null,
         title: title.trim(),
         description: description.trim() || null,
         questions: cleaned,
@@ -534,19 +579,33 @@ export default function QuizPage() {
                     <SelectionSheetField
                       label="Classe"
                       icon="school-outline"
-                      value={isKnownGradeLevel(standaloneLevel) ? standaloneLevel : ""}
-                      placeholder="Choisir une classe"
-                      options={GRADE_LEVELS}
-                      onChange={setStandaloneLevel}
+                      value={taxonomy.gradeLabel}
+                      placeholder={
+                        taxonomy.loadingGrades ? "Chargement du programme..." : "Choisir une classe"
+                      }
+                      options={taxonomy.gradeOptions}
+                      onChange={(label) => {
+                        const match = taxonomy.gradeLevels.find((l) => l.label === label);
+                        if (!match) return;
+                        setStandaloneGradeLevelId(match.id);
+                        setStandaloneLevel(match.code);
+                      }}
                       helperText="Ce quiz apparaitra dans la section eleve de cette classe."
                     />
                     <SelectionSheetField
                       label="Matiere"
                       icon="albums-outline"
-                      value={isKnownCourseSubject(standaloneSubject) ? standaloneSubject : ""}
-                      placeholder="Choisir une matiere"
-                      options={COURSE_SUBJECTS}
-                      onChange={setStandaloneSubject}
+                      value={taxonomy.subjectLabel}
+                      placeholder={
+                        taxonomy.loadingGrades ? "Chargement du programme..." : "Choisir une matiere"
+                      }
+                      options={taxonomy.subjectOptions}
+                      onChange={(label) => {
+                        const match = taxonomy.subjects.find((x) => x.label === label);
+                        if (!match) return;
+                        setStandaloneSubjectId(match.id);
+                        setStandaloneSubject(match.label);
+                      }}
                     />
                   </>
                 ) : (

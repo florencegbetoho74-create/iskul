@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 import type { Course } from "@/types/course";
-import { watchCoursesOrdered } from "@/storage/courses";
+import { watchCoursesOrdered, watchCoursesScoped } from "@/storage/courses";
 import { watchInbox, hasUnread } from "@/storage/chat";
 import { listRecentProgress } from "@/storage/progress";
 import { listUpcoming } from "@/storage/lives";
@@ -81,15 +81,28 @@ export default function Home() {
     ).start();
   }, [shimmer]);
 
+  // L'accueil d'un eleve part de sa classe : c'est la promesse produit, et cela
+  // evite de telecharger les cours de toutes les classes pour n'en afficher
+  // qu'une partie.
+  const gradeLevelId = user?.gradeLevelId ?? null;
+  const countryCode = user?.countryCode ?? null;
+  const scopedToClass = !isTeacher && !!gradeLevelId;
+
   useEffect(() => {
     setLoading(true);
-    const unsub = watchCoursesOrdered((rows) => {
+    const receive = (rows: Course[]) => {
       setAll(rows || []);
       setLoading(false);
       setRefreshing(false);
-    }, 100);
+    };
+    const unsub = scopedToClass
+      ? watchCoursesScoped(
+          { countryCode, gradeLevelId, publishedOnly: true, limit: 60 },
+          receive
+        )
+      : watchCoursesOrdered(receive, 100);
     return () => unsub?.();
-  }, [refreshKey]);
+  }, [refreshKey, scopedToClass, countryCode, gradeLevelId]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -198,7 +211,7 @@ export default function Home() {
     notifLastRunRef.current = now;
     (async () => {
       const [upcomingLives, progressRows] = await Promise.all([
-        listUpcoming(),
+        listUpcoming({ countryCode, gradeLevelId }),
         listRecentProgress(user.id, 12),
       ]);
       const hasPendingWork = progressRows.some((r) => {

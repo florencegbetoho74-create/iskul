@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -9,6 +9,9 @@ import { COLOR, FONT } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 import { createLive } from "@/storage/lives";
 import { useRouter } from "expo-router";
+import SelectionSheetField from "@/components/SelectionSheetField";
+import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
+import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
 const ACCENT = ["#1D4ED8", "#2563EB"] as const;
 const IS_IOS = Platform.OS === "ios";
@@ -29,6 +32,27 @@ export default function NewLive() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [sessionName, setSessionName] = useState("");
+  const [gradeLevelId, setGradeLevelId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+
+  const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
+  const { gradeLevels, subjects, loadingGrades, scope } = useSchoolingOptions(countryCode);
+
+  const gradeOptions = useMemo(() => gradeLevels.map((l) => l.label), [gradeLevels]);
+  const subjectOptions = useMemo(() => subjects.map((x) => x.label), [subjects]);
+  const gradeLabel = useMemo(
+    () => gradeLevels.find((l) => l.id === gradeLevelId)?.label ?? "",
+    [gradeLevels, gradeLevelId]
+  );
+  const subjectLabel = useMemo(
+    () => subjects.find((x) => x.id === subjectId)?.label ?? "",
+    [subjects, subjectId]
+  );
+
+  useEffect(() => {
+    if (gradeLevelId && !gradeLevels.some((l) => l.id === gradeLevelId)) setGradeLevelId("");
+    if (subjectId && !subjects.some((x) => x.id === subjectId)) setSubjectId("");
+  }, [gradeLevels, subjects, gradeLevelId, subjectId]);
 
   const descRef = useRef<TextInput>(null);
   const sessionRef = useRef<TextInput>(null);
@@ -74,6 +98,9 @@ export default function NewLive() {
       streamingUrl: sessionName.trim() || undefined,
       ownerId: user.id,
       ownerName: user.name,
+      countryCode: scope?.countryCode ?? countryCode,
+      gradeLevelId: gradeLevelId || null,
+      subjectId: subjectId || null,
     });
     Alert.alert("Live programme", "Vous pouvez le demarrer a l'heure prevue.", [
       { text: "OK", onPress: () => router.replace("/(app)/live/mine") },
@@ -158,6 +185,31 @@ export default function NewLive() {
                 ) : null}
               </View>
             ) : null}
+
+            <SelectionSheetField
+              label="Classe"
+              icon="school-outline"
+              value={gradeLabel}
+              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une classe"}
+              options={gradeOptions}
+              onChange={(label) => {
+                const match = gradeLevels.find((l) => l.label === label);
+                if (match) setGradeLevelId(match.id);
+              }}
+              helperText="Laissez vide pour une seance ouverte a toutes les classes."
+            />
+
+            <SelectionSheetField
+              label="Matiere"
+              icon="albums-outline"
+              value={subjectLabel}
+              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+              options={subjectOptions}
+              onChange={(label) => {
+                const match = subjects.find((x) => x.label === label);
+                if (match) setSubjectId(match.id);
+              }}
+            />
 
             <Text style={styles.label}>Description</Text>
             <TextInput

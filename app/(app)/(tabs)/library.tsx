@@ -16,14 +16,14 @@ import { useRouter } from "expo-router";
 import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 import type { Book } from "@/types/book";
-import { watchBooksOrdered } from "@/storage/books";
+import { watchBooksOrdered, watchBooksScoped } from "@/storage/books";
 import BookCard from "@/components/BookCard";
 import Segmented from "@/components/Segmented";
 
 const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
 const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
 
-type SegmentKey = "all" | "published" | "mine";
+type SegmentKey = "all" | "published" | "mine" | "myclass";
 
 type SegmentItem = { key: SegmentKey; label: string };
 type SortKey = "recent" | "alpha" | "price";
@@ -36,22 +36,44 @@ export default function Library() {
 
   const [all, setAll] = useState<Book[]>([]);
   const [q, setQ] = useState("");
-  const [segment, setSegment] = useState<SegmentKey>(isAdmin ? "mine" : "all");
+  const [segment, setSegment] = useState<SegmentKey>(isAdmin ? "mine" : "myclass");
   const [sort, setSort] = useState<SortKey>("recent");
 
+  // Un eleve ne telecharge que les documents de sa classe et ceux marques
+  // tous niveaux, au lieu des 200 derniers toutes classes confondues.
+  const gradeLevelId = user?.gradeLevelId ?? null;
+  const countryCode = user?.countryCode ?? null;
+  const scopedToClass = !isAdmin && segment === "myclass" && !!gradeLevelId;
+
   useEffect(() => {
+    if (scopedToClass) {
+      const unsub = watchBooksScoped({ countryCode, gradeLevelId, limit: 60 }, setAll);
+      return () => unsub();
+    }
     const unsub = watchBooksOrdered(setAll, 200);
     return () => unsub();
-  }, []);
+  }, [scopedToClass, countryCode, gradeLevelId]);
+
+  // Un eleve sans classe renseignee ne doit pas rester sur un segment vide.
+  useEffect(() => {
+    if (isAdmin) return;
+    if (segment === "myclass" && !gradeLevelId) setSegment("all");
+  }, [isAdmin, segment, gradeLevelId]);
 
   const segments = useMemo<SegmentItem[]>(() => {
-    const base: SegmentItem[] = [{ key: "all", label: "Tous" }];
     if (isAdmin) {
-      base.push({ key: "published", label: "Publies" });
-      base.push({ key: "mine", label: "Mes livres" });
+      return [
+        { key: "all", label: "Tous" },
+        { key: "published", label: "Publies" },
+        { key: "mine", label: "Mes livres" },
+      ];
     }
-    return base;
-  }, [isAdmin]);
+    if (!gradeLevelId) return [{ key: "all", label: "Tous" }];
+    return [
+      { key: "myclass", label: "Ma classe" },
+      { key: "all", label: "Tous les documents" },
+    ];
+  }, [isAdmin, gradeLevelId]);
 
   const filtered = useMemo(() => {
     const base = all.filter((b) => b.published !== false);

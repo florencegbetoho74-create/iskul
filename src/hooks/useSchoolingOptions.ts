@@ -3,15 +3,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   listCountries,
   listGradeLevels,
+  listSubjects,
   resolveScopeForCountry,
   type ContentScope,
   type Country,
   type GradeLevel,
+  type Subject,
 } from "@/storage/referentials";
 
 type State = {
   countries: Country[];
   gradeLevels: GradeLevel[];
+  subjects: Subject[];
   scope: ContentScope | null;
   loadingCountries: boolean;
   loadingGrades: boolean;
@@ -21,6 +24,7 @@ type State = {
 const EMPTY: State = {
   countries: [],
   gradeLevels: [],
+  subjects: [],
   scope: null,
   loadingCountries: true,
   loadingGrades: false,
@@ -59,24 +63,30 @@ export function useSchoolingOptions(countryCode?: string | null) {
   useEffect(() => {
     const code = String(countryCode || "").trim();
     if (!code) {
-      setState((prev) => ({ ...prev, gradeLevels: [], scope: null, loadingGrades: false }));
+      setState((prev) => ({
+        ...prev,
+        gradeLevels: [],
+        subjects: [],
+        scope: null,
+        loadingGrades: false,
+      }));
       return;
     }
 
     let cancelled = false;
     setState((prev) => ({ ...prev, loadingGrades: true, error: null }));
 
-    Promise.all([resolveScopeForCountry(code), listGradeLevels(code)])
-      .then(([scope, gradeLevels]) => {
+    Promise.all([resolveScopeForCountry(code), listGradeLevels(code), listSubjects(code)])
+      .then(([scope, gradeLevels, subjects]) => {
         if (cancelled) return;
-        setState((prev) => ({ ...prev, scope, gradeLevels, loadingGrades: false }));
+        setState((prev) => ({ ...prev, scope, gradeLevels, subjects, loadingGrades: false }));
       })
       .catch((e: any) => {
         if (cancelled) return;
         setState((prev) => ({
           ...prev,
           loadingGrades: false,
-          error: e?.message || "Classes indisponibles pour ce pays.",
+          error: e?.message || "Programme indisponible pour ce pays.",
         }));
       });
 

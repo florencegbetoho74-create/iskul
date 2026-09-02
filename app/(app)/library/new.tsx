@@ -1,5 +1,5 @@
 // app/(app)/library/new.tsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
@@ -12,6 +12,9 @@ import { uploadOne } from "@/lib/upload";
 import { addBook } from "@/storage/books";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "expo-router";
+import SelectionSheetField from "@/components/SelectionSheetField";
+import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
+import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
 type SourceType = "link" | "upload";
 
@@ -22,9 +25,28 @@ export default function NewBook() {
   const isAdmin = user?.role === "teacher" || canAccessAdmin;
 
   const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState("");
-  const [level, setLevel] = useState("");
-  const [price, setPrice] = useState<string>("0");
+  const [gradeLevelId, setGradeLevelId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+
+  const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
+  const { gradeLevels, subjects, loadingGrades, scope, error: optionsError } =
+    useSchoolingOptions(countryCode);
+
+  const gradeOptions = useMemo(() => gradeLevels.map((l) => l.label), [gradeLevels]);
+  const subjectOptions = useMemo(() => subjects.map((x) => x.label), [subjects]);
+  const gradeLabel = useMemo(
+    () => gradeLevels.find((l) => l.id === gradeLevelId)?.label ?? "",
+    [gradeLevels, gradeLevelId]
+  );
+  const subjectLabel = useMemo(
+    () => subjects.find((x) => x.id === subjectId)?.label ?? "",
+    [subjects, subjectId]
+  );
+
+  useEffect(() => {
+    if (gradeLevelId && !gradeLevels.some((l) => l.id === gradeLevelId)) setGradeLevelId("");
+    if (subjectId && !subjects.some((x) => x.id === subjectId)) setSubjectId("");
+  }, [gradeLevels, subjects, gradeLevelId, subjectId]);
 
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
@@ -152,9 +174,15 @@ export default function NewBook() {
     try {
       const created = await addBook({
         title: title.trim(),
-        subject: subject.trim() || undefined,
-        level: level.trim() || undefined,
-        price: Number(price) || 0,
+        // level et subject sont derives du referentiel par un trigger.
+        subject: subjectLabel || undefined,
+        level: gradeLevels.find((l) => l.id === gradeLevelId)?.code || undefined,
+        countryCode: scope?.countryCode ?? countryCode,
+        gradeLevelId: gradeLevelId || null,
+        subjectId: subjectId || null,
+        // La bibliotheque est gratuite tant qu'aucun paiement n'est branche :
+        // afficher un prix non encaissable induirait l'eleve en erreur.
+        price: 0,
         coverUrl: coverUrl || null,
         fileUrl: finalUrl,
         ownerId: user.id,
@@ -187,14 +215,32 @@ export default function NewBook() {
         <Text style={styles.label}>Titre</Text>
         <TextInput placeholder="Titre" placeholderTextColor={COLOR.sub} style={styles.input} value={title} onChangeText={setTitle} />
 
-        <Text style={styles.label}>Matiere</Text>
-        <TextInput placeholder="Matiere" placeholderTextColor={COLOR.sub} style={styles.input} value={subject} onChangeText={setSubject} />
+        <SelectionSheetField
+          label="Classe"
+          icon="school-outline"
+          value={gradeLabel}
+          placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une classe"}
+          options={gradeOptions}
+          onChange={(label) => {
+            const match = gradeLevels.find((l) => l.label === label);
+            if (match) setGradeLevelId(match.id);
+          }}
+          helperText="Laissez vide pour un document tous niveaux."
+        />
 
-        <Text style={styles.label}>Niveau</Text>
-        <TextInput placeholder="Niveau" placeholderTextColor={COLOR.sub} style={styles.input} value={level} onChangeText={setLevel} />
+        <SelectionSheetField
+          label="Matiere"
+          icon="albums-outline"
+          value={subjectLabel}
+          placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+          options={subjectOptions}
+          onChange={(label) => {
+            const match = subjects.find((x) => x.label === label);
+            if (match) setSubjectId(match.id);
+          }}
+        />
 
-        <Text style={styles.label}>Prix (FCFA)</Text>
-        <TextInput placeholder="0" placeholderTextColor={COLOR.sub} keyboardType="numeric" style={styles.input} value={price} onChangeText={setPrice} />
+        {optionsError ? <Text style={styles.errorText}>{optionsError}</Text> : null}
       </View>
 
       <Pressable style={[styles.secondary, busy && { opacity: 0.6 }]} onPress={pickCover} disabled={busy}>
@@ -336,6 +382,7 @@ function normalizeCloudLink(raw: string): string {
 }
 
 const styles = StyleSheet.create({
+  errorText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, marginTop: 4 },
   container: { flex: 1, backgroundColor: COLOR.bg },
   title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
   subtitle: { color: COLOR.sub, marginTop: 6, fontFamily: FONT.body },

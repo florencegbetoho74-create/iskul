@@ -18,7 +18,7 @@ import { useRouter } from "expo-router";
 import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 import type { Course } from "@/types/course";
-import { watchCoursesOrdered } from "@/storage/courses";
+import { watchCoursesOrdered, watchCoursesScoped } from "@/storage/courses";
 import CourseCard from "@/components/CourseCard";
 import Segmented from "@/components/Segmented";
 import { GRADE_LEVELS, normalizeCourseLevel } from "@/constants/gradeLevels";
@@ -27,7 +27,7 @@ import { COURSE_SUBJECTS, canonicalizeCourseSubject } from "@/constants/courseSu
 const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
 const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
 
-type SegmentKey = "all" | "published" | "mine";
+type SegmentKey = "all" | "published" | "mine" | "myclass";
 
 type SegmentItem = { key: SegmentKey; label: string };
 type LevelOption = { key: string; label: string; count: number };
@@ -42,26 +42,52 @@ export default function Courses() {
 
   const [all, setAll] = useState<Course[]>([]);
   const [q, setQ] = useState("");
-  const [segment, setSegment] = useState<SegmentKey>(isTeacher ? "mine" : "all");
+  const [segment, setSegment] = useState<SegmentKey>(isTeacher ? "mine" : "myclass");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [menuVisible, setMenuVisible] = useState(false);
   const [openLevels, setOpenLevels] = useState<Record<string, boolean>>({});
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
   const [openCourses, setOpenCourses] = useState<Record<string, boolean>>({});
 
+  // Un eleve ne charge que le perimetre de sa classe : le filtrage se fait en
+  // base, pas apres avoir telecharge les cours de toutes les classes.
+  const gradeLevelId = user?.gradeLevelId ?? null;
+  const countryCode = user?.countryCode ?? null;
+  const scopedToClass = !isTeacher && segment === "myclass" && !!gradeLevelId;
+
   useEffect(() => {
+    if (scopedToClass) {
+      const unsub = watchCoursesScoped(
+        { countryCode, gradeLevelId, publishedOnly: true, limit: 60 },
+        setAll
+      );
+      return () => unsub();
+    }
     const unsub = watchCoursesOrdered(setAll, 120);
     return () => unsub();
-  }, []);
+  }, [scopedToClass, countryCode, gradeLevelId]);
 
   const segments = useMemo<SegmentItem[]>(() => {
-    const base: SegmentItem[] = [{ key: "all", label: "Tous" }];
     if (isTeacher) {
-      base.push({ key: "published", label: "Publies" });
-      base.push({ key: "mine", label: "Mes cours" });
+      return [
+        { key: "all", label: "Tous" },
+        { key: "published", label: "Publies" },
+        { key: "mine", label: "Mes cours" },
+      ];
     }
-    return base;
-  }, [isTeacher]);
+    // Sans classe renseignee, proposer "Ma classe" n'aurait aucun sens.
+    if (!gradeLevelId) return [{ key: "all", label: "Tous" }];
+    return [
+      { key: "myclass", label: "Ma classe" },
+      { key: "all", label: "Toutes les classes" },
+    ];
+  }, [isTeacher, gradeLevelId]);
+
+  // Un eleve sans classe renseignee ne doit pas rester bloque sur un segment vide.
+  useEffect(() => {
+    if (isTeacher) return;
+    if (segment === "myclass" && !gradeLevelId) setSegment("all");
+  }, [isTeacher, segment, gradeLevelId]);
 
   const scoped = useMemo(() => {
     let base: Course[] = [];

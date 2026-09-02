@@ -5,7 +5,6 @@ export type Chapter = {
   title: string;
   videoUrl?: string | null;
   order?: number;
-  // NEW: vidéos par langue
   videoByLang?: Partial<Record<LangKey, string>>;
 };
 
@@ -15,6 +14,9 @@ export type Course = {
   description?: string;
   level: string;
   subject: string;
+  countryCode?: string | null;
+  gradeLevelId?: string | null;
+  subjectId?: string | null;
   coverUrl?: string | null;
   chapters: Chapter[];
   published: boolean;

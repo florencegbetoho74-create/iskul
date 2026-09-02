@@ -15,6 +15,7 @@ import SectionHeader from "@/components/SectionHeader";
 import LiveItem from "@/components/LiveItem";
 import Segmented from "@/components/Segmented";
 import { listUpcoming } from "@/storage/lives";
+import { useAuth } from "@/providers/AuthProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
@@ -62,6 +63,7 @@ function fmtRelative(ts: number) {
 
 export default function LiveTab() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [rows, setRows] = useState<LiveRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +80,10 @@ export default function LiveTab() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const list = await listUpcoming();
+      const list = await listUpcoming({
+        countryCode: user?.countryCode ?? null,
+        gradeLevelId: user?.gradeLevelId ?? null,
+      });
       const mapped: LiveRow[] = (list || []).map((r: any) => {
         const now = Date.now();
         const start = Number(r.startAt ?? r.start_at ?? r.when ?? 0);
@@ -110,7 +115,7 @@ export default function LiveTab() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user?.countryCode, user?.gradeLevelId]);
 
   useEffect(() => {
     load();
