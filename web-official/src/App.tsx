@@ -25,17 +25,10 @@ const APP_RELEASE_STATUS: AppReleaseStatus =
 
 const IS_APP_LIVE = APP_RELEASE_STATUS === "live";
 
-// Lien officiel de la fiche Play Store. On le force dans le code pour éviter
-// qu'une variable d'environnement mal configurée (ex. page d'accueil générique
-// du Play Store) ne le remplace en production.
-const ANDROID_URL = "https://play.google.com/store/apps/details?id=com.iskuledu.app";
+const ANDROID_URL = "https://play.google.com/store/apps/details?id=com.iskul.app";
 const IOS_URL = (import.meta.env.VITE_IOS_URL || "").trim();
-
-// Optionnel : blog externe si tu veux
 const BLOG_URL = (import.meta.env.VITE_BLOG_URL || "").trim();
-
-// Support email (affiche uniquement sur inscription prof si besoin)
-const SUPPORT_EMAIL = (import.meta.env.VITE_SUPPORT_EMAIL || "support@iskul.app").trim();
+const SUPPORT_EMAIL = (import.meta.env.VITE_SUPPORT_EMAIL || "contact@veriion.com").trim();
 
 /** ---------------------------
  *  NAVIGATION

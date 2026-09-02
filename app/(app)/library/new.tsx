@@ -1,4 +1,4 @@
-﻿// app/(app)/library/new.tsx
+// app/(app)/library/new.tsx
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";

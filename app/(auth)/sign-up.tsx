@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -17,8 +17,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/providers/AuthProvider";
-import { GRADE_LEVELS } from "@/constants/gradeLevels";
+import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { COLOR, ELEVATION, FONT, RADIUS, SPACE } from "@/theme/colors";
+import CountryField from "@/components/CountryField";
 import SelectionSheetField from "@/components/SelectionSheetField";
 
 const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
@@ -32,17 +33,41 @@ export default function SignUp() {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [grade, setGrade] = useState<string>("");
+  const [countryCode, setCountryCode] = useState<string>("");
+  const [gradeLevelId, setGradeLevelId] = useState<string>("");
   const [school, setSchool] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  const {
+    countries,
+    gradeLevels,
+    loadingCountries,
+    loadingGrades,
+    fallbackNotice,
+    error: optionsError,
+  } = useSchoolingOptions(countryCode);
+
+  // Changer de pays peut changer le programme : la classe choisie avant ne
+  // vaut plus rien si elle n'appartient pas au nouveau referentiel.
+  useEffect(() => {
+    if (!gradeLevelId) return;
+    if (gradeLevels.some((l) => l.id === gradeLevelId)) return;
+    setGradeLevelId("");
+  }, [gradeLevels, gradeLevelId]);
+
+  const gradeOptions = useMemo(() => gradeLevels.map((l) => l.label), [gradeLevels]);
+  const gradeLabel = useMemo(
+    () => gradeLevels.find((l) => l.id === gradeLevelId)?.label ?? "",
+    [gradeLevels, gradeLevelId]
+  );
 
   const disabled = useMemo(() => {
     if (loading) return true;
     if (!name.trim() || !email.trim() || !password.trim()) return true;
     if (!isEmail(email.trim())) return true;
-    if (!grade.trim() || !school.trim()) return true;
+    if (!countryCode.trim() || !gradeLevelId.trim() || !school.trim()) return true;
     return false;
-  }, [loading, name, email, password, grade, school]);
+  }, [loading, name, email, password, countryCode, gradeLevelId, school]);
 
   const handle = async () => {
     try {
@@ -52,7 +77,8 @@ export default function SignUp() {
         name,
         email,
         password,
-        grade,
+        countryCode,
+        gradeLevelId,
         school,
       });
       router.replace("/(app)/(tabs)");
@@ -135,15 +161,37 @@ export default function SignUp() {
               </View>
             </View>
 
+            <CountryField
+              label="Pays"
+              value={countryCode}
+              countries={countries}
+              loading={loadingCountries}
+              onChange={setCountryCode}
+              helperText="Vos cours suivent le programme de votre pays."
+            />
+
+            {fallbackNotice ? <Text style={styles.notice}>{fallbackNotice}</Text> : null}
+
             <SelectionSheetField
               label="Classe"
-              value={grade}
-              placeholder="Selectionnez votre classe"
-              options={GRADE_LEVELS}
-              onChange={(value) => setGrade(value)}
+              value={gradeLabel}
+              placeholder={
+                !countryCode
+                  ? "Choisissez d'abord votre pays"
+                  : loadingGrades
+                  ? "Chargement des classes..."
+                  : "Selectionnez votre classe"
+              }
+              options={gradeOptions}
+              onChange={(label) => {
+                const match = gradeLevels.find((l) => l.label === label);
+                if (match) setGradeLevelId(match.id);
+              }}
               icon="school-outline"
               helperText="Choisissez votre niveau scolaire."
             />
+
+            {optionsError ? <Text style={styles.errorText}>{optionsError}</Text> : null}
 
             <View style={styles.fieldBlock}>
               <Text style={styles.label}>Etablissement</Text>
@@ -257,6 +305,20 @@ const styles = StyleSheet.create({
   ctaDisabled: { opacity: 0.55 },
   primaryText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 15 },
   footerText: { color: COLOR.sub, textAlign: "center", marginTop: 4, fontFamily: FONT.body },
+  notice: {
+    color: COLOR.text,
+    fontFamily: FONT.body,
+    fontSize: 12,
+    lineHeight: 17,
+    backgroundColor: COLOR.tint,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  errorText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, marginTop: 8 },
 });
 
 

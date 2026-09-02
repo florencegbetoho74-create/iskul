@@ -38,12 +38,12 @@ const SP = 12;              // spacing de base
 const RADIUS = 14;          // rayon standard
 const BTN_H = 46;           // hauteur minimale des boutons
 
-type LangKey = "fon" | "adja" | "yoruba" | "dindi";
+type LangKey = "fon" | "adja" | "yoruba" | "dendi";
 const LANGS: { key: LangKey; label: string }[] = [
   { key: "fon", label: "Fon" },
   { key: "adja", label: "Adja" },
   { key: "yoruba", label: "Yoruba" },
-  { key: "dindi", label: "Dindi" },
+  { key: "dendi", label: "Dendi" },
 ];
 
 type VideoByLang = Partial<Record<LangKey, string>>;
@@ -67,7 +67,7 @@ export default function EditCourse() {
   // chapitres
   const [chapters, setChapters] = useState<any[]>([]);
 
-  // création de chapitre
+  // crÃ©ation de chapitre
   const [chTitle, setChTitle] = useState("");
   const [chVideoUrl, setChVideoUrl] = useState(""); // fallback
   const [chVideoByLang, setChVideoByLang] = useState<VideoByLang>({});
@@ -110,7 +110,7 @@ export default function EditCourse() {
   const save = async () => {
     if (!id) return;
     if (!title.trim() || !subject.trim()) {
-      Alert.alert("Champs requis", "Merci de compléter tous les champs.");
+      Alert.alert("Champs requis", "Merci de complÃ©ter tous les champs.");
       return;
     }
     if (!isKnownGradeLevel(level)) {
@@ -122,7 +122,7 @@ export default function EditCourse() {
       return;
     }
     await updateCourse(id, { title: title.trim(), level: level.trim(), subject: subject.trim() });
-    Alert.alert("Enregistré", "Modifications sauvegardées.");
+    Alert.alert("EnregistrÃ©", "Modifications sauvegardÃ©es.");
   };
 
   const togglePublish = async () => {
@@ -195,16 +195,16 @@ export default function EditCourse() {
           },
         }
       );
-      if (!up?.url) throw new Error("L'upload n'a pas renvoyé d'URL");
+      if (!up?.url) throw new Error("L'upload n'a pas renvoyÃ© d'URL");
 
       if (target === "generic") setChVideoUrl(up.url);
       else setChVideoByLang((prev) => ({ ...prev, [target]: up.url }));
 
-      Alert.alert("Vidéo importée", "Le fichier a été uploadé et lié.");
+      Alert.alert("VidÃ©o importÃ©e", "Le fichier a Ã©tÃ© uploadÃ© et liÃ©.");
 
     } catch (e: any) {
       console.error(e);
-      Alert.alert("Upload échoué", e?.message || "Impossible d'uploader la vidéo.");
+      Alert.alert("Upload Ã©chouÃ©", e?.message || "Impossible d'uploader la vidÃ©o.");
     } finally {
       setUploadingKey(null);
       setUploadProgress(null);
@@ -220,20 +220,20 @@ export default function EditCourse() {
 
     const anySource = !!(chVideoUrl.trim() || Object.values(chVideoByLang).some((v) => !!(v && String(v).trim())));
     if (!anySource) {
-      Alert.alert("Source requise", "Ajoutez au moins une vidéo (upload recommandé) ou un lien cloud direct (mp4/m3u8/mpd).");
+      Alert.alert("Source requise", "Ajoutez au moins une vidÃ©o (upload recommandÃ©) ou un lien cloud direct (mp4/m3u8/mpd).");
       return;
     }
 
     const allUrls = [chVideoUrl, ...Object.values(chVideoByLang)].filter(Boolean).map((v) => String(v).trim());
     const bad = allUrls.find((u) => isForbiddenVideoUrl(u));
     if (bad) {
-      Alert.alert("Lien non autorisé", "Les liens YouTube ne sont pas acceptés. Uploadez un fichier ou utilisez un lien cloud direct.");
+      Alert.alert("Lien non autorisÃ©", "Les liens YouTube ne sont pas acceptÃ©s. Uploadez un fichier ou utilisez un lien cloud direct.");
       return;
     }
 
     const nonDirect = allUrls.find((u) => /^https?:\/\//i.test(u) && !isDirectMediaUrl(u));
     if (nonDirect) {
-      Alert.alert("Lien cloud", "Ce lien ne ressemble pas à un flux direct (mp4/m3u8/mpd). Il pourra s’ouvrir en externe mais ne sera pas lu dans le lecteur intégré.");
+      Alert.alert("Lien cloud", "Ce lien ne ressemble pas Ã  un flux direct (mp4/m3u8/mpd). Il pourra sâ€™ouvrir en externe mais ne sera pas lu dans le lecteur intÃ©grÃ©.");
     }
     const cleanByLang: VideoByLang = Object.fromEntries(
       Object.entries(chVideoByLang).filter(([, v]) => !!(v && String(v).trim()))
@@ -288,7 +288,7 @@ export default function EditCourse() {
         <View style={styles.center}>
           <LinearGradient colors={[BLUE_START, BLUE_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.loadingBadge}>
             <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.loadingText}>Chargement…</Text>
+            <Text style={styles.loadingText}>Chargementâ€¦</Text>
           </LinearGradient>
         </View>
       </SafeAreaView>
@@ -305,9 +305,9 @@ export default function EditCourse() {
           </TouchableOpacity>
 
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.headerTitle} numberOfLines={1}>Éditer le cours</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>Ã‰diter le cours</Text>
             <Text style={styles.headerSub} numberOfLines={1}>
-              {(title?.trim() || "Sans titre")} • {(level?.trim() || "Niveau ?")} • {(subject?.trim() || "Matière ?")}
+              {(title?.trim() || "Sans titre")} â€¢ {(level?.trim() || "Niveau ?")} â€¢ {(subject?.trim() || "MatiÃ¨re ?")}
             </Text>
           </View>
 
@@ -379,7 +379,7 @@ export default function EditCourse() {
                     />
                   }
                 >
-                  {published ? "Publié" : "Mettre en ligne"}
+                  {published ? "PubliÃ©" : "Mettre en ligne"}
                 </OutlineButton>
               </View>
             </View>
@@ -409,7 +409,7 @@ export default function EditCourse() {
                 <View style={{ marginTop: index === 0 ? 0 : SP }}>
                   <ChapterItem
                     title={item.title}
-                    hasLang={!!(item.videoByLang?.fon || item.videoByLang?.adja || item.videoByLang?.yoruba || item.videoByLang?.dindi)}
+                    hasLang={!!(item.videoByLang?.fon || item.videoByLang?.adja || item.videoByLang?.yoruba || item.videoByLang?.dendi)}
                     hasVideo={!!item.videoUrl}
                     onPreview={() => openPreview(item.id)}
                     onDelete={() => remove(item.id)}
@@ -526,7 +526,7 @@ export default function EditCourse() {
 function GlassCard({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.card}>
-      {/* Gradient léger non intrusif */}
+      {/* Gradient lÃ©ger non intrusif */}
       <LinearGradient
         colors={["rgba(125,211,252,0.04)", "rgba(96,165,250,0.02)"]}
         start={{ x: 0, y: 0 }}
@@ -693,7 +693,7 @@ function PublishPill({ published, onPress }: { published: boolean; onPress: () =
     <TouchableOpacity onPress={onPress} style={[styles.publishPill, published && { borderColor: SUCCESS }]} activeOpacity={0.85}>
       <MaterialCommunityIcons name={published ? "check-decagram" : "decagram-outline"} size={16} color={published ? SUCCESS : COLOR.sub} />
       <Text style={[styles.publishPillText, published && { color: SUCCESS }]} numberOfLines={1}>
-        {published ? "Publié" : "Brouillon"}
+        {published ? "PubliÃ©" : "Brouillon"}
       </Text>
     </TouchableOpacity>
   );
@@ -722,7 +722,7 @@ function ChapterItem({
   onPreview?: () => void;
   onDelete: () => void;
 }) {
-  const statusText = hasLang ? "Sources par langue présentes" : hasVideo ? "Vidéo liée" : "Aucune vidéo";
+  const statusText = hasLang ? "Sources par langue prÃ©sentes" : hasVideo ? "VidÃ©o liÃ©e" : "Aucune vidÃ©o";
   const statusTint = hasLang ? BLUE_END : hasVideo ? "#94a3b8" : WARNING;
   const canPreview = hasLang || hasVideo;
 

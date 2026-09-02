@@ -8,6 +8,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Image,
 } from "react-native";
@@ -110,9 +111,7 @@ export default function EditProfile() {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean);
-        payload.grade = undefined;
       } else {
-        payload.grade = grade.trim() || undefined;
         payload.subjects = undefined;
       }
 
@@ -238,13 +237,19 @@ export default function EditProfile() {
               autoCapitalize="sentences"
             />
           ) : (
-            <TextInput
-              style={styles.input}
-              placeholder="Classe (ex. Seconde, Terminale)"
-              placeholderTextColor={COLOR.sub}
-              value={grade}
-              onChangeText={setGrade}
-            />
+            <Pressable
+              onPress={() => router.push("/(app)/profile/settings")}
+              style={styles.linkRow}
+              accessibilityRole="button"
+            >
+              <Ionicons name="school-outline" size={18} color={COLOR.sub} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkRowLabel}>Classe</Text>
+                <Text style={styles.linkRowValue}>{grade || "Non renseignee"}</Text>
+              </View>
+              <Text style={styles.linkRowAction}>Modifier</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLOR.sub} />
+            </Pressable>
           )}
           <TextInput
             style={[styles.input, { minHeight: 96 }]}
@@ -270,6 +275,21 @@ export default function EditProfile() {
 }
 
 const styles = StyleSheet.create({
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    borderRadius: 12,
+    backgroundColor: COLOR.muted,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 46,
+  },
+  linkRowLabel: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11 },
+  linkRowValue: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14, marginTop: 1 },
+  linkRowAction: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
   title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading, marginBottom: 10 },
 
   avatarRow: { flexDirection: "row", alignItems: "center" },

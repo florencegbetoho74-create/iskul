@@ -1,4 +1,4 @@
-export type LangKey = "fon" | "adja" | "yoruba" | "dindi";
+export type LangKey = "fon" | "adja" | "yoruba" | "dendi";
 
 export type Chapter = {
   id: string;

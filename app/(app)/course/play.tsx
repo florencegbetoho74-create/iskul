@@ -33,14 +33,14 @@ import { fmtTime } from "@/utils/time";
 import { addCourseView, addLessonView } from "@/storage/usage";
 import { startThread } from "@/storage/chat";
 
-type PlayerLangKey = "fr" | "fon" | "adja" | "yoruba" | "dindi";
-const LANG_ORDER: PlayerLangKey[] = ["fr", "fon", "adja", "yoruba", "dindi"];
+type PlayerLangKey = "fr" | "fon" | "adja" | "yoruba" | "dendi";
+const LANG_ORDER: PlayerLangKey[] = ["fr", "fon", "adja", "yoruba", "dendi"];
 const LANG_LABELS: Record<PlayerLangKey, string> = {
   fr: "Francais",
   fon: "Fon",
   adja: "Adja",
   yoruba: "Yoruba",
-  dindi: "Dindi",
+  dendi: "Dendi",
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isValidUuid = (v?: string | null) => !!v && UUID_RE.test(v);

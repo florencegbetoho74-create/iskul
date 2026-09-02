@@ -30,8 +30,7 @@ const INDEX_ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-vi
 const NOINDEX_ROBOTS = "noindex,nofollow,max-snippet:-1,max-image-preview:none,max-video-preview:-1";
 const THEME_COLOR = "#0b6aff";
 
-// NB: c'est un email support (ok d'être public). L'email akpiricardo@gmail.com reste côté serveur (contact-message).
-const SUPPORT_EMAIL = String(import.meta.env.VITE_SUPPORT_EMAIL || "support@iskul.app").trim();
+const SUPPORT_EMAIL = String(import.meta.env.VITE_SUPPORT_EMAIL || "contact@veriion.com").trim();
 
 function normalizeSiteUrl(value: string): string {
   const raw = value.trim();
@@ -401,7 +400,6 @@ function buildStructuredData(route: SeoRoute, canonicalUrl: string): JsonLdObjec
       "@type": "ImageObject",
       url: OG_IMAGE_URL,
     },
-    // Support public ok. (Ton email privé de réception contact reste côté serveur.)
     email: `mailto:${SUPPORT_EMAIL}`,
   };
 

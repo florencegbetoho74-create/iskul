@@ -7,16 +7,28 @@ import { addTimeSpent } from "@/storage/usage";
 import { registerForPushNotificationsAsync, saveUserPushToken } from "@/lib/notifications";
 
 export type Role = "student" | "teacher";
-export type User = { id: string; name?: string; email: string; role: Role; isAdmin?: boolean };
+export type User = {
+  id: string;
+  name?: string;
+  email: string;
+  role: Role;
+  isAdmin?: boolean;
+  countryCode?: string;
+  grade?: string;
+  gradeLevelId?: string;
+};
 
 type SignInInput = { email: string; password: string };
 type SignUpInput = {
   name: string;
   email: string;
   password: string;
-  grade?: string;
+  countryCode: string;
+  gradeLevelId: string;
   school?: string;
 };
+
+type SchoolingInput = { countryCode?: string; gradeLevelId?: string };
 
 type AuthContextType = {
   user: User | null;
@@ -25,6 +37,7 @@ type AuthContextType = {
   signIn: (input: SignInInput) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  updateSchooling: (input: SchoolingInput) => Promise<void>;
   unlockAdminWithCode: (code: string) => Promise<boolean>;
   lockAdminAccess: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -45,6 +58,8 @@ type ProfileRow = {
   email?: string | null;
   school?: string | null;
   grade?: string | null;
+  country_code?: string | null;
+  grade_level_id?: string | null;
   subjects?: string[] | null;
 };
 
@@ -58,14 +73,15 @@ function isMissingIsAdminColumnError(error: any) {
 
 async function fetchProfile(userId: string): Promise<ProfileRow | null> {
   const selectWithIsAdmin = profilesSupportsIsAdminColumn !== false;
-  const columns = selectWithIsAdmin ? "id, name, role, is_admin, email" : "id, name, role, email";
+  const base = "id, name, role, email, country_code, grade, grade_level_id";
+  const columns = selectWithIsAdmin ? `${base}, is_admin` : base;
   const { data, error } = await supabase.from("profiles").select(columns).eq("id", userId).maybeSingle();
 
   if (error && selectWithIsAdmin && isMissingIsAdminColumnError(error)) {
     profilesSupportsIsAdminColumn = false;
     const fallback = await supabase
       .from("profiles")
-      .select("id, name, role, email")
+      .select(base)
       .eq("id", userId)
       .maybeSingle();
     if (fallback.error) {
@@ -121,6 +137,9 @@ function mapUser(u: { id: string; email?: string | null; user_metadata?: any }, 
     name: profile?.name || u.user_metadata?.name || u.user_metadata?.full_name || undefined,
     role: profile?.role || "student",
     isAdmin: !!profile?.is_admin,
+    countryCode: profile?.country_code || undefined,
+    grade: profile?.grade || undefined,
+    gradeLevelId: profile?.grade_level_id || undefined,
   };
 }
 
@@ -343,15 +362,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async ({ name, email, password, grade, school }: SignUpInput) => {
+  const signUp = async ({ name, email, password, countryCode, gradeLevelId, school }: SignUpInput) => {
     if (!name.trim() || !email.trim() || !password.trim()) throw new Error("Tous les champs sont requis.");
     if (!isEmail(email)) throw new Error("Adresse email invalide.");
-    if (!grade?.trim()) throw new Error("La classe est requise.");
+    if (!countryCode?.trim()) throw new Error("Le pays est requis.");
+    if (!gradeLevelId?.trim()) throw new Error("La classe est requise.");
     if (!school?.trim()) throw new Error("L'etablissement est requis.");
     try {
       const trimmedName = name.trim();
       const trimmedEmail = email.trim();
-      const trimmedGrade = grade?.trim();
+      const trimmedCountry = countryCode.trim().toUpperCase();
+      const trimmedGradeLevelId = gradeLevelId.trim();
       const trimmedSchool = school?.trim();
 
       const { data, error } = await supabase.auth.signUp({
@@ -360,7 +381,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             name: trimmedName,
-            grade: trimmedGrade,
+            country_code: trimmedCountry,
             school: trimmedSchool,
           },
         },
@@ -376,7 +397,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: "student",
           is_admin: false,
           school: trimmedSchool || undefined,
-          grade: trimmedGrade || undefined,
+          country_code: trimmedCountry,
+          grade_level_id: trimmedGradeLevelId,
         };
         await upsertProfile(profile);
 
@@ -390,10 +412,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (signInRes.data.user) signedInUser = signInRes.data.user;
         }
 
-        setUser(mapUser(signedInUser as any, profile));
+        // Le trigger SQL derive profiles.grade depuis grade_level_id : on relit
+        // la ligne au lieu de recopier un libelle cote client.
+        const stored = await fetchProfile(signedInUser.id);
+        setUser(mapUser(signedInUser as any, stored ?? profile));
       }
     } catch (e) {
       throw new Error(mapAuthError(e));
+    }
+  };
+
+  const updateSchooling = async ({ countryCode, gradeLevelId }: SchoolingInput) => {
+    if (!user?.id) throw new Error("Connectez-vous pour modifier votre scolarite.");
+    const patch: Record<string, unknown> = { id: user.id };
+    if (countryCode?.trim()) patch.country_code = countryCode.trim().toUpperCase();
+    if (gradeLevelId?.trim()) patch.grade_level_id = gradeLevelId.trim();
+    if (Object.keys(patch).length === 1) return;
+
+    const { error } = await supabase.from("profiles").upsert(patch, { onConflict: "id" });
+    if (error) throw new Error(error.message || "Modification impossible.");
+
+    const stored = await fetchProfile(user.id);
+    if (stored) {
+      setUser((prev) => (prev ? { ...prev, ...mapUser({ id: prev.id, email: prev.email }, stored) } : prev));
     }
   };
 
@@ -447,6 +488,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       resetPassword,
+      updateSchooling,
       unlockAdminWithCode,
       lockAdminAccess,
       signOut,
