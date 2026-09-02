@@ -1,6 +1,10 @@
 import { supabase, SUPABASE_READY } from "@/lib/supabase";
 import { canonicalizeGradeLabel } from "@/constants/gradeLevels";
 import { canonicalizeCourseSubject } from "@/constants/courseSubjects";
+import {
+  parseCorrection as mapCorrection,
+  type QuizCorrectionEntry,
+} from "@/lib/quizCorrection";
 
 export type QuizQuestion = {
   id: string;
@@ -30,6 +34,8 @@ export type Quiz = {
   updatedAtMs: number;
 };
 
+export type { QuizCorrectionEntry };
+
 export type QuizAttempt = {
   id: string;
   quizId: string;
@@ -37,7 +43,18 @@ export type QuizAttempt = {
   answers: number[][];
   score: number;
   maxScore: number;
+  attemptNo: number;
+  durationMs?: number | null;
+  detail: QuizCorrectionEntry[];
   createdAtMs: number;
+};
+
+export type QuizSubmission = {
+  quizId: string;
+  score: number;
+  maxScore: number;
+  attemptNo: number;
+  detail: QuizCorrectionEntry[];
 };
 
 function normalizeIndices(input: any, max: number): number[] {
@@ -71,12 +88,10 @@ function normalizeQuestions(input: any): QuizQuestion[] {
 }
 
 function mapQuiz(row: any): Quiz {
-  const courseRel = Array.isArray(row?.courses) ? row.courses[0] : row?.courses;
-  const chapterRel = Array.isArray(row?.chapters) ? row.chapters[0] : row?.chapters;
-  const courseId = row.course_id ?? courseRel?.id ?? null;
-  const lessonId = row.chapter_id ?? chapterRel?.id ?? null;
-  const level = canonicalizeGradeLabel(row.level ?? courseRel?.level ?? "");
-  const subject = canonicalizeCourseSubject(row.subject ?? courseRel?.subject ?? "");
+  const courseId = row.course_id ?? null;
+  const lessonId = row.chapter_id ?? null;
+  const level = canonicalizeGradeLabel(row.level ?? "");
+  const subject = canonicalizeCourseSubject(row.subject ?? "");
   return {
     id: row.id,
     courseId,
@@ -92,8 +107,8 @@ function mapQuiz(row: any): Quiz {
     questions: normalizeQuestions(row.questions),
     published: !!row.published,
     ownerId: row.owner_id,
-    courseTitle: courseRel?.title ?? undefined,
-    lessonTitle: chapterRel?.title ?? undefined,
+    courseTitle: row.course_title ?? undefined,
+    lessonTitle: row.chapter_title ?? undefined,
     createdAtMs: row.created_at_ms ?? 0,
     updatedAtMs: row.updated_at_ms ?? 0,
   };
@@ -115,11 +130,14 @@ function normalizeAttemptAnswers(input: any): number[][] {
 function mapAttempt(row: any): QuizAttempt {
   return {
     id: row.id,
-    quizId: row.quiz_id,
-    userId: row.user_id,
+    quizId: row.quiz_id ?? "",
+    userId: row.user_id ?? "",
     answers: normalizeAttemptAnswers(row.answers),
     score: Number(row.score || 0),
     maxScore: Number(row.max_score || 0),
+    attemptNo: Number(row.attempt_no || 1),
+    durationMs: row.duration_ms ?? null,
+    detail: mapCorrection(row.detail),
     createdAtMs: row.created_at_ms ?? 0,
   };
 }
@@ -127,8 +145,8 @@ function mapAttempt(row: any): QuizAttempt {
 export async function getQuizByLesson(courseId: string, lessonId: string): Promise<Quiz | null> {
   if (!SUPABASE_READY || !courseId || !lessonId) return null;
   const { data, error } = await supabase
-    .from("quizzes")
-    .select("*, courses(id,title,level,subject), chapters(id,title)")
+    .from("quizzes_readable")
+    .select("*")
     .eq("course_id", courseId)
     .eq("chapter_id", lessonId)
     .maybeSingle();
@@ -139,8 +157,8 @@ export async function getQuizByLesson(courseId: string, lessonId: string): Promi
 export async function getQuizById(quizId: string): Promise<Quiz | null> {
   if (!SUPABASE_READY || !quizId) return null;
   const { data, error } = await supabase
-    .from("quizzes")
-    .select("*, courses(id,title,level,subject), chapters(id,title)")
+    .from("quizzes_readable")
+    .select("*")
     .eq("id", quizId)
     .maybeSingle();
   if (error || !data) return null;
@@ -155,8 +173,8 @@ export async function listQuizzes(input?: {
 }): Promise<Quiz[]> {
   if (!SUPABASE_READY) return [];
   let q = supabase
-    .from("quizzes")
-    .select("*, courses(id,title,level,subject,published), chapters(id,title)")
+    .from("quizzes_readable")
+    .select("*")
     .order("updated_at_ms", { ascending: false });
 
   if (input?.ownerId) q = q.eq("owner_id", input.ownerId);
@@ -220,63 +238,130 @@ export async function saveQuiz(input: {
     payload.level = level || null;
     payload.subject = subject || null;
   }
+  // La colonne `questions` n'est plus selectionnable : on ecrit sans RETURNING
+  // dessus, puis on relit la ligne par la vue.
+  const RETURNING = "id";
   let data: any = null;
   let error: any = null;
   if (input.id) {
     ({ data, error } = await supabase
       .from("quizzes")
       .upsert(payload, { onConflict: "id" })
-      .select("*, courses(id,title,level,subject), chapters(id,title)")
+      .select(RETURNING)
       .single());
   } else if (input.courseId && input.lessonId) {
     ({ data, error } = await supabase
       .from("quizzes")
       .upsert(payload, { onConflict: "course_id,chapter_id" })
-      .select("*, courses(id,title,level,subject), chapters(id,title)")
+      .select(RETURNING)
       .single());
   } else {
     ({ data, error } = await supabase
       .from("quizzes")
       .insert(payload)
-      .select("*, courses(id,title,level,subject), chapters(id,title)")
+      .select(RETURNING)
       .single());
   }
-  if (error || !data) throw error || new Error("Quiz non enregistre.");
-  return mapQuiz(data);
+  if (error || !data?.id) throw error || new Error("Quiz non enregistre.");
+
+  const saved = await getQuizById(String(data.id));
+  if (!saved) throw new Error("Quiz enregistre mais illisible.");
+  return saved;
 }
 
-export async function getQuizAttempt(quizId: string, userId: string): Promise<QuizAttempt | null> {
-  if (!SUPABASE_READY || !quizId || !userId) return null;
-  const { data, error } = await supabase
-    .from("quiz_attempts")
-    .select("*")
-    .eq("quiz_id", quizId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error || !data) return null;
-  return mapAttempt(data);
+/** Historique des tentatives de l'eleve, de la plus recente a la plus ancienne. */
+export async function listMyQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
+  if (!SUPABASE_READY || !quizId) return [];
+  const { data, error } = await supabase.rpc("my_quiz_attempts", { p_quiz_id: quizId });
+  if (error || !Array.isArray(data)) return [];
+  return (data as any[]).map((row) => mapAttempt({ ...row, quiz_id: quizId }));
 }
 
-export async function submitQuizAttempt(input: {
-  quizId: string;
-  userId: string;
-  answers: number[][];
-  score: number;
-  maxScore: number;
-}): Promise<QuizAttempt> {
+/** Derniere tentative de l'eleve, ou null s'il n'a jamais passe ce quiz. */
+export async function getQuizAttempt(quizId: string): Promise<QuizAttempt | null> {
+  const rows = await listMyQuizAttempts(quizId);
+  return rows[0] ?? null;
+}
+
+/**
+ * Soumet les reponses et recupere la correction.
+ *
+ * La note est calculee par le serveur : le client ne connait pas le corrige
+ * avant d'avoir repondu, et ne peut plus ecrire de score arbitraire.
+ */
+export type QuizAttemptSession = {
+  attemptId: string;
+  attemptNo: number;
+  questionCount: number;
+};
+
+/**
+ * Ouvre une tentative cote serveur.
+ *
+ * Une tentative laissee ouverte est reprise plutot que dupliquee : fermer
+ * l'application au milieu d'un quiz ne cree pas une tentative fantome.
+ */
+export async function startQuizAttempt(quizId: string): Promise<QuizAttemptSession> {
   if (!SUPABASE_READY) throw new Error("Supabase non configure.");
-  const payload = {
-    quiz_id: input.quizId,
-    user_id: input.userId,
-    answers: Array.isArray(input.answers) ? input.answers : [],
-    score: Math.max(0, Math.floor(input.score || 0)),
-    max_score: Math.max(0, Math.floor(input.maxScore || 0)),
+  const { data, error } = await supabase.rpc("start_quiz_attempt", { p_quiz_id: quizId });
+  if (error) throw new Error(mapAttemptError(error));
+  const row = (data || {}) as any;
+  if (!row.attemptId) throw new Error("Tentative non ouverte.");
+  return {
+    attemptId: String(row.attemptId),
+    attemptNo: Number(row.attemptNo || 1),
+    questionCount: Number(row.questionCount || 0),
   };
-  const { data, error } = await supabase
-    .from("quiz_attempts")
-    .upsert(payload, { onConflict: "quiz_id,user_id" })
-    .select("*")
-    .single();
-  if (error || !data) throw error || new Error("Resultat non enregistre.");
-  return mapAttempt(data);
+}
+
+/**
+ * Envoie une reponse et recupere sa correction.
+ *
+ * Le serveur fige la reponse au premier envoi : rappeler cette fonction pour la
+ * meme question renvoie le meme resultat sans rien modifier. Sans cela, quatre
+ * appels suffiraient a trouver la bonne reponse avant de repondre.
+ */
+export async function answerQuizQuestion(input: {
+  attemptId: string;
+  questionIndex: number;
+  chosenIndex: number | null;
+}): Promise<QuizCorrectionEntry> {
+  if (!SUPABASE_READY) throw new Error("Supabase non configure.");
+  const { data, error } = await supabase.rpc("answer_quiz_question", {
+    p_attempt_id: input.attemptId,
+    p_question_index: input.questionIndex,
+    p_chosen_index: input.chosenIndex,
+  });
+  if (error) throw new Error(mapAttemptError(error));
+  const entry = mapCorrection([data])[0];
+  if (!entry) throw new Error("Correction indisponible.");
+  return entry;
+}
+
+/** Cloture la tentative et renvoie le resultat calcule par le serveur. */
+export async function finishQuizAttempt(attemptId: string): Promise<QuizSubmission> {
+  if (!SUPABASE_READY) throw new Error("Supabase non configure.");
+  const { data, error } = await supabase.rpc("finish_quiz_attempt", {
+    p_attempt_id: attemptId,
+  });
+  if (error) throw new Error(mapAttemptError(error));
+  const row = (data || {}) as any;
+  return {
+    quizId: String(row.quizId ?? ""),
+    score: Number(row.score || 0),
+    maxScore: Number(row.maxScore || 0),
+    attemptNo: Number(row.attemptNo || 1),
+    detail: mapCorrection(row.detail),
+  };
+}
+
+function mapAttemptError(error: any): string {
+  const message = String(error?.message || "");
+  if (message.includes("quiz_not_found")) return "Ce quiz n'existe plus.";
+  if (message.includes("quiz_not_published")) return "Ce quiz n'est pas encore publie.";
+  if (message.includes("attempt_not_found")) return "Tentative introuvable.";
+  if (message.includes("attempt_closed")) return "Cette tentative est deja terminee.";
+  if (message.includes("question_out_of_range")) return "Question inconnue pour ce quiz.";
+  if (message.includes("auth_required")) return "Connectez-vous pour repondre.";
+  return message || "Resultat non enregistre.";
 }

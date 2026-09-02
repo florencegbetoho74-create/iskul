@@ -25,7 +25,11 @@ import {
   getQuizByLesson,
   getQuizAttempt,
   saveQuiz,
-  submitQuizAttempt,
+  startQuizAttempt,
+  type QuizAttemptSession,
+  type QuizSubmission,
+  answerQuizQuestion,
+  finishQuizAttempt,
   Quiz,
   QuizAttempt,
   QuizQuestion,
@@ -62,6 +66,11 @@ export default function QuizPage() {
   const [lesson, setLesson] = useState<any | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
+  const [attemptSession, setAttemptSession] = useState<QuizAttemptSession | null>(null);
+  const [submission, setSubmission] = useState<QuizSubmission | null>(null);
+  // Le corrige ne descend plus avec le quiz : il arrive question par
+  // question, en reponse a ce que l'eleve a effectivement repondu.
+  const [feedbackCorrect, setFeedbackCorrect] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -169,7 +178,7 @@ export default function QuizPage() {
           }
 
           if (user?.id && loadedQuiz?.id) {
-            const a = await getQuizAttempt(loadedQuiz.id, user.id);
+            const a = await getQuizAttempt(loadedQuiz.id);
             if (active) setAttempt(a);
           } else {
             setAttempt(null);
@@ -192,7 +201,7 @@ export default function QuizPage() {
           setQuiz(q);
 
           if (user?.id && q?.id) {
-            const a = await getQuizAttempt(q.id, user.id);
+            const a = await getQuizAttempt(q.id);
             if (active) setAttempt(a);
           } else {
             setAttempt(null);
@@ -272,6 +281,9 @@ export default function QuizPage() {
       setRunScore(0);
       setLastOutcome(null);
       setRunSaved(false);
+      setAttemptSession(null);
+      setSubmission(null);
+      setFeedbackCorrect([]);
       feedbackAnim.setValue(0);
       setPlayPhase(phase);
     },
@@ -285,13 +297,13 @@ export default function QuizPage() {
 
   const totalQuestions = quiz?.questions?.length || 0;
   const currentQuestion = !isTeacher && quiz?.published ? quiz?.questions?.[currentQIdx] : null;
-  const currentCorrectIndices = useMemo(() => {
-    if (!currentQuestion) return [];
-    return normalizeIndices(currentQuestion.correctIndices || [], currentQuestion.options.length).slice(0, 1);
-  }, [currentQuestion, normalizeIndices]);
+  const currentCorrectIndices = feedbackCorrect;
 
-  const resultScore = attempt ? Math.max(0, Math.floor(attempt.score || 0)) : null;
-  const resultMaxScore = attempt ? Math.max(1, attempt.maxScore || totalQuestions) : null;
+  const resultSource = submission ?? attempt;
+  const resultScore = resultSource ? Math.max(0, Math.floor(resultSource.score || 0)) : null;
+  const resultMaxScore = resultSource
+    ? Math.max(1, resultSource.maxScore || totalQuestions)
+    : null;
   const hasResult = resultScore !== null && resultMaxScore !== null;
   const resultPercent = hasResult ? Math.round((resultScore / resultMaxScore) * 100) : 0;
 
@@ -419,49 +431,39 @@ export default function QuizPage() {
     }
   }, []);
 
-  const saveRunAttempt = useCallback(
-    async (answersToSave: number[][], scoreToSave: number) => {
-      if (!quiz?.id || !user?.id) return;
-      setPersistingAttempt(true);
-      try {
-        const saved = await submitQuizAttempt({
-          quizId: quiz.id,
-          userId: user.id,
-          answers: answersToSave,
-          score: scoreToSave,
-          maxScore: totalQuestions,
-        });
-        setAttempt(saved);
-        setRunSaved(true);
-      } catch (e: any) {
-        Alert.alert("Erreur", e?.message || "Impossible d'envoyer le quiz.");
-      } finally {
-        setPersistingAttempt(false);
-      }
-    },
-    [quiz?.id, totalQuestions, user?.id]
-  );
-
-  const computeScore = useCallback(
-    (sourceAnswers: number[][]) => {
-      if (!quiz?.questions?.length) return 0;
-      return quiz.questions.reduce((acc, q, idx) => {
-        const correct = normalizeIndices(q.correctIndices || [], q.options.length).slice(0, 1);
-        const chosen = normalizeIndices(sourceAnswers[idx] || [], q.options.length)[0];
-        return typeof chosen === "number" && correct.includes(chosen) ? acc + 1 : acc;
-      }, 0);
-    },
-    [normalizeIndices, quiz?.id]
-  );
-
-  const startRun = () => {
+  const startRun = async () => {
     if (!quiz?.published || !quiz?.questions?.length) return;
     initRun("question");
+    try {
+      const session = await startQuizAttempt(quiz.id);
+      setAttemptSession(session);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Impossible de demarrer le quiz.");
+      initRun("intro");
+    }
   };
 
-  const onCheckAnswer = () => {
+  const onCheckAnswer = async () => {
     if (playPhase !== "question" || !currentQuestion || selectedOpt === null) return;
-    const isCorrect = currentCorrectIndices.includes(selectedOpt);
+    if (!attemptSession) return;
+
+    let isCorrect = false;
+    setPersistingAttempt(true);
+    try {
+      const correction = await answerQuizQuestion({
+        attemptId: attemptSession.attemptId,
+        questionIndex: currentQIdx,
+        chosenIndex: selectedOpt,
+      });
+      isCorrect = correction.isCorrect;
+      setFeedbackCorrect(correction.correctIndices);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Impossible d'envoyer cette reponse.");
+      return;
+    } finally {
+      setPersistingAttempt(false);
+    }
+
     setRunAnswers((prev) => {
       const next = [...prev];
       next[currentQIdx] = [selectedOpt];
@@ -489,16 +491,25 @@ export default function QuizPage() {
       setCurrentQIdx(nextIndex);
       setSelectedOpt(null);
       setLastOutcome(null);
+      setFeedbackCorrect([]);
       setPlayPhase("question");
       return;
     }
 
-    const finalAnswers = quiz.questions.map((q, idx) =>
-      normalizeIndices(runAnswersRef.current[idx] || [], q.options.length).slice(0, 1)
-    );
-    const finalScore = computeScore(finalAnswers);
-    setRunScore(finalScore);
-    await saveRunAttempt(finalAnswers, finalScore);
+    if (!attemptSession) return;
+    setPersistingAttempt(true);
+    try {
+      const result = await finishQuizAttempt(attemptSession.attemptId);
+      setSubmission(result);
+      setRunScore(result.score);
+      setRunSaved(true);
+      const refreshed = await getQuizAttempt(quiz.id);
+      setAttempt(refreshed);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Impossible d'enregistrer le resultat.");
+    } finally {
+      setPersistingAttempt(false);
+    }
     setPlayPhase("done");
   };
 
@@ -904,7 +915,11 @@ export default function QuizPage() {
                     </View>
 
                     <Text style={styles.saveStatusText}>
-                      {persistingAttempt ? "Enregistrement du resultat..." : runSaved ? "Resultat enregistre." : "Resultat local."}
+                      {persistingAttempt
+                        ? "Enregistrement du resultat..."
+                        : runSaved
+                        ? "Resultat enregistre."
+                        : "Resultat non enregistre."}
                     </Text>
 
                     <TouchableOpacity onPress={startRun} style={styles.primaryBtn}>

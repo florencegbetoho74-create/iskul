@@ -1001,7 +1001,7 @@ export default function TeacherWorkspacePage() {
           .eq("owner_id", userId)
           .order("start_at_ms", { ascending: false }),
         supabase
-          .from("quizzes")
+          .from("quizzes_readable")
           .select("id,title,description,level,subject,course_id,chapter_id,published,questions,updated_at_ms")
           .eq("owner_id", userId)
           .order("updated_at_ms", { ascending: false }),

@@ -126,8 +126,10 @@ export async function getTeacherDashboard(ownerId: string): Promise<TeacherDashb
           .select("user_id,course_id,chapter_id,watched_sec,duration_sec")
           .in("course_id", courseIds)
       : Promise.resolve({ data: [] }),
+    // La colonne questions n'est plus lisible via la table : la vue renvoie le
+    // corrige complet au proprietaire du quiz.
     supabase
-      .from("quizzes")
+      .from("quizzes_readable")
       .select("id,title,questions")
       .eq("owner_id", ownerId),
   ]);
