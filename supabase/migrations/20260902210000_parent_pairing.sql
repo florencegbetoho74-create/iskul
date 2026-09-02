@@ -16,9 +16,29 @@ begin;
 create extension if not exists "pgcrypto";
 
 do $pre$
+declare
+  v_schema text;
 begin
   if to_regclass('public.student_usage_daily') is null then
     raise exception 'Appliquez d''abord supabase/usage.sql.';
+  end if;
+
+  -- Supabase installe pgcrypto dans le schema `extensions`, pas dans `public`.
+  -- Les fonctions ci-dessous fixent leur search_path : sans le bon schema,
+  -- gen_random_bytes() et digest() restent introuvables a l'execution.
+  select n.nspname into v_schema
+  from pg_extension e
+  join pg_namespace n on n.oid = e.extnamespace
+  where e.extname = 'pgcrypto';
+
+  if v_schema is null then
+    raise exception 'Extension pgcrypto absente. Activez-la avant cette migration.';
+  end if;
+
+  if v_schema not in ('public', 'extensions') then
+    raise exception
+      'pgcrypto est installee dans le schema %. Ajoutez ce schema au search_path des fonctions d''appairage.',
+      v_schema;
   end if;
 end $pre$;
 
@@ -159,7 +179,7 @@ create or replace function public.redeem_parent_pairing_code(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = public, extensions, auth
 as $fn$
 declare
   v_code text := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
@@ -224,7 +244,7 @@ create or replace function public.parent_snapshot(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = public, extensions, auth
 as $fn$
 declare
   v_days integer := greatest(1, least(coalesce(p_days, 30), 90));
