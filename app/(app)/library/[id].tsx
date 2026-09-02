@@ -7,6 +7,7 @@ import { WebView } from "react-native-webview";
 
 import { COLOR, FONT } from "@/theme/colors";
 import { getBook } from "@/storage/books";
+import { formatExamLabel } from "@/lib/documentTaxonomy";
 import type { Book } from "@/types/book";
 import TopBar from "@/components/TopBar";
 
@@ -78,7 +79,7 @@ export default function BookDetail() {
   const copyLink = async () => {
     if (!fileUrl) return;
     await Clipboard.setStringAsync(fileUrl);
-    Alert.alert("Lien copie", "L'URL du livre est dans le presse-papiers.");
+    Alert.alert("Lien copie", "L'URL du document est dans le presse-papiers.");
   };
 
   if (!book) return <View style={{ flex: 1, backgroundColor: COLOR.bg }} />;
@@ -102,7 +103,11 @@ export default function BookDetail() {
           <View style={{ flex: 1, gap: 8 }}>
             <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
             <Text style={styles.meta}>{book.subject || "-"} - {book.level || "-"}</Text>
-            <View style={styles.badge}><Text style={styles.badgeText}>{!book.price ? "Gratuit" : `${book.price} FCFA`}</Text></View>
+            {formatExamLabel(book) ? (
+              <Text style={styles.meta}>{formatExamLabel(book)}</Text>
+            ) : null}
+            {book.author ? <Text style={styles.meta}>{book.author}</Text> : null}
+            <View style={styles.badge}><Text style={styles.badgeText}>Gratuit</Text></View>
 
             {canEmbed ? (
               <Pressable style={styles.primary} onPress={() => { setWebError(null); setShowReader(true); }}>

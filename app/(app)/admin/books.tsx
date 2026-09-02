@@ -48,6 +48,8 @@ export default function AdminBooks() {
         r.title?.toLowerCase().includes(s) ||
         (r.subject || "").toLowerCase().includes(s) ||
         (r.level || "").toLowerCase().includes(s) ||
+        (r.documentTypeLabel || "").toLowerCase().includes(s) ||
+        (r.examName || "").toLowerCase().includes(s) ||
         (r.ownerName || "").toLowerCase().includes(s)
       );
     });
@@ -113,7 +115,7 @@ export default function AdminBooks() {
           <Text style={[styles.th, { flex: 2 }]}>Titre</Text>
           <Text style={[styles.th, { flex: 1 }]}>Niveau</Text>
           <Text style={[styles.th, { flex: 1 }]}>Matiere</Text>
-          <Text style={[styles.th, { flex: 1 }]}>Prix</Text>
+          <Text style={[styles.th, { flex: 1 }]}>Type</Text>
           <Text style={[styles.th, { flex: 1 }]}>Statut</Text>
           <Text style={[styles.th, { flex: 1 }]}>Actions</Text>
         </View>
@@ -125,7 +127,7 @@ export default function AdminBooks() {
             </View>
             <Text style={[styles.td, { flex: 1 }]} numberOfLines={1}>{row.level || "-"}</Text>
             <Text style={[styles.td, { flex: 1 }]} numberOfLines={1}>{row.subject || "-"}</Text>
-            <Text style={[styles.td, { flex: 1 }]}>{row.price ? `${row.price} FCFA` : "Gratuit"}</Text>
+            <Text style={[styles.td, { flex: 1 }]} numberOfLines={1}>{row.documentTypeLabel || "Non classe"}</Text>
             <Text style={[styles.td, { flex: 1 }]}>{row.published ? "Publie" : "Brouillon"}</Text>
             <View style={{ flex: 1 }}>
               <Pressable style={styles.actionBtn} onPress={() => togglePublish(row)}>

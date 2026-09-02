@@ -51,6 +51,10 @@ export type AdminBookRow = {
   title: string;
   level?: string | null;
   subject?: string | null;
+  documentTypeCode?: string | null;
+  documentTypeLabel?: string | null;
+  examName?: string | null;
+  examYear?: number | null;
   price?: number | null;
   published: boolean;
   ownerId: string;
@@ -220,6 +224,10 @@ export async function listAdminBooks(params?: {
     title: String(r.title || "Sans titre"),
     level: r.level ?? null,
     subject: r.subject ?? null,
+    documentTypeCode: r.document_type_code ?? null,
+    documentTypeLabel: r.document_type_label ?? null,
+    examName: r.exam_name ?? null,
+    examYear: r.exam_year ?? null,
     price: r.price == null ? null : Number(r.price),
     published: !!r.published,
     ownerId: String(r.owner_id || ""),

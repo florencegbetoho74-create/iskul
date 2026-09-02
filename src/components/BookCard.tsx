@@ -7,7 +7,9 @@ import { COLOR, FONT } from "@/theme/colors";
 type Props = { item: Book; onPress?: () => void };
 
 export default function BookCard({ item, onPress }: Props) {
-  const priceText = !item.price ? "Gratuit" : `${item.price} FCFA`;
+  // La bibliotheque est gratuite tant qu'aucun paiement n'est branche : aucun
+  // prix n'est encaisse ni ne conditionne l'acces, l'afficher induirait en erreur.
+  const priceText = "Gratuit";
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
       <View style={styles.thumbWrap}>

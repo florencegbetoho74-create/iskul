@@ -17,6 +17,11 @@ type BookRow = {
   country_code?: string | null;
   grade_level_id?: string | null;
   subject_id?: string | null;
+  document_type_id?: string | null;
+  exam_name?: string | null;
+  exam_year?: number | null;
+  exam_session?: string | null;
+  author?: string | null;
   price?: number | string | null;
   cover_url?: string | null;
   file_url: string;
@@ -49,6 +54,11 @@ function mapBook(row: BookRow): Book {
     countryCode: row.country_code ?? null,
     gradeLevelId: row.grade_level_id ?? null,
     subjectId: row.subject_id ?? null,
+    documentTypeId: row.document_type_id ?? null,
+    examName: row.exam_name ?? null,
+    examYear: row.exam_year ?? null,
+    examSession: row.exam_session ?? null,
+    author: row.author ?? null,
     price: row.price != null ? Number(row.price) : undefined,
     coverUrl: toPublicUrl(row.cover_url) ?? null,
     fileUrl: toPublicUrl(row.file_url) || "",
@@ -71,6 +81,11 @@ export async function addBook(payload: Omit<Book, "id" | "createdAt" | "updatedA
       country_code: payload.countryCode ?? null,
       grade_level_id: payload.gradeLevelId ?? null,
       subject_id: payload.subjectId ?? null,
+      document_type_id: payload.documentTypeId ?? null,
+      exam_name: payload.examName ?? null,
+      exam_year: payload.examYear ?? null,
+      exam_session: payload.examSession ?? null,
+      author: payload.author ?? null,
       price: payload.price ?? 0,
       cover_url: payload.coverUrl ?? null,
       file_url: payload.fileUrl,
@@ -94,6 +109,12 @@ export async function updateBook(id: string, patch: Partial<Book>) {
   if (patch.countryCode !== undefined) payload.country_code = patch.countryCode ?? null;
   if (patch.gradeLevelId !== undefined) payload.grade_level_id = patch.gradeLevelId ?? null;
   if (patch.subjectId !== undefined) payload.subject_id = patch.subjectId ?? null;
+  if (patch.documentTypeId !== undefined)
+    payload.document_type_id = patch.documentTypeId ?? null;
+  if (patch.examName !== undefined) payload.exam_name = patch.examName ?? null;
+  if (patch.examYear !== undefined) payload.exam_year = patch.examYear ?? null;
+  if (patch.examSession !== undefined) payload.exam_session = patch.examSession ?? null;
+  if (patch.author !== undefined) payload.author = patch.author ?? null;
   if (patch.price !== undefined) payload.price = patch.price ?? 0;
   if (patch.coverUrl !== undefined) payload.cover_url = patch.coverUrl ?? null;
   if (patch.fileUrl !== undefined) payload.file_url = patch.fileUrl;
@@ -148,12 +169,20 @@ export type BookScopeQuery = {
   countryCode?: string | null;
   gradeLevelId?: string | null;
   subjectId?: string | null;
+  documentTypeId?: string | null;
   search?: string;
   limit?: number;
   offset?: number;
 };
 
-const BOOK_SEARCH_COLUMNS = ["title", "subject", "level", "owner_name"] as const;
+const BOOK_SEARCH_COLUMNS = [
+  "title",
+  "subject",
+  "level",
+  "owner_name",
+  "author",
+  "exam_name",
+] as const;
 
 /** Documents du perimetre de l'eleve, filtres et pagines cote serveur. */
 export async function listBooksScoped(query: BookScopeQuery = {}): Promise<Book[]> {
@@ -168,6 +197,9 @@ export async function listBooksScoped(query: BookScopeQuery = {}): Promise<Book[
 
   const subjectId = safeUuid(query.subjectId);
   if (subjectId) q = q.eq("subject_id", subjectId);
+
+  const documentTypeId = safeUuid(query.documentTypeId);
+  if (documentTypeId) q = q.eq("document_type_id", documentTypeId);
 
   const search = query.search ? searchFilter(query.search, BOOK_SEARCH_COLUMNS) : null;
   if (search) q = q.or(search);

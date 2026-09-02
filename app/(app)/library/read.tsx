@@ -131,7 +131,7 @@ export default function ReadBook() {
       ) : (
         <View style={styles.center}>
           <Text style={{ color: COLOR.sub, textAlign: "center" }}>
-            Ce document n'est pas un PDF. Utilisez "Ouvrir" depuis la fiche du livre.
+            Ce document n'est pas un PDF. Utilisez "Ouvrir" depuis la fiche du document.
           </Text>
         </View>
       )}

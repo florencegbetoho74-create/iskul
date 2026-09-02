@@ -15,6 +15,8 @@ import { useRouter } from "expo-router";
 import SelectionSheetField from "@/components/SelectionSheetField";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
+import { listDocumentTypes, type DocumentType } from "@/storage/documentTypes";
+import { isValidExamYear } from "@/lib/documentTaxonomy";
 
 type SourceType = "link" | "upload";
 
@@ -27,6 +29,34 @@ export default function NewBook() {
   const [title, setTitle] = useState("");
   const [gradeLevelId, setGradeLevelId] = useState("");
   const [subjectId, setSubjectId] = useState("");
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+  const [documentTypeId, setDocumentTypeId] = useState("");
+  const [examName, setExamName] = useState("");
+  const [examSession, setExamSession] = useState("");
+  const [examYear, setExamYear] = useState("");
+  const [author, setAuthor] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    listDocumentTypes()
+      .then((types) => {
+        if (cancelled) return;
+        setDocumentTypes(types);
+      })
+      .catch(() => {
+        if (!cancelled) setDocumentTypes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedType = useMemo(
+    () => documentTypes.find((t) => t.id === documentTypeId) ?? null,
+    [documentTypes, documentTypeId]
+  );
+  const typeOptions = useMemo(() => documentTypes.map((t) => t.label), [documentTypes]);
+  const isOeuvre = selectedType?.code === "oeuvre";
 
   const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
   const { gradeLevels, subjects, loadingGrades, scope, error: optionsError } =
@@ -83,7 +113,7 @@ export default function NewBook() {
     return (
       <View style={[styles.container, { padding: 16 }]}>
         <Text style={styles.title}>Acces refuse</Text>
-        <Text style={{ color: COLOR.sub, marginTop: 4 }}>Seuls les enseignants peuvent ajouter des livres.</Text>
+        <Text style={{ color: COLOR.sub, marginTop: 4 }}>Seuls les enseignants peuvent ajouter des documents.</Text>
       </View>
     );
   }
@@ -172,8 +202,20 @@ export default function NewBook() {
 
     setBusy(true);
     try {
+      const trimmedYear = examYear.trim();
+      if (selectedType?.isExam && trimmedYear && !isValidExamYear(trimmedYear)) {
+        Alert.alert("Annee invalide", "Indiquez une annee d'examen entre 1960 et 2100.");
+        setBusy(false);
+        return;
+      }
+
       const created = await addBook({
         title: title.trim(),
+        documentTypeId: documentTypeId || null,
+        examName: selectedType?.isExam ? examName.trim() || null : null,
+        examSession: selectedType?.isExam ? examSession.trim() || null : null,
+        examYear: selectedType?.isExam && trimmedYear ? Number(trimmedYear) : null,
+        author: author.trim() || null,
         // level et subject sont derives du referentiel par un trigger.
         subject: subjectLabel || undefined,
         level: gradeLevels.find((l) => l.id === gradeLevelId)?.code || undefined,
@@ -190,7 +232,7 @@ export default function NewBook() {
         published: true,
       } as any);
 
-      Alert.alert("Ajoute", "Livre cree.", [
+      Alert.alert("Ajoute", "Document ajoute.", [
         { text: "OK", onPress: () => router.replace(`/(app)/library/${created.id}`) },
       ]);
     } catch (e: any) {
@@ -208,12 +250,71 @@ export default function NewBook() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-      <Text style={styles.title}>Ajouter un livre</Text>
+      <Text style={styles.title}>Ajouter un document</Text>
       <Text style={styles.subtitle}>Publiez un document pour votre classe.</Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>Titre</Text>
         <TextInput placeholder="Titre" placeholderTextColor={COLOR.sub} style={styles.input} value={title} onChangeText={setTitle} />
+
+        <SelectionSheetField
+          label="Type de document"
+          icon="pricetag-outline"
+          value={selectedType?.label ?? ""}
+          placeholder={documentTypes.length ? "Choisir un type" : "Chargement des types..."}
+          options={typeOptions}
+          onChange={(label) => {
+            const match = documentTypes.find((t) => t.label === label);
+            if (match) setDocumentTypeId(match.id);
+          }}
+          helperText="Les epreuves sont rangees a part des oeuvres et des manuels."
+        />
+
+        {selectedType?.isExam ? (
+          <>
+            <Text style={styles.label}>Examen</Text>
+            <TextInput
+              placeholder="Ex: BEPC, BAC, Composition"
+              placeholderTextColor={COLOR.sub}
+              style={styles.input}
+              value={examName}
+              onChangeText={setExamName}
+            />
+
+            <Text style={styles.label}>Session</Text>
+            <TextInput
+              placeholder="Ex: Juin"
+              placeholderTextColor={COLOR.sub}
+              style={styles.input}
+              value={examSession}
+              onChangeText={setExamSession}
+            />
+
+            <Text style={styles.label}>Annee</Text>
+            <TextInput
+              placeholder="Ex: 2024"
+              placeholderTextColor={COLOR.sub}
+              keyboardType="number-pad"
+              maxLength={4}
+              style={styles.input}
+              value={examYear}
+              onChangeText={setExamYear}
+            />
+          </>
+        ) : null}
+
+        {isOeuvre ? (
+          <>
+            <Text style={styles.label}>Auteur</Text>
+            <TextInput
+              placeholder="Ex: Olympe Bhely-Quenum"
+              placeholderTextColor={COLOR.sub}
+              style={styles.input}
+              value={author}
+              onChangeText={setAuthor}
+            />
+          </>
+        ) : null}
 
         <SelectionSheetField
           label="Classe"

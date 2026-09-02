@@ -8,6 +8,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,6 +20,8 @@ import type { Book } from "@/types/book";
 import { watchBooksOrdered, watchBooksScoped } from "@/storage/books";
 import BookCard from "@/components/BookCard";
 import Segmented from "@/components/Segmented";
+import { listDocumentTypes, type DocumentType } from "@/storage/documentTypes";
+import { formatExamLabel } from "@/lib/documentTaxonomy";
 
 const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
 const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
@@ -38,6 +41,22 @@ export default function Library() {
   const [q, setQ] = useState("");
   const [segment, setSegment] = useState<SegmentKey>(isAdmin ? "mine" : "myclass");
   const [sort, setSort] = useState<SortKey>("recent");
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  useEffect(() => {
+    let cancelled = false;
+    listDocumentTypes()
+      .then((types) => {
+        if (!cancelled) setDocumentTypes(types);
+      })
+      .catch(() => {
+        if (!cancelled) setDocumentTypes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Un eleve ne telecharge que les documents de sa classe et ceux marques
   // tous niveaux, au lieu des 200 derniers toutes classes confondues.
@@ -65,7 +84,7 @@ export default function Library() {
       return [
         { key: "all", label: "Tous" },
         { key: "published", label: "Publies" },
-        { key: "mine", label: "Mes livres" },
+        { key: "mine", label: "Mes documents" },
       ];
     }
     if (!gradeLevelId) return [{ key: "all", label: "Tous" }];
@@ -90,16 +109,41 @@ export default function Library() {
         scoped = base;
     }
 
-    if (!q.trim()) return scoped;
+    const byType =
+      typeFilter === "all"
+        ? scoped
+        : scoped.filter((b) => b.documentTypeId === typeFilter);
+
+    if (!q.trim()) return byType;
     const s = q.trim().toLowerCase();
-    return scoped.filter(
+    return byType.filter(
       (b) =>
         b.title?.toLowerCase().includes(s) ||
         b.subject?.toLowerCase().includes(s) ||
         b.level?.toLowerCase().includes(s) ||
+        b.author?.toLowerCase().includes(s) ||
+        b.examName?.toLowerCase().includes(s) ||
         b.ownerName?.toLowerCase().includes(s)
     );
-  }, [all, q, segment, user?.id]);
+  }, [all, q, segment, typeFilter, user?.id]);
+
+  // Un type sans document ne merite pas d'onglet : il n'apprend rien.
+  const typeChips = useMemo(() => {
+    const counts = new Map<string, number>();
+    all.forEach((b) => {
+      const key = String(b.documentTypeId ?? "");
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    const chips = documentTypes
+      .filter((t) => (counts.get(t.id) || 0) > 0)
+      .map((t) => ({ key: t.id, label: t.pluralLabel, count: counts.get(t.id) || 0 }));
+    return [{ key: "all", label: "Tous", count: all.length }, ...chips];
+  }, [all, documentTypes]);
+
+  useEffect(() => {
+    if (typeChips.some((c) => c.key === typeFilter)) return;
+    setTypeFilter("all");
+  }, [typeChips, typeFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -149,7 +193,7 @@ export default function Library() {
         <TextInput
           value={q}
           onChangeText={setQ}
-          placeholder="Rechercher un livre"
+          placeholder="Rechercher un document"
           placeholderTextColor={COLOR.sub}
           style={styles.searchInput}
           returnKeyType="search"
@@ -174,6 +218,35 @@ export default function Library() {
           <Text style={styles.sortChipText}>{sortLabel}</Text>
         </Pressable>
       </View>
+
+      {typeChips.length > 1 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.typeRow}
+          keyboardShouldPersistTaps="handled"
+        >
+          {typeChips.map((chip) => {
+            const active = chip.key === typeFilter;
+            return (
+              <Pressable
+                key={chip.key}
+                onPress={() => setTypeFilter(chip.key)}
+                style={[styles.typeChip, active && styles.typeChipActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>
+                  {chip.label}
+                </Text>
+                <Text style={[styles.typeChipCount, active && styles.typeChipTextActive]}>
+                  {chip.count}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
     </LinearGradient>
   );
 
@@ -190,6 +263,11 @@ export default function Library() {
           renderItem={({ item }) => (
             <View style={styles.gridItem}>
               <BookCard item={item} onPress={() => router.push(`/(app)/library/${item.id}`)} />
+              {formatExamLabel(item) ? (
+                <Text style={styles.examLabel} numberOfLines={1}>
+                  {formatExamLabel(item)}
+                </Text>
+              ) : null}
             </View>
           )}
           ListEmptyComponent={<EmptyState isAdmin={isAdmin} segment={segment} />}
@@ -199,7 +277,7 @@ export default function Library() {
           <Pressable onPress={() => router.push("/(app)/library/new")} style={[styles.fabWrap, { bottom: 16 + insets.bottom }]}>
             <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
               <Ionicons name="add" size={18} color="#fff" />
-              <Text style={styles.fabText}>Ajouter un livre</Text>
+              <Text style={styles.fabText}>Ajouter un document</Text>
             </LinearGradient>
           </Pressable>
         ) : null}
@@ -210,8 +288,8 @@ export default function Library() {
 
 function EmptyState({ isAdmin, segment }: { isAdmin: boolean; segment: SegmentKey }) {
   const title = isAdmin && segment === "mine"
-    ? "Ajoutez votre premier livre."
-    : "Aucun livre trouve pour l'instant.";
+    ? "Ajoutez votre premier document."
+    : "Aucun document trouve pour l'instant.";
 
   const subtitle = isAdmin && segment === "mine"
     ? "Importez un PDF ou un EPUB pour votre classe."
@@ -227,6 +305,29 @@ function EmptyState({ isAdmin, segment }: { isAdmin: boolean; segment: SegmentKe
 }
 
 const styles = StyleSheet.create({
+  typeRow: { gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
+  typeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.surface,
+  },
+  typeChipActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
+  typeChipText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  typeChipTextActive: { color: COLOR.primary },
+  typeChipCount: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11 },
+  examLabel: {
+    color: COLOR.sub,
+    fontFamily: FONT.body,
+    fontSize: 11,
+    marginTop: 4,
+    paddingHorizontal: 2,
+  },
   headerBg: { paddingBottom: 10 },
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
   title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },

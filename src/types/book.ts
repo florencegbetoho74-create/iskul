@@ -6,6 +6,11 @@ export type Book = {
   countryCode?: string | null;
   gradeLevelId?: string | null;
   subjectId?: string | null;
+  documentTypeId?: string | null;
+  examName?: string | null;
+  examYear?: number | null;
+  examSession?: string | null;
+  author?: string | null;
   price?: number;           // 0 ou undefined => Gratuit
   coverUrl?: string | null; // miniature
   fileUrl: string;          // lien Storage (PDF/EPUB)
