@@ -5,12 +5,30 @@ import { supabase } from "../lib/supabase";
 type ParentPeriod = 7 | 14 | 30 | 60;
 
 type ParentStudent = {
-  id: string;
   name: string;
-  email: string;
   school: string | null;
   grade: string | null;
 };
+
+const TOKEN_STORAGE_KEY = "iskul:parent-access-token";
+
+function readStoredToken(): string {
+  try {
+    return window.localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+  } catch {
+    // Navigation privee ou stockage bloque : le parent ressaisira un code.
+    return "";
+  }
+}
+
+function storeToken(token: string) {
+  try {
+    if (token) window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    else window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    // Sans stockage, l'acces vaut pour la session en cours.
+  }
+}
 
 type ParentTotals = {
   timeSpentMs: number;
@@ -77,8 +95,12 @@ function mapError(error: unknown) {
   if (code === "PGRST202") {
     return "Suivi parental non active en base. Executez la migration SQL puis reessayez.";
   }
-  if (lower.includes("student_not_found")) return "Aucun eleve trouve pour cet email.";
-  if (lower.includes("missing_email")) return "Veuillez renseigner un email eleve valide.";
+  if (lower.includes("invalid_code")) {
+    return "Code invalide ou expire. Demandez-en un nouveau a votre enfant.";
+  }
+  if (lower.includes("invalid_token")) {
+    return "Votre acces a ete retire. Demandez un nouveau code a votre enfant.";
+  }
   if (lower.includes("invalid input syntax for type bigint") && lower.includes("nan")) {
     return "Periode d'analyse invalide. Reessayez avec 7, 14, 30 ou 60 jours.";
   }
@@ -142,9 +164,7 @@ function normalizeSnapshot(raw: unknown): ParentSnapshot | null {
 
   return {
     student: {
-      id: String(student.id || ""),
       name: String(student.name || "Eleve"),
-      email: String(student.email || ""),
       school: student.school ? String(student.school) : null,
       grade: student.grade ? String(student.grade) : null,
     },
@@ -219,7 +239,8 @@ function ParentBarChart({
 }
 
 export default function ParentTrackingPage() {
-  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [token, setToken] = useState<string>(() => readStoredToken());
   const [days, setDays] = useState<ParentPeriod>(30);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -228,20 +249,17 @@ export default function ParentTrackingPage() {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   const load = useCallback(
-    async (silent = false, overrideDays?: ParentPeriod) => {
-      const cleanEmail = email.trim().toLowerCase();
-      if (!cleanEmail) {
-        setError("Veuillez renseigner un email eleve.");
-        return;
-      }
+    async (silent = false, overrideDays?: ParentPeriod, overrideToken?: string) => {
+      const activeToken = (overrideToken ?? token).trim();
+      if (!activeToken) return;
 
       const safeDays = toPeriod(overrideDays ?? days);
       if (!silent) setBusy(true);
       setError(null);
 
       try {
-        const { data, error: rpcError } = await supabase.rpc("parent_student_snapshot", {
-          p_student_email: cleanEmail,
+        const { data, error: rpcError } = await supabase.rpc("parent_snapshot", {
+          p_token: activeToken,
           p_days: safeDays,
         });
         if (rpcError) throw rpcError;
@@ -250,34 +268,88 @@ export default function ParentTrackingPage() {
         if (!normalized) throw new Error("snapshot_invalid");
         setSnapshot(normalized);
       } catch (loadError) {
-        setError(mapError(loadError));
+        const message = mapError(loadError);
+        setError(message);
+        // Un acces retire par l'eleve ne doit pas rester en cache.
+        if (message.includes("retire")) {
+          setToken("");
+          storeToken("");
+          setSnapshot(null);
+        }
       } finally {
         if (!silent) setBusy(false);
       }
     },
-    [days, email]
+    [days, token]
   );
+
+  /** Echange le code d'appairage contre un jeton durable. */
+  const redeem = useCallback(async () => {
+    const cleanCode = code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (cleanCode.length !== 8) {
+      setError("Le code comporte 8 caracteres.");
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error: rpcError } = await supabase.rpc("redeem_parent_pairing_code", {
+        p_code: cleanCode,
+        p_label: null,
+      });
+      if (rpcError) throw rpcError;
+
+      const nextToken = String((data as { accessToken?: string } | null)?.accessToken || "");
+      if (!nextToken) throw new Error("invalid_code");
+
+      setToken(nextToken);
+      storeToken(nextToken);
+      setCode("");
+      await load(false, days, nextToken);
+    } catch (redeemError) {
+      setError(mapError(redeemError));
+    } finally {
+      setBusy(false);
+    }
+  }, [code, days, load]);
+
+  const disconnect = useCallback(() => {
+    setToken("");
+    storeToken("");
+    setSnapshot(null);
+    setError(null);
+  }, []);
+
+  // Un jeton deja memorise ouvre directement le suivi.
+  useEffect(() => {
+    if (token && !snapshot) void load(false);
+    // Volontairement limite au montage : les rechargements passent par les
+    // actions explicites du parent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePeriodChange = useCallback(
     async (period: ParentPeriod) => {
       setDays(period);
-      if (!email.trim()) return;
+      if (!token) return;
       await load(false, period);
     },
-    [email, load]
+    [token, load]
   );
 
   useEffect(() => {
-    if (!snapshot || !email.trim()) return;
+    if (!snapshot || !token) return;
     const timerId = window.setInterval(() => {
       void load(true);
     }, 30000);
     return () => window.clearInterval(timerId);
-  }, [email, load, snapshot]);
+  }, [token, load, snapshot]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await load(false);
+    if (token) await load(false);
+    else await redeem();
   };
 
   const timeline = snapshot?.timeline || [];
@@ -320,22 +392,33 @@ export default function ParentTrackingPage() {
         <span className="kicker">Espace Parents</span>
         <h1>Suivi parental en temps reel</h1>
         <p>
-          Renseignez l&apos;email eleve pour consulter temps passe, cours suivis, lives et performances quiz avec une
-          trace claire.
+          Votre enfant genere un code depuis l&apos;application, dans Reglages. Saisissez-le une fois
+          pour suivre son temps passe, ses cours, ses lives et ses resultats. Il peut retirer votre
+          acces quand il le souhaite.
         </p>
       </header>
 
       <form className="parent-form-card" onSubmit={submit}>
         <div className="parent-filter-row">
-          <label className="teacher-field">
-            Email eleve
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="eleve@ecole.com"
-            />
-          </label>
+          {token ? (
+            <div className="teacher-field">
+              Acces
+              <p className="notice">Acces actif sur cet appareil.</p>
+            </div>
+          ) : (
+            <label className="teacher-field">
+              Code fourni par votre enfant
+              <input
+                type="text"
+                inputMode="text"
+                autoCapitalize="characters"
+                maxLength={9}
+                value={code}
+                onChange={(event) => setCode(event.target.value.toUpperCase())}
+                placeholder="ABCD2345"
+              />
+            </label>
+          )}
 
           <div className="teacher-field">
             Fenetre d'analyse
@@ -357,11 +440,11 @@ export default function ParentTrackingPage() {
 
           <div className="teacher-inline-actions">
             <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? "Chargement..." : "Analyser"}
+              {busy ? "Chargement..." : token ? "Actualiser" : "Valider le code"}
             </button>
-            {snapshot ? (
-              <button className="btn ghost" type="button" onClick={() => void load(false)} disabled={busy}>
-                Actualiser
+            {token ? (
+              <button className="btn ghost" type="button" onClick={disconnect} disabled={busy}>
+                Me deconnecter
               </button>
             ) : null}
           </div>
@@ -374,7 +457,6 @@ export default function ParentTrackingPage() {
           <section className="parent-student-card">
             <h2>{snapshot.student.name}</h2>
             <p className="parent-student-meta">
-              <span>{snapshot.student.email}</span>
               {snapshot.student.grade ? <span>{snapshot.student.grade}</span> : null}
               {snapshot.student.school ? <span>{snapshot.student.school}</span> : null}
             </p>

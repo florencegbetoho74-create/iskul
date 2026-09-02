@@ -38,8 +38,6 @@ type AuthContextType = {
   signUp: (input: SignUpInput) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateSchooling: (input: SchoolingInput) => Promise<void>;
-  unlockAdminWithCode: (code: string) => Promise<boolean>;
-  lockAdminAccess: () => Promise<void>;
   signOut: () => Promise<void>;
   setUser?: React.Dispatch<React.SetStateAction<User | null>>;
 };
@@ -47,8 +45,6 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({} as any);
 
 const isEmail = (s: string) => /^\S+@\S+\.\S+$/.test(s || "");
-const ADMIN_ACCESS_CODE = (process.env.EXPO_PUBLIC_ADMIN_ACCESS_CODE || "13091997").trim();
-const ADMIN_UNLOCK_STORAGE_KEY = "admin_console_code_unlocked";
 
 type ProfileRow = {
   id: string;
@@ -162,9 +158,10 @@ function mapAuthError(e: any): string {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [adminCodeUnlocked, setAdminCodeUnlocked] = useState(false);
   const [initializing, setInitializing] = useState(true);
-  const canAccessAdmin = !!user && adminCodeUnlocked;
+  // L'acces admin decoule du droit porte par le profil, verifie en base par
+  // ensure_admin(). Un code partage cote client ne prouvait rien.
+  const canAccessAdmin = !!user?.isAdmin;
 
   useEffect(() => {
     let mounted = true;
@@ -238,8 +235,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token) await SecureStore.setItemAsync("auth_token", token).catch(() => {});
       } else {
         setUser(null);
-        setAdminCodeUnlocked(false);
-        await SecureStore.deleteItemAsync(ADMIN_UNLOCK_STORAGE_KEY).catch(() => {});
         await SecureStore.deleteItemAsync("auth_token").catch(() => {});
       }
       setInitializing(false);
@@ -268,20 +263,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sub.remove();
       clearInterval(interval);
     };
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user?.id) {
-      setAdminCodeUnlocked(false);
-      return;
-    }
-    SecureStore.getItemAsync(ADMIN_UNLOCK_STORAGE_KEY)
-      .then((v) => {
-        setAdminCodeUnlocked(v === "1");
-      })
-      .catch(() => {
-        setAdminCodeUnlocked(false);
-      });
   }, [user?.id]);
 
   useEffect(() => {
@@ -441,8 +422,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut().catch(() => {});
     setUser(null);
-    setAdminCodeUnlocked(false);
-    await SecureStore.deleteItemAsync(ADMIN_UNLOCK_STORAGE_KEY).catch(() => {});
     await SecureStore.deleteItemAsync("auth_token").catch(() => {});
   };
 
@@ -465,21 +444,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const unlockAdminWithCode = async (code: string) => {
-    if (!user) return false;
-    const provided = String(code || "").trim();
-    if (!provided) return false;
-    if (provided !== ADMIN_ACCESS_CODE) return false;
-    setAdminCodeUnlocked(true);
-    await SecureStore.setItemAsync(ADMIN_UNLOCK_STORAGE_KEY, "1").catch(() => {});
-    return true;
-  };
-
-  const lockAdminAccess = async () => {
-    setAdminCodeUnlocked(false);
-    await SecureStore.deleteItemAsync(ADMIN_UNLOCK_STORAGE_KEY).catch(() => {});
-  };
-
   const value = useMemo(
     () => ({
       user,
@@ -489,8 +453,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       resetPassword,
       updateSchooling,
-      unlockAdminWithCode,
-      lockAdminAccess,
       signOut,
       setUser,
     }),

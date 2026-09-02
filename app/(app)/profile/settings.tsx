@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 
 import { COLOR, FONT, RADIUS } from "@/theme/colors";
@@ -8,6 +9,13 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { invalidateReferentials } from "@/storage/referentials";
 import CountryField from "@/components/CountryField";
+import {
+  createPairingCode,
+  listParentLinks,
+  revokeParentLink,
+  type PairingCode,
+  type ParentLink,
+} from "@/storage/parentLinks";
 import SelectionSheetField from "@/components/SelectionSheetField";
 
 export default function Settings() {
@@ -17,6 +25,9 @@ export default function Settings() {
   const [gradeLevelId, setGradeLevelId] = useState<string>(user?.gradeLevelId ?? "");
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [parentLinks, setParentLinks] = useState<ParentLink[]>([]);
+  const [pairingCode, setPairingCode] = useState<PairingCode | null>(null);
+  const [parentBusy, setParentBusy] = useState(false);
 
   const {
     countries,
@@ -31,6 +42,19 @@ export default function Settings() {
     setCountryCode(user?.countryCode ?? "");
     setGradeLevelId(user?.gradeLevelId ?? "");
   }, [user?.countryCode, user?.gradeLevelId]);
+
+  const refreshParentLinks = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setParentLinks(await listParentLinks());
+    } catch {
+      // Un acces parental illisible ne doit pas bloquer l'ecran entier.
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    void refreshParentLinks();
+  }, [refreshParentLinks]);
 
   // Un changement de pays peut changer le programme : on ne conserve pas une
   // classe qui n'existe pas dans le nouveau referentiel.
@@ -82,6 +106,46 @@ export default function Settings() {
     } finally {
       setClearing(false);
     }
+  };
+
+  const generateCode = async () => {
+    setParentBusy(true);
+    try {
+      const created = await createPairingCode();
+      setPairingCode(created);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? "Code non genere.");
+    } finally {
+      setParentBusy(false);
+    }
+  };
+
+  const copyCode = async () => {
+    if (!pairingCode) return;
+    await Clipboard.setStringAsync(pairingCode.code);
+    Alert.alert("Copie", "Le code a ete copie.");
+  };
+
+  const removeLink = (link: ParentLink) => {
+    Alert.alert(
+      "Retirer cet acces",
+      `${link.label || "Ce parent"} ne pourra plus consulter votre progression.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Retirer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await revokeParentLink(link.id);
+              await refreshParentLinks();
+            } catch (e: any) {
+              Alert.alert("Erreur", e?.message ?? "Retrait impossible.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -164,6 +228,61 @@ export default function Settings() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Acces parental</Text>
+        <Text style={styles.sectionHint}>
+          Vos parents peuvent suivre votre progression depuis le site. Donnez-leur un code : il
+          est valable 15 minutes et ne sert qu'une fois. Vous pouvez retirer un acces a tout
+          moment.
+        </Text>
+
+        {pairingCode ? (
+          <Pressable onPress={copyCode} style={styles.codeBox} accessibilityRole="button">
+            <Text style={styles.codeValue}>{pairingCode.code}</Text>
+            <Text style={styles.codeHint}>
+              Valable {pairingCode.validForMinutes} minutes. Touchez pour copier.
+            </Text>
+          </Pressable>
+        ) : null}
+
+        <Pressable
+          onPress={generateCode}
+          disabled={parentBusy}
+          style={[styles.secondaryBtn, parentBusy && styles.primaryBtnDisabled]}
+          accessibilityRole="button"
+        >
+          {parentBusy ? (
+            <ActivityIndicator size="small" color={COLOR.primary} />
+          ) : (
+            <Ionicons name="key-outline" size={18} color={COLOR.primary} />
+          )}
+          <Text style={styles.secondaryBtnText}>
+            {pairingCode ? "Generer un nouveau code" : "Generer un code parent"}
+          </Text>
+        </Pressable>
+
+        {parentLinks.length ? (
+          parentLinks.map((link) => (
+            <View key={link.id} style={styles.row}>
+              <Ionicons name="people-outline" size={18} color={COLOR.text} />
+              <View style={styles.rowBody}>
+                <Text style={styles.rowTitle}>{link.label || "Parent"}</Text>
+                <Text style={styles.rowSub}>
+                  {link.lastUsedAtMs
+                    ? `Derniere consultation le ${new Date(link.lastUsedAtMs).toLocaleDateString("fr-FR")}`
+                    : "Jamais consulte"}
+                </Text>
+              </View>
+              <Pressable onPress={() => removeLink(link)} accessibilityLabel="Retirer l'acces">
+                <Text style={styles.revokeText}>Retirer</Text>
+              </Pressable>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.rowSub}>Aucun parent n'a acces a votre progression.</Text>
+        )}
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Compte</Text>
         <View style={styles.row}>
           <Ionicons name="person-circle-outline" size={18} color={COLOR.text} />
@@ -231,6 +350,39 @@ const styles = StyleSheet.create({
   },
   primaryBtnDisabled: { opacity: 0.5 },
   primaryBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 14 },
+
+  secondaryBtn: {
+    marginTop: 10,
+    minHeight: 44,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    backgroundColor: COLOR.tint,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  secondaryBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 13 },
+
+  codeBox: {
+    marginTop: 10,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    backgroundColor: COLOR.tint,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  codeValue: {
+    color: COLOR.primary,
+    fontFamily: FONT.mono,
+    fontSize: 26,
+    letterSpacing: 4,
+  },
+  codeHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11, marginTop: 6 },
+  revokeText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12 },
 
   row: {
     flexDirection: "row",
