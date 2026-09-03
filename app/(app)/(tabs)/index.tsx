@@ -55,7 +55,10 @@ export default function Home() {
   const insets = useSafeAreaInsets();
 
   const role = String((user as any)?.role || "");
-  const isTeacher = !!(canAccessAdmin || role === "teacher");
+  // L'espace affiche suit le role, pas les droits : un administrateur dont le
+  // role est eleve n'a rien a faire dans l'espace prof.
+  const isTeacher = role === "teacher";
+  const canReview = !!user?.isReviewer;
 
   const [all, setAll] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -466,7 +469,7 @@ export default function Home() {
   };
 
   const AdminActions = () =>
-    !isTeacher ? null : (
+    !isTeacher && !canReview ? null : (
       <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
         <SectionHeader title="Actions rapides" />
         <ScrollView
@@ -475,7 +478,7 @@ export default function Home() {
           contentContainerStyle={styles.actionsRow}
           keyboardShouldPersistTaps="handled"
         >
-          {user?.isReviewer ? (
+          {canReview ? (
             <QuickAction
               label="File de relecture"
               style={styles.actionPill}
@@ -483,30 +486,34 @@ export default function Home() {
               onPress={() => router.push("/(app)/review")}
             />
           ) : null}
-          <QuickAction
-            label="Creer un cours"
-            style={styles.actionPill}
-            left={<Ionicons name="add-circle" size={18} color={COLOR.text} />}
-            onPress={() => router.push("/(app)/course/new")}
-          />
-          <QuickAction
-            label="Mes cours"
-            style={styles.actionPill}
-            left={<Ionicons name="folder-open-outline" size={18} color={COLOR.text} />}
-            onPress={() => router.push("/(app)/course/mine")}
-          />
-          <QuickAction
-            label="Programmer un live"
-            style={styles.actionPill}
-            left={<MaterialCommunityIcons name="calendar-clock" size={18} color={COLOR.text} />}
-            onPress={() => router.push("/(app)/live/new")}
-          />
-          <QuickAction
-            label="Quiz autonomes"
-            style={styles.actionPill}
-            left={<MaterialCommunityIcons name="brain" size={18} color={COLOR.text} />}
-            onPress={() => router.push("/(app)/(tabs)/quizzes")}
-          />
+          {isTeacher ? (
+            <>
+              <QuickAction
+                label="Creer un cours"
+                style={styles.actionPill}
+                left={<Ionicons name="add-circle" size={18} color={COLOR.text} />}
+                onPress={() => router.push("/(app)/course/new")}
+              />
+              <QuickAction
+                label="Mes cours"
+                style={styles.actionPill}
+                left={<Ionicons name="folder-open-outline" size={18} color={COLOR.text} />}
+                onPress={() => router.push("/(app)/course/mine")}
+              />
+              <QuickAction
+                label="Programmer un live"
+                style={styles.actionPill}
+                left={<MaterialCommunityIcons name="calendar-clock" size={18} color={COLOR.text} />}
+                onPress={() => router.push("/(app)/live/new")}
+              />
+              <QuickAction
+                label="Quiz autonomes"
+                style={styles.actionPill}
+                left={<MaterialCommunityIcons name="brain" size={18} color={COLOR.text} />}
+                onPress={() => router.push("/(app)/(tabs)/quizzes")}
+              />
+            </>
+          ) : null}
         </ScrollView>
 
         <View style={styles.statsRow}>

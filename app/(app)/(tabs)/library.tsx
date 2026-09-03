@@ -35,7 +35,10 @@ export default function Library() {
   const router = useRouter();
   const { user, canAccessAdmin } = useAuth();
   const insets = useSafeAreaInsets();
-  const isAdmin = user?.role === "teacher" || canAccessAdmin;
+  // Meme regle qu'ailleurs : l'experience suit le role, la permission de
+  // publier suit les droits.
+  const isAdmin = user?.role === "teacher";
+  const canPublish = isAdmin || canAccessAdmin;
 
   const [all, setAll] = useState<Book[]>([]);
   const [q, setQ] = useState("");
@@ -180,7 +183,7 @@ export default function Library() {
             {isAdmin ? "Espace admin" : "Catalogue"} - {filtered.length} resultat{filtered.length > 1 ? "s" : ""}
           </Text>
         </View>
-        {isAdmin ? (
+        {canPublish ? (
           <Pressable onPress={() => router.push("/(app)/library/new")} style={styles.addBtn}>
             <Ionicons name="add" size={16} color="#fff" />
             <Text style={styles.addBtnText}>Nouveau</Text>

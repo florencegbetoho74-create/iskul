@@ -24,7 +24,7 @@ export default function NewBook() {
   const { user, canAccessAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const isAdmin = user?.role === "teacher" || canAccessAdmin;
+  const canPublish = user?.role === "teacher" || canAccessAdmin;
 
   const [title, setTitle] = useState("");
   const [gradeLevelId, setGradeLevelId] = useState("");
@@ -109,7 +109,7 @@ export default function NewBook() {
     return previewFileUrl;
   }, [previewFileUrl]);
 
-  if (!isAdmin) {
+  if (!canPublish) {
     return (
       <View style={[styles.container, { padding: 16 }]}>
         <Text style={styles.title}>Acces refuse</Text>
