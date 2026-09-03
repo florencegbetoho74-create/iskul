@@ -15,7 +15,8 @@ import { Audio } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import TopBar from "@/components/TopBar";
 import SelectionSheetField from "@/components/SelectionSheetField";
 import { useAuth } from "@/providers/AuthProvider";
@@ -62,6 +63,7 @@ const makeQuestion = (): QuizQuestion => ({
 });
 
 export default function QuizPage() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { courseId, lessonId, quizId, mode } = useLocalSearchParams<{
     courseId?: string;
     lessonId?: string;
@@ -547,8 +549,8 @@ export default function QuizPage() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: COLOR.bg }]}>
-        <ActivityIndicator color={COLOR.primary} />
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <ActivityIndicator color={theme.color.primary} />
       </View>
     );
   }
@@ -558,7 +560,7 @@ export default function QuizPage() {
       <View style={styles.root}>
         <TopBar title="Quiz" right={null} />
         <View style={styles.center}>
-          <Text style={{ color: COLOR.sub, fontFamily: FONT.body }}>
+          <Text style={{ color: theme.color.textMuted, fontFamily: theme.type.body.fontFamily }}>
             {resolvedQuizId ? "Quiz introuvable." : "Cours ou chapitre introuvable."}
           </Text>
         </View>
@@ -578,7 +580,7 @@ export default function QuizPage() {
           {isStandaloneQuiz ? (
             <>
               <View style={styles.heroPill}>
-                <Ionicons name="sparkles-outline" size={14} color={COLOR.primary} />
+                <Ionicons name="sparkles-outline" size={14} color={theme.color.primary} />
                 <Text style={styles.heroPillText}>Quiz autonome</Text>
               </View>
               <Text style={styles.heroTitle} numberOfLines={2}>
@@ -603,7 +605,7 @@ export default function QuizPage() {
             </Text>
             {!isStandaloneQuiz ? (
               <TouchableOpacity onPress={() => router.push("/(app)/course/quiz?mode=standalone")} style={styles.linkBtn}>
-                <Ionicons name="sparkles-outline" size={14} color={COLOR.primary} />
+                <Ionicons name="sparkles-outline" size={14} color={theme.color.primary} />
                 <Text style={styles.linkBtnText}>Creer un quiz autonome</Text>
               </TouchableOpacity>
             ) : null}
@@ -654,11 +656,11 @@ export default function QuizPage() {
                 ) : (
                   <View style={styles.readonlyMetaRow}>
                     <View style={styles.readonlyMetaChip}>
-                      <Ionicons name="school-outline" size={14} color={COLOR.sub} />
+                      <Ionicons name="school-outline" size={14} color={theme.color.textMuted} />
                       <Text style={styles.readonlyMetaText}>{standaloneLevel || quiz?.level || "Classe"}</Text>
                     </View>
                     <View style={styles.readonlyMetaChip}>
-                      <Ionicons name="albums-outline" size={14} color={COLOR.sub} />
+                      <Ionicons name="albums-outline" size={14} color={theme.color.textMuted} />
                       <Text style={styles.readonlyMetaText}>{standaloneSubject || quiz?.subject || "Matiere"}</Text>
                     </View>
                   </View>
@@ -670,7 +672,7 @@ export default function QuizPage() {
               value={title}
               onChangeText={setTitle}
               placeholder="Titre du quiz"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.input}
               editable={canEdit}
             />
@@ -678,7 +680,7 @@ export default function QuizPage() {
               value={description}
               onChangeText={setDescription}
               placeholder="Description (optionnel)"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={[styles.input, { minHeight: 80 }]}
               multiline
               editable={canEdit}
@@ -697,7 +699,7 @@ export default function QuizPage() {
                   style={[styles.reviewBtn, reviewBusy && { opacity: 0.6 }]}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="send-outline" size={16} color={COLOR.primary} />
+                  <Ionicons name="send-outline" size={16} color={theme.color.primary} />
                   <Text style={styles.reviewBtnText}>
                     {reviewBusy ? "Envoi..." : authorActionLabel(status)}
                   </Text>
@@ -717,7 +719,7 @@ export default function QuizPage() {
                   <Text style={styles.questionTitle}>Question {qIdx + 1}</Text>
                   {canEdit ? (
                     <TouchableOpacity onPress={() => removeQuestion(q.id)} style={styles.iconBtn}>
-                      <Ionicons name="trash-outline" size={16} color={COLOR.danger} />
+                      <Ionicons name="trash-outline" size={16} color={theme.color.danger} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -725,7 +727,7 @@ export default function QuizPage() {
                   value={q.prompt}
                   onChangeText={(t) => setQuestion(q.id, { prompt: t })}
                   placeholder="Texte de la question"
-                  placeholderTextColor={COLOR.sub}
+                  placeholderTextColor={theme.color.textMuted}
                   style={styles.input}
                   editable={canEdit}
                 />
@@ -739,14 +741,14 @@ export default function QuizPage() {
                       <Ionicons
                         name={q.correctIndices?.includes(optIdx) ? "radio-button-on" : "radio-button-off"}
                         size={18}
-                        color={q.correctIndices?.includes(optIdx) ? COLOR.primary : COLOR.sub}
+                        color={q.correctIndices?.includes(optIdx) ? theme.color.primary : theme.color.textMuted}
                       />
                     </TouchableOpacity>
                     <TextInput
                       value={opt}
                       onChangeText={(t) => updateOption(q.id, optIdx, t)}
                       placeholder={`Option ${optIdx + 1}`}
-                      placeholderTextColor={COLOR.sub}
+                      placeholderTextColor={theme.color.textMuted}
                       style={[styles.input, styles.optionInput]}
                       editable={canEdit}
                     />
@@ -754,7 +756,7 @@ export default function QuizPage() {
                 ))}
                 {canEdit ? (
                   <TouchableOpacity onPress={() => addOption(q.id)} style={styles.secondaryBtn}>
-                    <Ionicons name="add-circle-outline" size={16} color={COLOR.text} />
+                    <Ionicons name="add-circle-outline" size={16} color={theme.color.text} />
                     <Text style={styles.secondaryText}>Ajouter une option</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -762,13 +764,13 @@ export default function QuizPage() {
             ))}
             {canEdit ? (
               <TouchableOpacity onPress={addQuestion} style={styles.secondaryBtn}>
-                <Ionicons name="add" size={16} color={COLOR.text} />
+                <Ionicons name="add" size={16} color={theme.color.text} />
                 <Text style={styles.secondaryText}>Ajouter une question</Text>
               </TouchableOpacity>
             ) : null}
             {canEdit ? (
               <TouchableOpacity onPress={onSaveQuiz} disabled={saving} style={[styles.primaryBtn, saving && { opacity: 0.6 }]}>
-                <Ionicons name="save-outline" size={16} color="#fff" />
+                <Ionicons name="save-outline" size={16} color={theme.color.textOnPrimary} />
                 <Text style={styles.primaryText}>{saving ? "Enregistrement..." : "Enregistrer"}</Text>
               </TouchableOpacity>
             ) : null}
@@ -806,7 +808,7 @@ export default function QuizPage() {
                     {hasResult ? (
                       <View style={[styles.resultCard, resultScore && resultMaxScore && resultScore / resultMaxScore >= 0.6 ? styles.resultCardSuccess : styles.resultCardWarn]}>
                         <View style={styles.resultIcon}>
-                          <Ionicons name="stats-chart-outline" size={20} color={COLOR.primary} />
+                          <Ionicons name="stats-chart-outline" size={20} color={theme.color.primary} />
                         </View>
                         <View style={styles.resultContent}>
                           <Text style={styles.resultTitle}>Dernier resultat</Text>
@@ -824,7 +826,7 @@ export default function QuizPage() {
                     </View>
 
                     <TouchableOpacity onPress={startRun} style={styles.primaryBtn}>
-                      <Ionicons name={hasResult ? "refresh" : "play-circle-outline"} size={16} color="#fff" />
+                      <Ionicons name={hasResult ? "refresh" : "play-circle-outline"} size={16} color={theme.color.textOnPrimary} />
                       <Text style={styles.primaryText}>{hasResult ? "Recommencer" : "Commencer"}</Text>
                     </TouchableOpacity>
                   </>
@@ -869,13 +871,13 @@ export default function QuizPage() {
                             color={
                               playPhase === "feedback"
                                 ? correct
-                                  ? COLOR.success
+                                  ? theme.color.success
                                   : wrong
-                                  ? COLOR.danger
-                                  : COLOR.sub
+                                  ? theme.color.danger
+                                  : theme.color.textMuted
                                 : selected
-                                ? COLOR.primary
-                                : COLOR.sub
+                                ? theme.color.primary
+                                : theme.color.textMuted
                             }
                           />
                           <Text style={[styles.answerText, selected && styles.answerTextActive, correct && styles.answerTextCorrect, wrong && styles.answerTextWrong]}>
@@ -893,7 +895,7 @@ export default function QuizPage() {
                     disabled={selectedOpt === null}
                     style={[styles.primaryBtn, selectedOpt === null && styles.disabledBtn]}
                   >
-                    <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+                    <Ionicons name="checkmark-circle-outline" size={16} color={theme.color.textOnPrimary} />
                     <Text style={styles.primaryText}>Verifier</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -910,7 +912,7 @@ export default function QuizPage() {
                       <Ionicons
                         name={lastOutcome === "correct" ? "checkmark-circle" : "close-circle"}
                         size={22}
-                        color={lastOutcome === "correct" ? COLOR.success : COLOR.danger}
+                        color={lastOutcome === "correct" ? theme.color.success : theme.color.danger}
                       />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.feedbackTitle}>{lastOutcome === "correct" ? "Bonne reponse" : "Mauvaise reponse"}</Text>
@@ -931,7 +933,7 @@ export default function QuizPage() {
                       disabled={persistingAttempt}
                       style={[styles.primaryBtn, persistingAttempt && styles.disabledBtn]}
                     >
-                      <Ionicons name={currentQIdx >= totalQuestions - 1 ? "flag-outline" : "arrow-forward"} size={16} color="#fff" />
+                      <Ionicons name={currentQIdx >= totalQuestions - 1 ? "flag-outline" : "arrow-forward"} size={16} color={theme.color.textOnPrimary} />
                       <Text style={styles.primaryText}>
                         {persistingAttempt
                           ? "Enregistrement..."
@@ -947,7 +949,7 @@ export default function QuizPage() {
                   <>
                     <View style={[styles.resultCard, runIsSuccess ? styles.resultCardSuccess : styles.resultCardWarn]}>
                       <View style={styles.resultIcon}>
-                        <Ionicons name={runIsSuccess ? "trophy-outline" : "sparkles-outline"} size={20} color={runIsSuccess ? COLOR.success : COLOR.warn} />
+                        <Ionicons name={runIsSuccess ? "trophy-outline" : "sparkles-outline"} size={20} color={runIsSuccess ? theme.color.success : theme.color.warning} />
                       </View>
                       <View style={styles.resultContent}>
                         <Text style={styles.resultTitle}>{runIsSuccess ? "Bravo" : "Continue"}</Text>
@@ -965,7 +967,7 @@ export default function QuizPage() {
                     </Text>
 
                     <TouchableOpacity onPress={startRun} style={styles.primaryBtn}>
-                      <Ionicons name="refresh" size={16} color="#fff" />
+                      <Ionicons name="refresh" size={16} color={theme.color.textOnPrimary} />
                       <Text style={styles.primaryText}>Rejouer</Text>
                     </TouchableOpacity>
                   </>
@@ -979,19 +981,20 @@ export default function QuizPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   reviewBox: {
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     padding: 12,
     gap: 6,
   },
-  reviewStatus: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
-  reviewHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
-  reviewNote: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, lineHeight: 17 },
+  reviewStatus: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  reviewHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
+  reviewNote: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12, lineHeight: 17 },
   reviewBtn: {
     alignSelf: "flex-start",
     marginTop: 4,
@@ -1000,26 +1003,26 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  reviewBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
-  root: { flex: 1, backgroundColor: COLOR.bg },
+  reviewBtnText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  root: { flex: 1, backgroundColor: t.color.bg },
   content: { padding: 16, paddingBottom: 32 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   heroCard: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     marginBottom: 12,
   },
-  heroTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 18 },
-  heroSub: { color: COLOR.sub, fontFamily: FONT.body, marginTop: 4 },
+  heroTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 18 },
+  heroSub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginTop: 4 },
   heroPill: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -1029,36 +1032,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.border,
+    backgroundColor: t.color.primarySoft,
     marginBottom: 8,
   },
-  heroPillText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
+  heroPillText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   card: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     marginBottom: 12,
   },
-  sectionTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16, marginBottom: 10 },
-  mutedText: { color: COLOR.sub, fontFamily: FONT.body },
+  sectionTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16, marginBottom: 10 },
+  mutedText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   linkBtn: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     marginBottom: 10,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  linkBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
+  linkBtnText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   readonlyMetaRow: { flexDirection: "row", gap: 8, marginBottom: 10, marginTop: 2 },
   readonlyMetaChip: {
     flexDirection: "row",
@@ -1066,22 +1069,22 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  readonlyMetaText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  readonlyMetaText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   input: {
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     marginBottom: 10,
   },
   toggleRow: {
@@ -1090,25 +1093,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 4,
   },
-  toggleLabel: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  toggleLabel: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   questionCard: {
-    backgroundColor: COLOR.card,
+    backgroundColor: t.color.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 12,
     marginBottom: 12,
   },
   questionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  questionTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, marginBottom: 8 },
-  quizPrompt: { color: COLOR.text, fontFamily: FONT.body, fontSize: 15, marginBottom: 8, lineHeight: 21 },
+  questionTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, marginBottom: 8 },
+  quizPrompt: { color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 15, marginBottom: 8, lineHeight: 21 },
   iconBtn: {
     padding: 6,
     borderRadius: 10,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
   optionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   checkBtn: { padding: 4 },
@@ -1119,45 +1122,45 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginTop: 6,
     alignSelf: "flex-start",
   },
-  secondaryText: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  secondaryText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   primaryBtn: {
     marginTop: 10,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   disabledBtn: { opacity: 0.55 },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
-  quizTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16, marginBottom: 6 },
-  quizDesc: { color: COLOR.sub, fontFamily: FONT.body, marginBottom: 10 },
+  quizTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16, marginBottom: 6 },
+  quizDesc: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginBottom: 10 },
 
   progressWrap: { marginBottom: 12 },
   progressTrack: {
     width: "100%",
     height: 8,
     borderRadius: 999,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     overflow: "hidden",
   },
   progressFill: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
   },
   progressMeta: {
     marginTop: 6,
@@ -1165,20 +1168,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  progressText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
-  progressPts: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
+  progressText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  progressPts: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   introCard: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     padding: 12,
     marginBottom: 4,
     gap: 6,
   },
-  introTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 14 },
-  introText: { color: COLOR.sub, fontFamily: FONT.body, lineHeight: 19 },
+  introTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 14 },
+  introText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, lineHeight: 19 },
 
   feedbackCard: {
     marginTop: 2,
@@ -1198,8 +1201,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(239,68,68,0.08)",
     borderColor: "rgba(239,68,68,0.25)",
   },
-  feedbackTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 },
-  feedbackText: { color: COLOR.sub, fontFamily: FONT.body, marginTop: 2, lineHeight: 18 },
+  feedbackTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
+  feedbackText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginTop: 2, lineHeight: 18 },
 
   resultCard: {
     flexDirection: "row",
@@ -1224,12 +1227,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
   resultContent: { flex: 1 },
-  resultTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 14 },
-  resultDesc: { color: COLOR.sub, fontFamily: FONT.body, marginTop: 2 },
-  saveStatusText: { color: COLOR.sub, fontFamily: FONT.body, marginBottom: 2 },
+  resultTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 14 },
+  resultDesc: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginTop: 2 },
+  saveStatusText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginBottom: 2 },
 
   answerRow: {
     flexDirection: "row",
@@ -1239,13 +1242,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     marginBottom: 8,
   },
   answerRowActive: {
-    borderColor: COLOR.primary,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.primary,
+    backgroundColor: t.color.primarySoft,
   },
   answerRowCorrect: {
     borderColor: "rgba(22,163,74,0.55)",
@@ -1255,8 +1258,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(239,68,68,0.55)",
     backgroundColor: "rgba(239,68,68,0.12)",
   },
-  answerText: { color: COLOR.text, fontFamily: FONT.body, flex: 1 },
-  answerTextActive: { color: COLOR.text, fontFamily: FONT.bodyBold },
-  answerTextCorrect: { color: COLOR.success, fontFamily: FONT.bodyBold },
-  answerTextWrong: { color: COLOR.danger, fontFamily: FONT.bodyBold },
+  answerText: { color: t.color.text, fontFamily: t.type.body.fontFamily, flex: 1 },
+  answerTextActive: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
+  answerTextCorrect: { color: t.color.success, fontFamily: t.type.bodyStrong.fontFamily },
+  answerTextWrong: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily },
 });

@@ -14,21 +14,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import Segmented from "@/components/Segmented";
 import { useAuth } from "@/providers/AuthProvider";
 import { listQuizzes, type Quiz } from "@/storage/quizzes";
 import { GRADE_LEVELS, normalizeCourseLevel } from "@/constants/gradeLevels";
 import { COURSE_SUBJECTS, canonicalizeCourseSubject } from "@/constants/courseSubjects";
 
-const BG = ["#F5F4F1", "#EAF0FF", "#F6F1EA"] as const;
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 type ScopeFilter = "all" | "standalone" | "lesson";
 type SubjectGroup = { subject: string; quizzes: Quiz[] };
 type LevelGroup = { level: string; subjects: SubjectGroup[]; quizzes: number };
 
 export default function QuizzesTab() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -181,14 +191,14 @@ export default function QuizzesTab() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLOR.text}
-            colors={[COLOR.text]}
-            progressBackgroundColor={COLOR.surface}
+            tintColor={theme.color.text}
+            colors={[theme.color.text]}
+            progressBackgroundColor={theme.color.surface}
           />
         }
         keyboardShouldPersistTaps="handled"
       >
-        <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
+        <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
           <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>Quiz</Text>
@@ -201,18 +211,18 @@ export default function QuizzesTab() {
           </View>
 
           <View style={styles.searchWrap}>
-            <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+            <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Rechercher un quiz"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.searchInput}
               returnKeyType="search"
             />
             {query ? (
               <Pressable onPress={() => setQuery("")} hitSlop={8}>
-                <Ionicons name="close" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+                <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
               </Pressable>
             ) : null}
           </View>
@@ -252,7 +262,7 @@ export default function QuizzesTab() {
 
         {loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color={COLOR.primary} />
+            <ActivityIndicator color={theme.color.primary} />
             <Text style={styles.loadingText}>Chargement des quiz...</Text>
           </View>
         ) : grouped.length ? (
@@ -307,7 +317,7 @@ export default function QuizzesTab() {
           </View>
         ) : (
           <View style={styles.emptyWrap}>
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
             <Text style={styles.emptyTitle}>Aucun quiz trouve</Text>
             <Text style={styles.emptySub}>
               {isTeacher
@@ -324,32 +334,33 @@ export default function QuizzesTab() {
           accessibilityRole="button"
           accessibilityLabel="Creer un quiz"
         >
-          <Ionicons name="add" size={26} color="#fff" />
+          <Ionicons name="add" size={26} color={theme.color.textOnPrimary} />
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
 
   headerBg: { paddingBottom: 10 },
   headerRow: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center" },
-  title: { color: COLOR.text, fontSize: 24, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, fontSize: 12, fontFamily: FONT.body, marginTop: 3 },
+  title: { color: t.color.text, fontSize: 24, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, fontSize: 12, fontFamily: t.type.body.fontFamily, marginTop: 3 },
 
   searchWrap: {
     marginHorizontal: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
     height: 44,
   },
-  searchInput: { flex: 1, color: COLOR.text, fontFamily: FONT.body, fontSize: 15 },
+  searchInput: { flex: 1, color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 15 },
   segmentWrap: { paddingHorizontal: 16, paddingTop: 10 },
 
   levelRow: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
@@ -357,36 +368,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
   },
-  levelChipActive: { backgroundColor: COLOR.primary, borderColor: COLOR.primary },
-  levelChipText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  levelChipTextActive: { color: "#fff" },
+  levelChipActive: { backgroundColor: t.color.primary, borderColor: t.color.primary },
+  levelChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  levelChipTextActive: { color: t.color.textOnPrimary },
   levelCount: {
     minWidth: 20,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
     alignItems: "center",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
   levelCountActive: { backgroundColor: "rgba(255,255,255,0.24)" },
-  levelCountText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
-  levelCountTextActive: { color: "#fff" },
+  levelCountText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  levelCountTextActive: { color: t.color.textOnPrimary },
 
   loadingBox: { paddingTop: 28, alignItems: "center", gap: 8 },
-  loadingText: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 13 },
+  loadingText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13 },
 
   levelCard: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     marginBottom: 12,
     overflow: "hidden",
   },
@@ -397,17 +408,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderBottomColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
   },
-  levelTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 14 },
-  levelSub: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
+  levelTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 14 },
+  levelSub: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   subjectBlock: {
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLOR.border,
+    borderBottomColor: t.color.border,
   },
   subjectHead: {
     flexDirection: "row",
@@ -415,45 +426,45 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
-  subjectTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
-  subjectCount: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  subjectTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  subjectCount: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 
   quizCard: {
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     padding: 10,
     marginBottom: 8,
   },
   quizCardTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
-  quizTitle: { flex: 1, color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
+  quizTitle: { flex: 1, color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
   scopeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  scopeStandalone: { backgroundColor: COLOR.tint, borderColor: COLOR.border },
-  scopeLesson: { backgroundColor: COLOR.muted, borderColor: COLOR.border },
-  scopeBadgeText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 10 },
-  quizDesc: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, marginTop: 5, lineHeight: 18 },
+  scopeStandalone: { backgroundColor: t.color.primarySoft, borderColor: t.color.border },
+  scopeLesson: { backgroundColor: t.color.surfaceSunk, borderColor: t.color.border },
+  scopeBadgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
+  quizDesc: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 5, lineHeight: 18 },
   quizMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 },
-  quizMeta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11, flex: 1 },
+  quizMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, flex: 1 },
 
   emptyWrap: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     alignItems: "flex-start",
   },
   emptyIcon: { borderRadius: 12, height: 28, width: 28, marginBottom: 6 },
-  emptyTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
-  emptySub: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 13, marginTop: 2 },
+  emptyTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
+  emptySub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13, marginTop: 2 },
 
   fabAdd: {
     position: "absolute",
@@ -461,10 +472,10 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 999,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },

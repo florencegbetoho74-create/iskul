@@ -5,7 +5,8 @@ import * as WebBrowser from "expo-web-browser";
 import * as Clipboard from "expo-clipboard";
 import { WebView } from "react-native-webview";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { getBook } from "@/storage/books";
 import { formatExamLabel } from "@/lib/documentTaxonomy";
 import type { Book } from "@/types/book";
@@ -38,6 +39,7 @@ function normalizeCloudLink(raw?: string | null): string | null {
 }
 
 export default function BookDetail() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [book, setBook] = useState<Book | null>(null);
@@ -82,10 +84,10 @@ export default function BookDetail() {
     Alert.alert("Lien copie", "L'URL du document est dans le presse-papiers.");
   };
 
-  if (!book) return <View style={{ flex: 1, backgroundColor: COLOR.bg }} />;
+  if (!book) return <View style={{ flex: 1, backgroundColor: theme.color.bg }} />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLOR.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <TopBar title="Livre" right={null} />
 
       {!showReader ? (
@@ -95,7 +97,7 @@ export default function BookDetail() {
               <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="cover" />
             ) : (
               <View style={[styles.cover, styles.coverFallback]}>
-                <Text style={{ color: COLOR.sub }}>Sans couverture</Text>
+                <Text style={{ color: theme.color.textMuted }}>Sans couverture</Text>
               </View>
             )}
           </View>
@@ -159,7 +161,7 @@ export default function BookDetail() {
               ) : null}
               <WebView
                 source={{ uri: viewerSrc }}
-                style={{ flex: 1, backgroundColor: COLOR.bg }}
+                style={{ flex: 1, backgroundColor: theme.color.bg }}
                 startInLoadingState
                 javaScriptEnabled
                 allowsInlineMediaPlayback
@@ -177,7 +179,7 @@ export default function BookDetail() {
             </>
           ) : (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: COLOR.sub }}>Apercu non disponible.</Text>
+              <Text style={{ color: theme.color.textMuted }}>Apercu non disponible.</Text>
             </View>
           )}
 
@@ -195,28 +197,29 @@ export default function BookDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { flexDirection: "row", gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: COLOR.border },
-  coverWrap: { width: 120, height: 120, borderRadius: 12, overflow: "hidden", backgroundColor: COLOR.muted, borderWidth: 1, borderColor: COLOR.border },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  header: { flexDirection: "row", gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: t.color.border },
+  coverWrap: { width: 120, height: 120, borderRadius: 12, overflow: "hidden", backgroundColor: t.color.surfaceSunk, borderWidth: 1, borderColor: t.color.border },
   cover: { width: "100%", height: "100%" },
   coverFallback: { alignItems: "center", justifyContent: "center" },
 
-  title: { color: COLOR.text, fontSize: 18, fontFamily: FONT.headingAlt },
-  meta: { color: COLOR.sub, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 18, fontFamily: t.type.heading.fontFamily },
+  meta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   badge: {
     alignSelf: "flex-start",
-    backgroundColor: COLOR.tint,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.primarySoft,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginTop: 6,
   },
-  badgeText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  badgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   primary: {
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -224,51 +227,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 10,
   },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   ghost: {
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     marginTop: 8,
   },
-  ghostText: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  ghostText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
-  note: { color: COLOR.sub, fontSize: 12, marginTop: 6, fontFamily: FONT.body },
+  note: { color: t.color.textMuted, fontSize: 12, marginTop: 6, fontFamily: t.type.body.fontFamily },
 
-  back: { color: COLOR.sub, textDecorationLine: "underline", fontFamily: FONT.bodyBold },
-  open: { color: COLOR.primary, fontFamily: FONT.bodyBold },
+  back: { color: t.color.textMuted, textDecorationLine: "underline", fontFamily: t.type.bodyStrong.fontFamily },
+  open: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily },
 
   readerBar: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLOR.border,
+    borderBottomColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
   },
-  readerTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, flex: 1 },
+  readerTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, flex: 1 },
 
   errorBar: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderTopColor: t.color.border,
+    backgroundColor: t.color.surface,
   },
-  errorText: { color: COLOR.sub, fontFamily: FONT.body },
-  errorAction: { color: COLOR.primary, fontFamily: FONT.bodyBold, marginTop: 6 },
+  errorText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
+  errorAction: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, marginTop: 6 },
   progressTrack: {
     height: 2,
-    backgroundColor: COLOR.border,
+    backgroundColor: t.color.border,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
   },
 });

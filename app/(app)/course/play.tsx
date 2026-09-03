@@ -22,7 +22,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import * as ScreenOrientation from "expo-screen-orientation";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { getCourse } from "@/storage/courses";
 import { useAuth } from "@/providers/AuthProvider";
 import { getLessonProgress, updateLessonProgress } from "@/storage/progress";
@@ -49,6 +50,7 @@ const isDirectMedia = (u: string) =>
   /\.(mp4|m4v|mov|webm)(\?|$)/i.test(u) || /\.m3u8(\?|$)/i.test(u) || /\.mpd(\?|$)/i.test(u);
 
 export default function Play() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { courseId, lessonId, startSec } = useLocalSearchParams<{ courseId: string; lessonId?: string; startSec?: string }>();
   const { user } = useAuth();
   const router = useRouter();
@@ -517,17 +519,17 @@ export default function Play() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: COLOR.bg }]}> 
-        <ActivityIndicator color={COLOR.primary} />
-        <Text style={{ color: COLOR.sub, marginTop: 8, fontFamily: FONT.body }}>Chargement...</Text>
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}> 
+        <ActivityIndicator color={theme.color.primary} />
+        <Text style={{ color: theme.color.textMuted, marginTop: 8, fontFamily: theme.type.body.fontFamily }}>Chargement...</Text>
       </View>
     );
   }
 
   if (!course) {
     return (
-      <View style={[styles.center, { backgroundColor: COLOR.bg }]}> 
-        <Text style={{ color: COLOR.sub }}>Cours introuvable.</Text>
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}> 
+        <Text style={{ color: theme.color.textMuted }}>Cours introuvable.</Text>
       </View>
     );
   }
@@ -537,7 +539,7 @@ export default function Play() {
       <View style={styles.root}> 
         <TopBar title={course.title || "Cours"} right={null} />
         <View style={styles.center}>
-          <Text style={{ color: COLOR.sub }}>Aucun chapitre disponible.</Text>
+          <Text style={{ color: theme.color.textMuted }}>Aucun chapitre disponible.</Text>
         </View>
       </View>
     );
@@ -556,7 +558,7 @@ export default function Play() {
         title={course.title || "Cours"}
         right={canContact ? (
           <TouchableOpacity onPress={onContact} style={styles.chatBtn}>
-            <Ionicons name="chatbubbles-outline" size={18} color="#fff" />
+            <Ionicons name="chatbubbles-outline" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.chatBtnText}>Message</Text>
           </TouchableOpacity>
         ) : null}
@@ -700,22 +702,22 @@ export default function Play() {
           <Text style={styles.courseMeta}>{course.subject || "Matiere"} - {course.level || "Niveau"}</Text>
           <View style={styles.metaRow}>
             <View style={styles.metaPill}>
-              <Ionicons name="albums-outline" size={14} color={COLOR.text} />
+              <Ionicons name="albums-outline" size={14} color={theme.color.text} />
               <Text style={styles.metaPillText}>Chapitres {chapterCount}</Text>
             </View>
             <View style={styles.metaPill}>
-              <Ionicons name="person-outline" size={14} color={COLOR.text} />
+              <Ionicons name="person-outline" size={14} color={theme.color.text} />
               <Text style={styles.metaPillText}>{course.ownerName || "Enseignant"}</Text>
             </View>
             {isExternal ? (
               <View style={styles.metaPill}>
-                <Ionicons name="link-outline" size={14} color={COLOR.text} />
+                <Ionicons name="link-outline" size={14} color={theme.color.text} />
                 <Text style={styles.metaPillText}>Lecture externe</Text>
               </View>
             ) : null}
           </View>
           <TouchableOpacity onPress={openQuiz} style={styles.quizBtn}>
-            <Ionicons name="help-circle-outline" size={16} color="#fff" />
+            <Ionicons name="help-circle-outline" size={16} color={theme.color.textOnPrimary} />
             <Text style={styles.quizBtnText}>Quiz</Text>
           </TouchableOpacity>
         </View>
@@ -768,7 +770,7 @@ export default function Play() {
                 onPress={() => setCurrentId(item.id)}
               />
             )}
-            ListEmptyComponent={<Text style={{ color: COLOR.sub, marginTop: 6 }}>Aucun chapitre pour le moment.</Text>}
+            ListEmptyComponent={<Text style={{ color: theme.color.textMuted, marginTop: 6 }}>Aucun chapitre pour le moment.</Text>}
           />
         </View>
 
@@ -778,7 +780,7 @@ export default function Play() {
             onPress={() => (prev ? setCurrentId(prev.id) : null)}
             style={[styles.navBtn, !prev && { opacity: 0.5 }]}
           >
-            <Ionicons name="arrow-back" size={18} color="#fff" />
+            <Ionicons name="arrow-back" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.navText}>Precedent</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -787,7 +789,7 @@ export default function Play() {
             style={[styles.navBtn, !next && { opacity: 0.5 }]}
           >
             <Text style={styles.navText}>Suivant</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <Ionicons name="arrow-forward" size={18} color={theme.color.textOnPrimary} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -795,19 +797,20 @@ export default function Play() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.bg },
   content: { paddingBottom: 24 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   playerCard: {
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 20,
     overflow: "hidden",
     margin: 16,
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -816,8 +819,8 @@ const styles = StyleSheet.create({
   video: { width: "100%", height: 230, backgroundColor: "#0b0b0c" },
   videoTap: { width: "100%", height: 230 },
   videoFallback: { alignItems: "center", justifyContent: "center", padding: 16, gap: 8 },
-  fallbackTitle: { color: "#fff", fontFamily: FONT.headingAlt, fontSize: 16, textAlign: "center" },
-  fallbackText: { color: "rgba(255,255,255,0.8)", fontFamily: FONT.body, textAlign: "center" },
+  fallbackTitle: { color: "#fff", fontFamily: t.type.heading.fontFamily, fontSize: 16, textAlign: "center" },
+  fallbackText: { color: "rgba(255,255,255,0.8)", fontFamily: t.type.body.fontFamily, textAlign: "center" },
   fallbackBtn: {
     marginTop: 8,
     backgroundColor: "rgba(255,255,255,0.15)",
@@ -830,15 +833,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  fallbackBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  fallbackBtnText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   topGrad: { position: "absolute", left: 0, right: 0, top: 0, height: 90 },
   botGrad: { position: "absolute", left: 0, right: 0, bottom: 0, height: 130 },
 
   playerTop: { position: "absolute", left: 12, right: 12, top: 10 },
   playerTopRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  playerTitle: { flex: 1, color: "#fff", fontFamily: FONT.headingAlt, fontSize: 16 },
-  playerSub: { color: "rgba(255,255,255,0.8)", fontFamily: FONT.body, marginTop: 4 },
+  playerTitle: { flex: 1, color: "#fff", fontFamily: t.type.heading.fontFamily, fontSize: 16 },
+  playerSub: { color: "rgba(255,255,255,0.8)", fontFamily: t.type.body.fontFamily, marginTop: 4 },
   playerBadge: {
     backgroundColor: "rgba(15,23,42,0.6)",
     borderRadius: 999,
@@ -847,7 +850,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  playerBadgeText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 11 },
+  playerBadgeText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   playerBottom: { position: "absolute", left: 0, right: 0, bottom: 0, paddingBottom: 8 },
 
   seekRow: {
@@ -862,7 +865,7 @@ const styles = StyleSheet.create({
     width: 46,
     textAlign: "center",
     fontVariant: ["tabular-nums"],
-    fontFamily: FONT.body,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 11,
   },
 
@@ -899,20 +902,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rateText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 11 },
+  rateText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 
   metaCard: {
     marginHorizontal: 16,
     marginTop: 2,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 12,
     gap: 6,
   },
-  lessonTitle: { color: COLOR.text, fontSize: 20, fontFamily: FONT.headingAlt },
-  courseMeta: { color: COLOR.sub, fontFamily: FONT.body },
+  lessonTitle: { color: t.color.text, fontSize: 20, fontFamily: t.type.heading.fontFamily },
+  courseMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   metaPill: {
     flexDirection: "row",
@@ -920,16 +923,16 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  metaPillText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  metaPillText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   quizBtn: {
     marginTop: 10,
     alignSelf: "flex-start",
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -937,13 +940,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  quizBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 13 },
+  quizBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
 
   langCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 16,
     paddingVertical: 10,
@@ -951,15 +954,15 @@ const styles = StyleSheet.create({
   chapterCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 12,
   },
   sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, marginBottom: 6 },
-  sectionTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 15 },
-  sectionMeta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  sectionTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
+  sectionMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
 
   langBar: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
   langBtn: {
@@ -967,18 +970,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     marginRight: 8,
   },
-  langBtnActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
+  langBtnActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
   langBtnDisabled: { opacity: 0.5 },
-  langText: { color: COLOR.sub, fontFamily: FONT.bodyBold },
-  langTextActive: { color: COLOR.text },
+  langText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily },
+  langTextActive: { color: t.color.text },
 
   navRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingHorizontal: 16 },
   navBtn: {
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -986,8 +989,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  navText: { color: "#fff", fontFamily: FONT.bodyBold },
+  navText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
-  chatBtn: { backgroundColor: COLOR.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 },
-  chatBtnText: { color: "#fff", fontFamily: FONT.bodyBold },
+  chatBtn: { backgroundColor: t.color.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 },
+  chatBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 });

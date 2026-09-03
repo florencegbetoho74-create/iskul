@@ -9,7 +9,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { getBook } from "@/storage/books";
 import { addDocumentOpen } from "@/storage/usage";
 import { useAuth } from "@/providers/AuthProvider";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import TopBar from "@/components/TopBar";
 
 function isPdf(url: string) {
@@ -36,6 +37,7 @@ function normalizeCloudLink(raw?: string | null): string | null {
 }
 
 export default function ReadBook() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const [book, setBook] = useState<any | null>(null);
@@ -61,14 +63,14 @@ export default function ReadBook() {
   if (!book) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: COLOR.sub }}>Livre introuvable.</Text>
+        <Text style={{ color: theme.color.textMuted }}>Livre introuvable.</Text>
       </View>
     );
   }
   if (!book.fileUrl) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: COLOR.sub }}>Aucun fichier a afficher.</Text>
+        <Text style={{ color: theme.color.textMuted }}>Aucun fichier a afficher.</Text>
       </View>
     );
   }
@@ -90,12 +92,12 @@ export default function ReadBook() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLOR.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <TopBar
         title="Lecture"
         right={
           <Pressable onPress={openInBrowser} style={styles.topAction} accessibilityLabel="Ouvrir">
-            <Ionicons name="open-outline" size={18} color={COLOR.text} />
+            <Ionicons name="open-outline" size={18} color={theme.color.text} />
           </Pressable>
         }
       />
@@ -109,7 +111,7 @@ export default function ReadBook() {
           ) : null}
           <WebView
             source={{ uri: viewer }}
-            style={{ flex: 1, backgroundColor: COLOR.bg }}
+            style={{ flex: 1, backgroundColor: theme.color.bg }}
             startInLoadingState
             originWhitelist={["*"]}
             mixedContentMode="always"
@@ -122,15 +124,15 @@ export default function ReadBook() {
             onHttpError={(e) => setLoadError(e?.nativeEvent?.description || "Erreur de chargement du document.")}
             renderLoading={() => (
               <View style={styles.center}>
-                <ActivityIndicator color={COLOR.primary} />
-                <Text style={{ color: COLOR.sub, marginTop: 8, fontFamily: FONT.body }}>Chargement...</Text>
+                <ActivityIndicator color={theme.color.primary} />
+                <Text style={{ color: theme.color.textMuted, marginTop: 8, fontFamily: theme.type.body.fontFamily }}>Chargement...</Text>
               </View>
             )}
           />
         </>
       ) : (
         <View style={styles.center}>
-          <Text style={{ color: COLOR.sub, textAlign: "center" }}>
+          <Text style={{ color: theme.color.textMuted, textAlign: "center" }}>
             Ce document n'est pas un PDF. Utilisez "Ouvrir" depuis la fiche du document.
           </Text>
         </View>
@@ -153,40 +155,41 @@ export default function ReadBook() {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, backgroundColor: COLOR.bg, alignItems: "center", justifyContent: "center" },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  center: { flex: 1, backgroundColor: t.color.bg, alignItems: "center", justifyContent: "center" },
   topAction: {
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
   progressTrack: {
     height: 2,
-    backgroundColor: COLOR.border,
+    backgroundColor: t.color.border,
   },
   progressFill: {
     height: "100%",
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
   },
   errorBar: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderTopColor: t.color.border,
+    backgroundColor: t.color.surface,
   },
-  errorText: { color: COLOR.sub, fontFamily: FONT.body },
+  errorText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   errorActions: { flexDirection: "row", gap: 10, marginTop: 8 },
   errorBtn: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
   },
-  errorBtnText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  errorBtnText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 });

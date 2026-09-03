@@ -14,7 +14,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import type { Book } from "@/types/book";
 import { watchBooksOrdered, watchBooksScoped } from "@/storage/books";
@@ -23,8 +24,16 @@ import Segmented from "@/components/Segmented";
 import { listDocumentTypes, type DocumentType } from "@/storage/documentTypes";
 import { formatExamLabel } from "@/lib/documentTaxonomy";
 
-const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
-const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 type SegmentKey = "all" | "published" | "mine" | "myclass";
 
@@ -32,6 +41,7 @@ type SegmentItem = { key: SegmentKey; label: string };
 type SortKey = "recent" | "alpha" | "price";
 
 export default function Library() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
   const { user, canAccessAdmin } = useAuth();
   const insets = useSafeAreaInsets();
@@ -175,7 +185,7 @@ export default function Library() {
   };
 
   const Header = (
-    <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
+    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
       <View style={styles.headerRow}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.title}>Bibliotheque</Text>
@@ -185,25 +195,25 @@ export default function Library() {
         </View>
         {canPublish ? (
           <Pressable onPress={() => router.push("/(app)/library/new")} style={styles.addBtn}>
-            <Ionicons name="add" size={16} color="#fff" />
+            <Ionicons name="add" size={16} color={theme.color.textOnPrimary} />
             <Text style={styles.addBtnText}>Nouveau</Text>
           </Pressable>
         ) : null}
       </View>
 
       <View style={styles.searchWrap} accessible accessibilityRole="search">
-        <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+        <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
         <TextInput
           value={q}
           onChangeText={setQ}
           placeholder="Rechercher un document"
-          placeholderTextColor={COLOR.sub}
+          placeholderTextColor={theme.color.textMuted}
           style={styles.searchInput}
           returnKeyType="search"
         />
         {q ? (
           <Pressable onPress={() => setQ("")} hitSlop={8}>
-            <Ionicons name="close" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+            <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
           </Pressable>
         ) : null}
       </View>
@@ -217,7 +227,7 @@ export default function Library() {
           <View style={{ flex: 1 }} />
         )}
         <Pressable onPress={cycleSort} style={styles.sortChip}>
-          <Ionicons name="swap-vertical" size={16} color={COLOR.sub} />
+          <Ionicons name="swap-vertical" size={16} color={theme.color.textMuted} />
           <Text style={styles.sortChipText}>{sortLabel}</Text>
         </Pressable>
       </View>
@@ -254,7 +264,7 @@ export default function Library() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <FlatList
           data={sorted}
@@ -278,8 +288,8 @@ export default function Library() {
 
         {isAdmin ? (
           <Pressable onPress={() => router.push("/(app)/library/new")} style={[styles.fabWrap, { bottom: 16 + insets.bottom }]}>
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
-              <Ionicons name="add" size={18} color="#fff" />
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
+              <Ionicons name="add" size={18} color={theme.color.textOnPrimary} />
               <Text style={styles.fabText}>Ajouter un document</Text>
             </LinearGradient>
           </Pressable>
@@ -290,6 +300,7 @@ export default function Library() {
 }
 
 function EmptyState({ isAdmin, segment }: { isAdmin: boolean; segment: SegmentKey }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const title = isAdmin && segment === "mine"
     ? "Ajoutez votre premier document."
     : "Aucun document trouve pour l'instant.";
@@ -300,14 +311,15 @@ function EmptyState({ isAdmin, segment }: { isAdmin: boolean; segment: SegmentKe
 
   return (
     <View style={styles.emptyWrap}>
-      <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
+      <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptySub}>{subtitle}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   typeRow: { gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
   typeChip: {
     flexDirection: "row",
@@ -315,30 +327,30 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: RADIUS.pill,
+    borderRadius: t.radius.pill,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
   },
-  typeChipActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
-  typeChipText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  typeChipTextActive: { color: COLOR.primary },
-  typeChipCount: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11 },
+  typeChipActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
+  typeChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  typeChipTextActive: { color: t.color.primary },
+  typeChipCount: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11 },
   examLabel: {
-    color: COLOR.sub,
-    fontFamily: FONT.body,
+    color: t.color.textMuted,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 11,
     marginTop: 4,
     paddingHorizontal: 2,
   },
   headerBg: { paddingBottom: 10 },
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, fontSize: 12, marginTop: 2, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
 
   addBtn: {
-    backgroundColor: COLOR.primary,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.primary,
+    borderRadius: t.radius.md,
     paddingHorizontal: 12,
     paddingVertical: 9,
     flexDirection: "row",
@@ -346,21 +358,21 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 40,
   },
-  addBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  addBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   searchWrap: {
     marginTop: 12,
     marginHorizontal: 16,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
     height: 48,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  searchInput: { flex: 1, color: COLOR.text, fontSize: 15, fontFamily: FONT.body },
+  searchInput: { flex: 1, color: t.color.text, fontSize: 15, fontFamily: t.type.body.fontFamily },
 
   filterRow: {
     marginTop: 10,
@@ -370,49 +382,49 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sortChip: {
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 9,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     minHeight: 40,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  sortChipText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  sortChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   gridItem: { flexBasis: "48%", minWidth: 160, marginTop: 12 },
 
   emptyWrap: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.lg,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.lg,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    ...ELEVATION.card,
+    borderColor: t.color.border,
+    ...t.elevation(2),
   },
   emptyIcon: { borderRadius: 12, padding: 8, marginBottom: 6, height: 28, width: 28 },
-  emptyTitle: { color: COLOR.text, fontSize: 16, fontFamily: FONT.headingAlt },
-  emptySub: { color: COLOR.sub, fontSize: 13, fontFamily: FONT.body },
+  emptyTitle: { color: t.color.text, fontSize: 16, fontFamily: t.type.heading.fontFamily },
+  emptySub: { color: t.color.textMuted, fontSize: 13, fontFamily: t.type.body.fontFamily },
 
   fabWrap: {
     position: "absolute",
     right: 16,
     bottom: 24,
     borderRadius: 999,
-    shadowColor: "#1D4ED8",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.22,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
   fab: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  fabText: { color: "#fff", fontFamily: FONT.bodyBold },
+  fabText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 });
 
 
