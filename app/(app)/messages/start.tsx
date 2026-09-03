@@ -4,11 +4,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { getCourse } from "@/storage/courses";
 import { startThread } from "@/storage/chat";
 import { useAuth } from "@/providers/AuthProvider";
-import { COLOR } from "@/theme/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function StartMsg() {
+  const { color } = useTheme();
   const { courseId } = useLocalSearchParams<{ courseId: string }>();
   const { user } = useAuth();
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function StartMsg() {
     })();
   }, [user?.id, courseId]);
 
-  return <View style={{ flex:1, backgroundColor: COLOR.bg, alignItems:"center", justifyContent:"center" }}>
+  return <View style={{ flex:1, backgroundColor: color.bg, alignItems:"center", justifyContent:"center" }}>
     <ActivityIndicator />
   </View>;
 }

@@ -4,9 +4,10 @@ import { useRouter, Slot } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { useAuth } from "@/providers/AuthProvider";
 import AdminShell from "@/components/admin/AdminShell";
-import { COLOR } from "@/theme/colors";
+import { useTheme } from "@/theme/ThemeProvider";
 
 export default function AdminLayout() {
+  const { color } = useTheme();
   const { user, canAccessAdmin, initializing } = useAuth();
   const router = useRouter();
 
@@ -18,8 +19,8 @@ export default function AdminLayout() {
 
   if (initializing) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLOR.bg }}>
-        <ActivityIndicator color={COLOR.primary} />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: color.bg }}>
+        <ActivityIndicator color={color.primary} />
       </View>
     );
   }

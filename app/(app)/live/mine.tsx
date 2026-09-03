@@ -9,7 +9,11 @@ import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { listMine } from "@/storage/lives";
 
-const BG = ["#F5F4F1", "#EAF0FF", "#F6F1EA"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
 
 function fmtDate(ts: number) {
   const d = new Date(ts);
@@ -30,7 +34,7 @@ export default function MyLives() {
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   const Header = () => (
-    <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
+    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Mes lives</Text>

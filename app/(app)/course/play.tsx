@@ -581,7 +581,7 @@ export default function Play() {
                 />
             ) : (
               <View style={[styles.video, styles.videoFallback]}>
-                <Ionicons name="play-circle" size={42} color="#fff" />
+                <Ionicons name="play-circle" size={42} color={theme.color.textOnPrimary} />
                 <Text style={styles.fallbackTitle}>
                   {playError
                     ? "Lecteur indisponible"
@@ -602,7 +602,7 @@ export default function Play() {
                 </Text>
                 {isExternal ? (
                   <TouchableOpacity onPress={openExternal} style={styles.fallbackBtn}>
-                    <Ionicons name="open-outline" size={16} color="#fff" />
+                    <Ionicons name="open-outline" size={16} color={theme.color.textOnPrimary} />
                     <Text style={styles.fallbackBtnText}>Ouvrir le lien</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -662,9 +662,9 @@ export default function Play() {
                   curTimeRef.current = Math.floor(v);
                   setCurTime(v);
                 }}
-                  minimumTrackTintColor="#fff"
+                  minimumTrackTintColor={theme.color.textOnPrimary}
                   maximumTrackTintColor="rgba(148,163,184,0.45)"
-                  thumbTintColor="#fff"
+                  thumbTintColor={theme.color.textOnPrimary}
                 />
                 <Text style={styles.time}>{fmtTime(duration || curTime)}</Text>
               </View>
@@ -672,24 +672,24 @@ export default function Play() {
               <View style={styles.ctrlRow}>
                 <View style={styles.ctrlGroup}>
                   <TouchableOpacity onPress={back10} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name="play-back" size={16} color="#fff" />
+                    <Ionicons name="play-back" size={16} color={theme.color.textOnPrimary} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={togglePlay} style={[styles.ctrlBtn, styles.ctrlBtnPrimary]} hitSlop={8}>
-                    <Ionicons name={isPlaying ? "pause" : "play"} size={18} color="#fff" />
+                    <Ionicons name={isPlaying ? "pause" : "play"} size={18} color={theme.color.textOnPrimary} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={fwd10} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name="play-forward" size={16} color="#fff" />
+                    <Ionicons name="play-forward" size={16} color={theme.color.textOnPrimary} />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.ctrlGroup}>
                   <TouchableOpacity onPress={toggleMute} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name={muted ? "volume-mute" : "volume-high"} size={16} color="#fff" />
+                    <Ionicons name={muted ? "volume-mute" : "volume-high"} size={16} color={theme.color.textOnPrimary} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={cycleRate} style={styles.rateBtn} hitSlop={8}>
                     <Text style={styles.rateText}>{rate.toString()}x</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={isFullscreen ? exitFullscreen : enterFullscreen} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name={isFullscreen ? "contract" : "expand"} size={16} color="#fff" />
+                    <Ionicons name={isFullscreen ? "contract" : "expand"} size={16} color={theme.color.textOnPrimary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -816,10 +816,10 @@ const makeStyles = (t: Theme) =>
     shadowOffset: { width: 0, height: 10 },
     elevation: 2,
   },
-  video: { width: "100%", height: 230, backgroundColor: "#0b0b0c" },
+  video: { width: "100%", height: 230, backgroundColor: t.color.media },
   videoTap: { width: "100%", height: 230 },
   videoFallback: { alignItems: "center", justifyContent: "center", padding: 16, gap: 8 },
-  fallbackTitle: { color: "#fff", fontFamily: t.type.heading.fontFamily, fontSize: 16, textAlign: "center" },
+  fallbackTitle: { color: t.color.textOnPrimary, fontFamily: t.type.heading.fontFamily, fontSize: 16, textAlign: "center" },
   fallbackText: { color: "rgba(255,255,255,0.8)", fontFamily: t.type.body.fontFamily, textAlign: "center" },
   fallbackBtn: {
     marginTop: 8,
@@ -833,14 +833,14 @@ const makeStyles = (t: Theme) =>
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  fallbackBtnText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  fallbackBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   topGrad: { position: "absolute", left: 0, right: 0, top: 0, height: 90 },
   botGrad: { position: "absolute", left: 0, right: 0, bottom: 0, height: 130 },
 
   playerTop: { position: "absolute", left: 12, right: 12, top: 10 },
   playerTopRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  playerTitle: { flex: 1, color: "#fff", fontFamily: t.type.heading.fontFamily, fontSize: 16 },
+  playerTitle: { flex: 1, color: t.color.textOnPrimary, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
   playerSub: { color: "rgba(255,255,255,0.8)", fontFamily: t.type.body.fontFamily, marginTop: 4 },
   playerBadge: {
     backgroundColor: "rgba(15,23,42,0.6)",
@@ -850,7 +850,7 @@ const makeStyles = (t: Theme) =>
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
-  playerBadgeText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  playerBadgeText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   playerBottom: { position: "absolute", left: 0, right: 0, bottom: 0, paddingBottom: 8 },
 
   seekRow: {
@@ -902,7 +902,7 @@ const makeStyles = (t: Theme) =>
     alignItems: "center",
     justifyContent: "center",
   },
-  rateText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  rateText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 
   metaCard: {
     marginHorizontal: 16,

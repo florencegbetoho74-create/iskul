@@ -15,7 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { getCourse, updateCourse, deleteCourse, addChapter, deleteChapter } from "@/storage/courses";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -35,14 +36,28 @@ import {
 } from "@/lib/contentStatus";
 import { submitForReview, withdrawFromReview } from "@/storage/review";
 
-/* --------------------- Palette / Constantes spacing --------------------- */
-const BLUE_START = "#1D4ED8";
-const BLUE_END = "#2563EB";
-const GLASS_BG = COLOR.surface;
-const GLASS_BORDER = COLOR.border;
-const SUCCESS = COLOR.success;
-const DANGER = COLOR.danger;
-const WARNING = COLOR.warn;
+/* ------------------------- Constantes de mise en page ------------------------ */
+/**
+ * Le degrade de l'editeur suit le theme. Les constantes de couleur posees au
+ * niveau du module figeaient l'ecran sur une seule palette.
+ */
+const brandGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
+
+/** Teinte d'un chapitre selon son etat de completion. */
+const chapterTone = (t: Theme, hasLang: boolean, hasVideo: boolean): string =>
+  hasLang ? t.color.primary : hasVideo ? t.color.textFaint : t.color.warning;
+
+/** Couleur de la pastille de statut editorial. */
+const statusTone = (t: Theme, tone: string): string =>
+  ({
+    neutral: t.color.textMuted,
+    pending: t.color.warning,
+    success: t.color.success,
+    danger: t.color.danger,
+  })[tone] ?? t.color.textMuted;
 
 const SP = 12;              // spacing de base
 const RADIUS = 14;          // rayon standard
@@ -64,6 +79,7 @@ const isDirectMediaUrl = (u: string) =>
 
 
 export default function EditCourse() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -344,10 +360,10 @@ export default function EditCourse() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
         <View style={styles.center}>
-          <LinearGradient colors={[BLUE_START, BLUE_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.loadingBadge}>
-            <ActivityIndicator size="small" color="#fff" />
+          <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.loadingBadge}>
+            <ActivityIndicator size="small" color={theme.color.textOnPrimary} />
             <Text style={styles.loadingText}>Chargement…</Text>
           </LinearGradient>
         </View>
@@ -356,12 +372,12 @@ export default function EditCourse() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         {/* Header stable */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.headerIcon} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={20} color={COLOR.text} />
+            <Ionicons name="chevron-back" size={20} color={theme.color.text} />
           </TouchableOpacity>
 
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -439,7 +455,7 @@ export default function EditCourse() {
                   style={[styles.reviewBtn, reviewBusy && { opacity: 0.6 }]}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="send-outline" size={16} color={COLOR.primary} />
+                  <Ionicons name="send-outline" size={16} color={theme.color.primary} />
                   <Text style={styles.reviewBtnText}>
                     {reviewBusy ? "Envoi..." : authorActionLabel(status)}
                   </Text>
@@ -449,7 +465,7 @@ export default function EditCourse() {
 
             <View style={styles.row}>
               <View style={styles.rowItem}>
-                <GradientButton onPress={save} leftIcon={<Ionicons name="save-outline" size={18} color="#fff" />}>
+                <GradientButton onPress={save} leftIcon={<Ionicons name="save-outline" size={18} color={theme.color.textOnPrimary} />}>
                   Sauvegarder
                 </GradientButton>
               </View>
@@ -457,7 +473,7 @@ export default function EditCourse() {
             <View style={{ marginTop: SP }}>
               <OutlineButton
                 onPress={() => openPreview()}
-                leftIcon={<Ionicons name="play-circle-outline" size={18} color={COLOR.sub} />}
+                leftIcon={<Ionicons name="play-circle-outline" size={18} color={theme.color.textMuted} />}
               >
                 Previsualiser le cours
               </OutlineButton>
@@ -487,7 +503,7 @@ export default function EditCourse() {
                   />
                 </View>
               )}
-              ListEmptyComponent={<Text style={{ color: COLOR.sub, paddingTop: 2 }}>Aucun chapitre pour l'instant.</Text>}
+              ListEmptyComponent={<Text style={{ color: theme.color.textMuted, paddingTop: 2 }}>Aucun chapitre pour l'instant.</Text>}
             />
           </CollapsibleGlassCard>
 
@@ -524,7 +540,7 @@ export default function EditCourse() {
             <OutlineButton
               onPress={() => pickVideoAndUpload("generic")}
               disabled={uploadingKey === "generic"}
-              leftIcon={<Ionicons name="cloud-upload" size={18} color={COLOR.sub} />}
+              leftIcon={<Ionicons name="cloud-upload" size={18} color={theme.color.textMuted} />}
             >
               {uploadingKey === "generic" ? "Upload en cours..." : chVideoUrl ? "Remplacer la video (upload)" : "Uploader une video depuis l'appareil"}
             </OutlineButton>
@@ -554,7 +570,7 @@ export default function EditCourse() {
                     <OutlineButton
                       onPress={() => pickVideoAndUpload(key)}
                       disabled={uploadingKey === key}
-                      leftIcon={<Ionicons name="cloud-upload" size={18} color={COLOR.sub} />}
+                      leftIcon={<Ionicons name="cloud-upload" size={18} color={theme.color.textMuted} />}
                     >
                       {uploadingKey === key ? `Upload ${label}...` : hasValue ? `Remplacer (${label})` : `Importer (${label})`}
                     </OutlineButton>
@@ -566,7 +582,7 @@ export default function EditCourse() {
               })}
             </View>
 
-            <GradientButton onPress={add} disabled={!!uploadingKey} leftIcon={<Ionicons name="add-circle" size={18} color="#fff" />}>
+            <GradientButton onPress={add} disabled={!!uploadingKey} leftIcon={<Ionicons name="add-circle" size={18} color={theme.color.textOnPrimary} />}>
               Ajouter le chapitre
             </GradientButton>
           </CollapsibleGlassCard>
@@ -580,7 +596,7 @@ export default function EditCourse() {
             onToggle={() => setOpenDanger((v) => !v)}
             danger
           >
-            <DangerButton onPress={onDelete} leftIcon={<Ionicons name="trash-outline" size={18} color="#fff" />}>
+            <DangerButton onPress={onDelete} leftIcon={<Ionicons name="trash-outline" size={18} color={theme.color.textOnPrimary} />}>
               Supprimer le cours
             </DangerButton>
           </CollapsibleGlassCard>
@@ -595,6 +611,7 @@ export default function EditCourse() {
 /* -------------------- UI Building Blocks (stables) -------------------- */
 
 function GlassCard({ children }: { children: React.ReactNode }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={styles.card}>
       {/* Gradient léger non intrusif */}
@@ -619,10 +636,11 @@ function KpiCard({
   value: string;
   icon: keyof typeof Ionicons.glyphMap;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={styles.kpiCard}>
       <View style={styles.kpiIcon}>
-        <Ionicons name={icon} size={15} color={COLOR.primary} />
+        <Ionicons name={icon} size={15} color={theme.color.primary} />
       </View>
       <Text style={styles.kpiValue}>{value}</Text>
       <Text style={styles.kpiLabel}>{label}</Text>
@@ -647,6 +665,7 @@ function CollapsibleGlassCard({
   danger?: boolean;
   children: React.ReactNode;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <GlassCard>
       <Pressable
@@ -657,13 +676,13 @@ function CollapsibleGlassCard({
         accessibilityState={{ expanded: open }}
       >
         <View style={[styles.sectionIcon, danger && styles.sectionIconDanger]}>
-          <Ionicons name={icon} size={16} color={danger ? DANGER : COLOR.primary} />
+          <Ionicons name={icon} size={16} color={danger ? theme.color.danger : theme.color.primary} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.sectionTitle} numberOfLines={1}>{title}</Text>
           {subtitle ? <Text style={styles.sectionSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
         </View>
-        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={COLOR.sub} />
+        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.color.textMuted} />
       </Pressable>
 
       {open ? <View style={styles.sectionBody}>{children}</View> : null}
@@ -680,14 +699,15 @@ const SoftInput = React.forwardRef<TextInput, SoftInputProps>(function SoftInput
   { icon = "create-outline", compact, forwardRef, style, ...rest },
   _ref
 ) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={[styles.inputWrap, compact && { paddingVertical: 8 }]}>
       <View style={styles.inputIcon}>
-        <Ionicons name={icon} size={18} color="#94a3b8" />
+        <Ionicons name={icon} size={18} color={theme.color.textFaint} />
       </View>
       <TextInput
         ref={forwardRef as any}
-        placeholderTextColor="#6b7280"
+        placeholderTextColor={theme.color.textFaint}
         style={[styles.input, compact && { paddingVertical: 8 }, style]}
         {...rest}
       />
@@ -706,9 +726,10 @@ function GradientButton({
   onPress?: () => void;
   disabled?: boolean;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.85} style={{ opacity: disabled ? 0.6 : 1 }}>
-      <LinearGradient colors={[BLUE_START, BLUE_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
+      <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
         {leftIcon ? <View style={{ marginRight: 8 }}>{leftIcon}</View> : null}
         <Text style={styles.primaryBtnText} numberOfLines={1}> {children} </Text>
       </LinearGradient>
@@ -729,15 +750,16 @@ function OutlineButton({
   disabled?: boolean;
   active?: boolean;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.85}
-      style={[styles.secondaryBtn, active && { borderColor: SUCCESS }, disabled && { opacity: 0.6 }]}
+      style={[styles.secondaryBtn, active && { borderColor: theme.color.success }, disabled && { opacity: 0.6 }]}
     >
       {leftIcon ? <View style={{ marginRight: 8 }}>{leftIcon}</View> : null}
-      <Text style={[styles.secondaryBtnText, active && { color: SUCCESS }]} numberOfLines={1}>{children}</Text>
+      <Text style={[styles.secondaryBtnText, active && { color: theme.color.success }]} numberOfLines={1}>{children}</Text>
     </TouchableOpacity>
   );
 }
@@ -751,6 +773,7 @@ function DangerButton({
   leftIcon?: React.ReactNode;
   onPress?: () => void;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.dangerBtn}>
       {leftIcon ? <View style={{ marginRight: 8 }}>{leftIcon}</View> : null}
@@ -759,16 +782,10 @@ function DangerButton({
   );
 }
 
-const STATUS_TONE: Record<string, string> = {
-  neutral: COLOR.sub,
-  pending: COLOR.warn,
-  success: SUCCESS,
-  danger: COLOR.danger,
-};
-
 function StatusPill({ status }: { status: ContentStatus }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const view = presentStatus(status);
-  const tone = STATUS_TONE[view.tone] || COLOR.sub;
+  const tone = statusTone(theme, view.tone);
   return (
     <View style={[styles.publishPill, { borderColor: tone }]}>
       <MaterialCommunityIcons
@@ -784,9 +801,10 @@ function StatusPill({ status }: { status: ContentStatus }) {
 }
 
 function LangChip({ label, active }: { label: string; active?: boolean }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
-    <View style={[styles.langChip, active && { borderColor: BLUE_END }]}>
-      <LinearGradient colors={[BLUE_START, BLUE_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.langDot} />
+    <View style={[styles.langChip, active && { borderColor: theme.color.primary }]}>
+      <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.langDot} />
       <Text style={styles.langChipText} numberOfLines={1}>{label}</Text>
       {active && <View style={styles.langBadge}><Text style={styles.langBadgeText}>?</Text></View>}
     </View>
@@ -806,13 +824,14 @@ function ChapterItem({
   onPreview?: () => void;
   onDelete: () => void;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const statusText = hasLang ? "Sources par langue présentes" : hasVideo ? "Vidéo liée" : "Aucune vidéo";
-  const statusTint = hasLang ? BLUE_END : hasVideo ? "#94a3b8" : WARNING;
+  const statusTint = chapterTone(theme, hasLang, hasVideo);
   const canPreview = hasLang || hasVideo;
 
   return (
     <View style={styles.chapterItem}>
-      <LinearGradient colors={[BLUE_START, BLUE_END]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.chapterRing} />
+      <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.chapterRing} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.chapterTitle} numberOfLines={1}>{title}</Text>
         <Text style={[styles.chapterSub, { color: statusTint }]} numberOfLines={1}>{statusText}</Text>
@@ -824,10 +843,10 @@ function ChapterItem({
           activeOpacity={0.9}
           disabled={!canPreview}
         >
-          <Ionicons name="play" size={16} color="#fff" />
+          <Ionicons name="play" size={16} color={theme.color.textOnPrimary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onDelete} style={styles.trash} activeOpacity={0.9}>
-          <Ionicons name="trash-outline" size={18} color="#fff" />
+          <Ionicons name="trash-outline" size={18} color={theme.color.textOnPrimary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -835,6 +854,7 @@ function ChapterItem({
 }
 
 function ProgressLine({ label, value }: { label: string; value: number }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const pct = Math.max(0, Math.min(100, value || 0));
   return (
     <View style={styles.progressWrap} accessibilityRole="progressbar" accessibilityValue={{ now: pct, min: 0, max: 100 }}>
@@ -848,20 +868,21 @@ function ProgressLine({ label, value }: { label: string; value: number }) {
 
 /* --------------------------------- Styles -------------------------------- */
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   reviewBox: {
     marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     padding: 12,
     gap: 8,
   },
-  reviewHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  reviewHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
   reviewNote: {
-    color: COLOR.danger,
-    fontFamily: FONT.bodyBold,
+    color: t.color.danger,
+    fontFamily: t.type.bodyStrong.fontFamily,
     fontSize: 12,
     lineHeight: 17,
   },
@@ -872,12 +893,12 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  reviewBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
+  reviewBtnText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   header: {
@@ -886,8 +907,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: COLOR.border,
-    backgroundColor: COLOR.bg,
+    borderBottomColor: t.color.border,
+    backgroundColor: t.color.bg,
     minHeight: 56,
   },
   headerIcon: {
@@ -895,14 +916,14 @@ const styles = StyleSheet.create({
     width: 36,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
+    borderColor: t.color.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: GLASS_BG,
+    backgroundColor: t.color.surface,
     marginRight: SP,
   },
-  headerTitle: { color: COLOR.text, fontSize: 18, fontFamily: FONT.headingAlt, lineHeight: 22 },
-  headerSub: { color: COLOR.sub, fontSize: 12, marginTop: 2, lineHeight: 16, fontFamily: FONT.body },
+  headerTitle: { color: t.color.text, fontSize: 18, fontFamily: t.type.heading.fontFamily, lineHeight: 22 },
+  headerSub: { color: t.color.textMuted, fontSize: 12, marginTop: 2, lineHeight: 16, fontFamily: t.type.body.fontFamily },
 
   loadingBadge: {
     paddingHorizontal: 14,
@@ -911,14 +932,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  loadingText: { fontFamily: FONT.bodyBold, color: "#fff", marginLeft: 8 },
+  loadingText: { fontFamily: t.type.bodyStrong.fontFamily, color: t.color.textOnPrimary, marginLeft: 8 },
 
   card: {
-    backgroundColor: GLASS_BG,
+    backgroundColor: t.color.surface,
     borderRadius: RADIUS,
     padding: SP,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
+    borderColor: t.color.border,
   },
   kpiRow: { flexDirection: "row", gap: 8, marginBottom: 2 },
   kpiCard: {
@@ -926,8 +947,8 @@ const styles = StyleSheet.create({
     minHeight: 78,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     paddingHorizontal: 10,
     paddingVertical: 10,
     justifyContent: "center",
@@ -939,11 +960,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     marginBottom: 6,
   },
-  kpiValue: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16, lineHeight: 20 },
-  kpiLabel: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11, marginTop: 2 },
+  kpiValue: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16, lineHeight: 20 },
+  kpiLabel: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, marginTop: 2 },
 
   sectionHead: { flexDirection: "row", alignItems: "center", gap: 10 },
   sectionIcon: {
@@ -951,21 +972,21 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.border,
+    backgroundColor: t.color.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
   sectionIconDanger: { backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.35)" },
-  sectionTitle: { color: COLOR.text, fontSize: 15, fontFamily: FONT.headingAlt, lineHeight: 20 },
-  sectionSubtitle: { color: COLOR.sub, fontSize: 12, marginTop: 2, fontFamily: FONT.body, lineHeight: 16 },
+  sectionTitle: { color: t.color.text, fontSize: 15, fontFamily: t.type.heading.fontFamily, lineHeight: 20 },
+  sectionSubtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily, lineHeight: 16 },
   sectionBody: { marginTop: SP - 2 },
 
   inputWrap: {
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     borderRadius: RADIUS,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingVertical: 10,
     paddingHorizontal: 12,
     flexDirection: "row",
@@ -979,15 +1000,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
   },
   input: {
     flex: 1,
-    color: COLOR.text,
+    color: t.color.text,
     paddingVertical: 10,
     fontSize: 15,
     lineHeight: 20,
-    fontFamily: FONT.body,
+    fontFamily: t.type.body.fontFamily,
   },
 
   row: { flexDirection: "row", alignItems: "stretch", marginTop: SP },
@@ -1002,10 +1023,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minHeight: BTN_H,
   },
-  primaryBtnText: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   secondaryBtn: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: RADIUS,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -1013,25 +1034,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     minHeight: BTN_H,
   },
-  secondaryBtnText: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  secondaryBtnText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   publishPill: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
+    borderColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: GLASS_BG,
+    backgroundColor: t.color.surface,
     marginLeft: SP,
   },
-  publishPillText: { color: COLOR.text, fontSize: 12, fontFamily: FONT.bodyBold },
+  publishPillText: { color: t.color.text, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
 
-  langLegend: { color: COLOR.sub, fontSize: 12, marginTop: SP, marginBottom: 6, fontFamily: FONT.body },
+  langLegend: { color: t.color.textMuted, fontSize: 12, marginTop: SP, marginBottom: 6, fontFamily: t.type.body.fontFamily },
   langGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1052,39 +1073,39 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     marginBottom: 8,
   },
   langDot: { width: 10, height: 10, borderRadius: 99, marginRight: 8 },
-  langChipText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  langChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   langBadge: {
     marginLeft: 6,
     height: 14,
     minWidth: 14,
     paddingHorizontal: 4,
     borderRadius: 999,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  langBadgeText: { color: COLOR.primary, fontSize: 10, fontFamily: FONT.bodyBold, lineHeight: 12 },
+  langBadgeText: { color: t.color.primary, fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily, lineHeight: 12 },
 
   progressWrap: { marginTop: 6, gap: 4 },
-  progressLabel: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  progressLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   progressBar: {
     height: 8,
     borderRadius: 8,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  progressFill: { height: "100%", backgroundColor: COLOR.primary },
+  progressFill: { height: "100%", backgroundColor: t.color.primary },
 
   chapterItem: {
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: RADIUS,
     padding: SP,
@@ -1099,21 +1120,21 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 4,
   },
-  chapterTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, lineHeight: 20 },
-  chapterSub: { color: COLOR.sub, marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: FONT.body },
+  chapterTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, lineHeight: 20 },
+  chapterSub: { color: t.color.textMuted, marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: t.type.body.fontFamily },
   chapterActions: { flexDirection: "row", alignItems: "center", marginLeft: SP },
   previewBtn: {
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderRadius: 12,
     marginRight: 8,
   },
-  previewBtnDisabled: { backgroundColor: "#94a3b8", opacity: 0.6 },
-  trash: { backgroundColor: DANGER, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12 },
+  previewBtnDisabled: { backgroundColor: t.color.textFaint, opacity: 0.6 },
+  trash: { backgroundColor: t.color.danger, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12 },
 
   dangerBtn: {
-    backgroundColor: DANGER,
+    backgroundColor: t.color.danger,
     borderRadius: RADIUS,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -1124,7 +1145,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.08)",
     minHeight: BTN_H,
   },
-  dangerBtnText: { color: "#fff", fontFamily: FONT.bodyBold },
+  dangerBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 });
 
 

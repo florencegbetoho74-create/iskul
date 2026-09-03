@@ -19,10 +19,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "@/lib/supabase";
-import { COLOR, ELEVATION, FONT, RADIUS, SPACE } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
-const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
-const SURFACE_BG = ["#F4F7FC", "#ECF2FF", "#F2F7FF"] as const;
+/** Degrade d'accent derive du theme. */
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
+/** Fond de page derive du theme. */
+const surfaceGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
 
 type RecoveryPayload = {
   accessToken: string | null;
@@ -91,6 +100,7 @@ function mapPasswordError(error: any): string {
 }
 
 export default function ResetPasswordScreen() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -224,14 +234,14 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <LinearGradient colors={SURFACE_BG} style={styles.bg}>
+    <LinearGradient colors={surfaceGradient(theme)} style={styles.bg}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={[
             styles.center,
             {
-              paddingTop: insets.top + SPACE.md,
-              paddingBottom: Math.max(SPACE.xl, insets.bottom + SPACE.md),
+              paddingTop: insets.top + theme.space.lg,
+              paddingBottom: Math.max(theme.space.xxl, insets.bottom + theme.space.lg),
             },
           ]}
           keyboardShouldPersistTaps="handled"
@@ -239,7 +249,7 @@ export default function ResetPasswordScreen() {
           <View style={styles.hero}>
             <Image source={require("../assets/logo.png")} style={styles.logo} />
             <View style={styles.heroBadge}>
-              <Ionicons name="key-outline" size={14} color={COLOR.primary} />
+              <Ionicons name="key-outline" size={14} color={theme.color.primary} />
               <Text style={styles.heroBadgeText}>Securite compte</Text>
             </View>
             <Text style={styles.heroTitle}>Nouveau mot de passe</Text>
@@ -251,14 +261,14 @@ export default function ResetPasswordScreen() {
           <View style={styles.card}>
             {preparing ? (
               <View style={styles.loadingBox}>
-                <ActivityIndicator color={COLOR.primary} />
+                <ActivityIndicator color={theme.color.primary} />
                 <Text style={styles.loadingText}>Verification du lien...</Text>
               </View>
             ) : null}
 
             {!preparing && linkError && !sessionReady ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={18} color={COLOR.danger} />
+                <Ionicons name="alert-circle-outline" size={18} color={theme.color.danger} />
                 <Text style={styles.errorText}>{linkError}</Text>
                 <TouchableOpacity
                   style={styles.secondaryBtn}
@@ -275,11 +285,11 @@ export default function ResetPasswordScreen() {
                 <View style={styles.fieldBlock}>
                   <Text style={styles.label}>Nouveau mot de passe</Text>
                   <View style={styles.inputShell}>
-                    <Ionicons name="lock-closed-outline" size={18} color={COLOR.sub} />
+                    <Ionicons name="lock-closed-outline" size={18} color={theme.color.textMuted} />
                     <TextInput
                       secureTextEntry
                       placeholder="Minimum 6 caracteres"
-                      placeholderTextColor="#95A1B4"
+                      placeholderTextColor={theme.color.textFaint}
                       style={styles.input}
                       value={password}
                       onChangeText={setPassword}
@@ -295,11 +305,11 @@ export default function ResetPasswordScreen() {
                       confirmPassword.length > 0 && !passwordsMatch && styles.inputShellError,
                     ]}
                   >
-                    <Ionicons name="shield-checkmark-outline" size={18} color={COLOR.sub} />
+                    <Ionicons name="shield-checkmark-outline" size={18} color={theme.color.textMuted} />
                     <TextInput
                       secureTextEntry
                       placeholder="Retapez le mot de passe"
-                      placeholderTextColor="#95A1B4"
+                      placeholderTextColor={theme.color.textFaint}
                       style={styles.input}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
@@ -315,12 +325,12 @@ export default function ResetPasswordScreen() {
                   style={styles.ctaWrap}
                 >
                   <LinearGradient
-                    colors={ACCENT}
+                    colors={accentGradient(theme)}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={[styles.primaryGrad, (disabled || loading) && styles.ctaDisabled]}
                   >
-                    <Ionicons name="checkmark" size={18} color="#fff" />
+                    <Ionicons name="checkmark" size={18} color={theme.color.textOnPrimary} />
                     <Text style={styles.primaryText}>
                       {loading ? "Mise a jour..." : "Enregistrer le nouveau mot de passe"}
                     </Text>
@@ -335,15 +345,16 @@ export default function ResetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   bg: { flex: 1 },
   flex: { flex: 1 },
   center: {
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: SPACE.md,
-    gap: SPACE.md,
+    paddingHorizontal: t.space.lg,
+    gap: t.space.lg,
   },
   hero: {
     width: "100%",
@@ -356,26 +367,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    borderRadius: RADIUS.pill,
+    borderColor: t.color.borderStrong,
+    borderRadius: t.radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  heroBadgeText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 11 },
-  heroTitle: { color: COLOR.text, fontSize: 24, fontFamily: FONT.heading, textAlign: "center" },
-  heroSubtitle: { color: COLOR.sub, fontSize: 14, fontFamily: FONT.body, textAlign: "center" },
+  heroBadgeText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  heroTitle: { color: t.color.text, fontSize: 24, fontFamily: t.type.title.fontFamily, textAlign: "center" },
+  heroSubtitle: { color: t.color.textMuted, fontSize: 14, fontFamily: t.type.body.fontFamily, textAlign: "center" },
   card: {
     width: "100%",
     maxWidth: 440,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.xl,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.xl,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    padding: SPACE.lg,
-    gap: SPACE.sm,
-    ...ELEVATION.floating,
+    borderColor: t.color.border,
+    padding: t.space.xl,
+    gap: t.space.md,
+    ...t.elevation(3),
   },
   loadingBox: {
     minHeight: 120,
@@ -384,67 +395,67 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: COLOR.sub,
-    fontFamily: FONT.body,
+    color: t.color.textMuted,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 13,
   },
   errorBox: {
     borderWidth: 1,
-    borderColor: "#FCA5A5",
-    backgroundColor: "#FFF5F5",
-    borderRadius: RADIUS.md,
-    padding: SPACE.md,
+    borderColor: t.color.danger,
+    backgroundColor: t.color.dangerSoft,
+    borderRadius: t.radius.md,
+    padding: t.space.lg,
     gap: 10,
     alignItems: "flex-start",
   },
   errorText: {
-    color: "#991B1B",
-    fontFamily: FONT.body,
+    color: t.color.danger,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 13,
     lineHeight: 19,
   },
   secondaryBtn: {
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
-    borderRadius: RADIUS.md,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
+    borderRadius: t.radius.md,
     minHeight: 40,
     paddingHorizontal: 12,
     justifyContent: "center",
   },
   secondaryBtnText: {
-    color: COLOR.primary,
-    fontFamily: FONT.bodyBold,
+    color: t.color.primary,
+    fontFamily: t.type.bodyStrong.fontFamily,
     fontSize: 13,
   },
   fieldBlock: { gap: 6 },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   inputShell: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: "#F8FAFF",
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 12,
     minHeight: 50,
   },
   inputShellError: {
-    borderColor: COLOR.danger,
-    backgroundColor: "#FFF4F4",
+    borderColor: t.color.danger,
+    backgroundColor: t.color.dangerSoft,
   },
   input: {
     flex: 1,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 14,
     paddingVertical: 11,
   },
   ctaWrap: { marginTop: 6 },
   primaryGrad: {
     minHeight: 50,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -452,7 +463,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   ctaDisabled: { opacity: 0.55 },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 14, textAlign: "center" },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14, textAlign: "center" },
 });
 
 

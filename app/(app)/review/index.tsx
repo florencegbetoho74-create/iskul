@@ -15,7 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLOR, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import TopBar from "@/components/TopBar";
 import { decideReview, getReviewQueue, type ReviewQueueItem } from "@/storage/review";
@@ -42,6 +43,7 @@ function waitingSince(ms?: number | null): string {
 }
 
 export default function ReviewQueue() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -144,7 +146,7 @@ export default function ReviewQueue() {
       <View style={styles.root}>
         <TopBar title="Relecture" right={null} />
         <View style={styles.center}>
-          <Ionicons name="lock-closed-outline" size={26} color={COLOR.sub} />
+          <Ionicons name="lock-closed-outline" size={26} color={theme.color.textMuted} />
           <Text style={styles.emptyText}>
             La relecture est reservee aux relecteurs designes par l'administration.
           </Text>
@@ -159,7 +161,7 @@ export default function ReviewQueue() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={COLOR.primary} />
+          <ActivityIndicator color={theme.color.primary} />
         </View>
       ) : (
         <FlatList
@@ -174,12 +176,12 @@ export default function ReviewQueue() {
                 setRefreshing(true);
                 void load();
               }}
-              tintColor={COLOR.primary}
+              tintColor={theme.color.primary}
             />
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Ionicons name="checkmark-done-outline" size={26} color={COLOR.success} />
+              <Ionicons name="checkmark-done-outline" size={26} color={theme.color.success} />
               <Text style={styles.emptyText}>
                 {error || "Rien a relire pour le moment."}
               </Text>
@@ -191,7 +193,7 @@ export default function ReviewQueue() {
               <View style={styles.card}>
                 <Pressable onPress={() => openContent(item)} style={styles.cardHead}>
                   <View style={styles.kindChip}>
-                    <Ionicons name={KIND_ICON[item.kind]} size={13} color={COLOR.primary} />
+                    <Ionicons name={KIND_ICON[item.kind]} size={13} color={theme.color.primary} />
                     <Text style={styles.kindChipText}>{KIND_LABEL[item.kind]}</Text>
                   </View>
                   <Text style={styles.cardTitle} numberOfLines={2}>
@@ -210,7 +212,7 @@ export default function ReviewQueue() {
                     onPress={() => openContent(item)}
                     style={[styles.actionBtn, styles.actionGhost]}
                   >
-                    <Ionicons name="eye-outline" size={15} color={COLOR.text} />
+                    <Ionicons name="eye-outline" size={15} color={theme.color.text} />
                     <Text style={styles.actionGhostText}>Ouvrir</Text>
                   </Pressable>
 
@@ -222,7 +224,7 @@ export default function ReviewQueue() {
                     disabled={busy}
                     style={[styles.actionBtn, styles.actionReject, busy && styles.actionDisabled]}
                   >
-                    <Ionicons name="arrow-undo-outline" size={15} color={COLOR.danger} />
+                    <Ionicons name="arrow-undo-outline" size={15} color={theme.color.danger} />
                     <Text style={styles.actionRejectText}>Renvoyer</Text>
                   </Pressable>
 
@@ -232,9 +234,9 @@ export default function ReviewQueue() {
                     style={[styles.actionBtn, styles.actionPublish, busy && styles.actionDisabled]}
                   >
                     {busy ? (
-                      <ActivityIndicator size="small" color="#fff" />
+                      <ActivityIndicator size="small" color={theme.color.textOnPrimary} />
                     ) : (
-                      <Ionicons name="checkmark-circle-outline" size={15} color="#fff" />
+                      <Ionicons name="checkmark-circle-outline" size={15} color={theme.color.textOnPrimary} />
                     )}
                     <Text style={styles.actionPublishText}>Publier</Text>
                   </Pressable>
@@ -264,7 +266,7 @@ export default function ReviewQueue() {
               onChangeText={setNote}
               multiline
               placeholder="Ex : le chapitre 3 n'a pas de video, et la classe indiquee ne correspond pas au contenu."
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.noteInput}
             />
             <View style={styles.sheetActions}>
@@ -290,12 +292,13 @@ export default function ReviewQueue() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 24 },
   emptyText: {
-    color: COLOR.sub,
-    fontFamily: FONT.body,
+    color: t.color.textMuted,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 19,
@@ -303,14 +306,14 @@ const styles = StyleSheet.create({
 
   list: { padding: 16, gap: 12 },
   header: { marginBottom: 4, gap: 4 },
-  headerTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 18 },
-  headerHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  headerTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 18 },
+  headerHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
 
   card: {
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.lg,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.lg,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     gap: 12,
   },
@@ -321,14 +324,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     borderRadius: 999,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     paddingHorizontal: 9,
     paddingVertical: 3,
     marginBottom: 2,
   },
-  kindChipText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 10 },
-  cardTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 15 },
-  cardMeta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  kindChipText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
+  cardTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 15 },
+  cardMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
 
   actions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   actionBtn: {
@@ -341,35 +344,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionDisabled: { opacity: 0.5 },
-  actionGhost: { borderColor: COLOR.border, backgroundColor: COLOR.muted },
-  actionGhostText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  actionReject: { borderColor: COLOR.danger, backgroundColor: "#FFF4F4" },
-  actionRejectText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12 },
-  actionPublish: { borderColor: "transparent", backgroundColor: COLOR.success },
-  actionPublishText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  actionGhost: { borderColor: t.color.border, backgroundColor: t.color.surfaceSunk },
+  actionGhostText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  actionReject: { borderColor: t.color.danger, backgroundColor: t.color.dangerSoft },
+  actionRejectText: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  actionPublish: { borderColor: "transparent", backgroundColor: t.color.success },
+  actionPublishText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.4)" },
   sheet: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 16,
     gap: 10,
   },
-  sheetTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
-  sheetHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  sheetTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
+  sheetHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
   noteInput: {
     minHeight: 96,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     padding: 12,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 13,
     textAlignVertical: "top",
   },

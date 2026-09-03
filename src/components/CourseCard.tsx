@@ -17,13 +17,13 @@ export default function CourseCard({ item, onPress }: Props) {
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
       <View style={styles.thumbWrap}>
         <LinearGradient
-          colors={["#0f172a", "#1e293b"]}
+          colors={[theme.color.media, theme.color.surfaceSunk]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.thumbFallback}
         >
           <View style={styles.thumbIcon}>
-            <Ionicons name="play" size={18} color="#fff" />
+            <Ionicons name="play" size={18} color={theme.color.onMedia} />
           </View>
           <Text numberOfLines={2} style={styles.thumbTitle}>{fallbackTitle}</Text>
           <Text style={styles.thumbMeta}>{fallbackMeta}</Text>
@@ -71,7 +71,7 @@ const makeStyles = (t: Theme) =>
     alignItems: "center",
     justifyContent: "center",
   },
-  thumbTitle: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  thumbTitle: { color: t.color.onMedia, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
   thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: t.type.body.fontFamily, fontSize: 11 },
   thumbShade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 60 },
   thumbBadge: {

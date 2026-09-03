@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import {
   getAdminDashboard,
   getAdminPortalSettings,
@@ -16,6 +17,7 @@ import {
 type Kpi = { key: string; label: string; value: string; hint?: string; tint: string; icon: keyof typeof Ionicons.glyphMap };
 
 export default function AdminDashboard() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
   const [snapshot, setSnapshot] = useState<AdminDashboardSnapshot | null>(null);
   const [push, setPush] = useState<PushHealth | null>(null);
@@ -53,14 +55,14 @@ export default function AdminDashboard() {
   const kpis = useMemo<Kpi[]>(() => {
     if (!snapshot) return [];
     return [
-      { key: "users", label: "Utilisateurs", value: String(snapshot.users), tint: "#EAF0FF", icon: "people-outline" },
-      { key: "teachers", label: "Professeurs", value: String(snapshot.teachers), tint: "#E8FAF0", icon: "school-outline" },
-      { key: "courses", label: "Cours", value: String(snapshot.courses), hint: `${snapshot.coursesPublished} publies`, tint: "#FFF4E7", icon: "book-outline" },
-      { key: "docs", label: "Documents", value: String(snapshot.documents), hint: `${snapshot.documentsPublished} publies`, tint: "#F2EEFF", icon: "library-outline" },
-      { key: "lives", label: "Lives", value: String(snapshot.lives), hint: `${snapshot.livesActive} actifs`, tint: "#FFECEF", icon: "radio-outline" },
-      { key: "quizzes", label: "Quiz", value: String(snapshot.quizzes), hint: `${snapshot.quizzesPublished} publies`, tint: "#EAF8FF", icon: "help-circle-outline" },
-      { key: "threads", label: "Conversations", value: String(snapshot.threads), hint: `${snapshot.messages} messages`, tint: "#F4F0EA", icon: "chatbubbles-outline" },
-      { key: "admins", label: "Admins", value: String(snapshot.admins), tint: "#ECECEC", icon: "shield-checkmark-outline" },
+      { key: "users", label: "Utilisateurs", value: String(snapshot.users), tint: theme.color.primarySoft, icon: "people-outline" },
+      { key: "teachers", label: "Professeurs", value: String(snapshot.teachers), tint: theme.color.successSoft, icon: "school-outline" },
+      { key: "courses", label: "Cours", value: String(snapshot.courses), hint: `${snapshot.coursesPublished} publies`, tint: theme.color.warningSoft, icon: "book-outline" },
+      { key: "docs", label: "Documents", value: String(snapshot.documents), hint: `${snapshot.documentsPublished} publies`, tint: theme.color.primarySoft, icon: "library-outline" },
+      { key: "lives", label: "Lives", value: String(snapshot.lives), hint: `${snapshot.livesActive} actifs`, tint: theme.color.dangerSoft, icon: "radio-outline" },
+      { key: "quizzes", label: "Quiz", value: String(snapshot.quizzes), hint: `${snapshot.quizzesPublished} publies`, tint: theme.color.primarySoft, icon: "help-circle-outline" },
+      { key: "threads", label: "Conversations", value: String(snapshot.threads), hint: `${snapshot.messages} messages`, tint: theme.color.surfaceSunk, icon: "chatbubbles-outline" },
+      { key: "admins", label: "Admins", value: String(snapshot.admins), tint: theme.color.surfaceSunk, icon: "shield-checkmark-outline" },
     ];
   }, [snapshot]);
 
@@ -107,7 +109,7 @@ export default function AdminDashboard() {
           <Text style={styles.sub}>Pilotage global de la plateforme iSkul.</Text>
         </View>
         <Pressable style={styles.refreshBtn} onPress={load}>
-          <Ionicons name="refresh" size={17} color={COLOR.text} />
+          <Ionicons name="refresh" size={17} color={theme.color.text} />
           <Text style={styles.refreshText}>{loading ? "Chargement..." : "Rafraichir"}</Text>
         </Pressable>
       </View>
@@ -139,7 +141,7 @@ export default function AdminDashboard() {
           <View key={kpi.key} style={[styles.kpiCard, { backgroundColor: kpi.tint }]}>
             <View style={styles.kpiRow}>
               <Text style={styles.kpiValue}>{kpi.value}</Text>
-              <Ionicons name={kpi.icon} size={18} color={COLOR.text} />
+              <Ionicons name={kpi.icon} size={18} color={theme.color.text} />
             </View>
             <Text style={styles.kpiLabel}>{kpi.label}</Text>
             {kpi.hint ? <Text style={styles.kpiHint}>{kpi.hint}</Text> : null}
@@ -166,13 +168,13 @@ export default function AdminDashboard() {
           value={portalMessage}
           onChangeText={setPortalMessage}
           placeholder="Ex: Inscriptions suspendues jusqu'a lundi."
-          placeholderTextColor={COLOR.sub}
+          placeholderTextColor={theme.color.textMuted}
           style={styles.input}
           multiline
         />
 
         <Pressable style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={savePortal} disabled={saving}>
-          <Ionicons name="save-outline" size={16} color="#fff" />
+          <Ionicons name="save-outline" size={16} color={theme.color.textOnPrimary} />
           <Text style={styles.saveText}>{saving ? "Enregistrement..." : "Enregistrer les reglages"}</Text>
         </Pressable>
       </View>
@@ -182,7 +184,7 @@ export default function AdminDashboard() {
         <View style={styles.quickGrid}>
           {quickLinks.map((x) => (
             <Pressable key={x.href} style={styles.quickCard} onPress={() => router.push(x.href as any)}>
-              <Ionicons name={x.icon} size={16} color={COLOR.text} />
+              <Ionicons name={x.icon} size={16} color={theme.color.text} />
               <Text style={styles.quickText}>{x.label}</Text>
             </Pressable>
           ))}
@@ -192,75 +194,76 @@ export default function AdminDashboard() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   pushCard: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     padding: 12,
     gap: 4,
     marginBottom: 12,
   },
-  pushCardAlert: { borderColor: COLOR.danger, backgroundColor: "#FFF4F4" },
-  pushTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
-  pushBody: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
-  pushHint: { color: COLOR.danger, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  pushCardAlert: { borderColor: t.color.danger, backgroundColor: t.color.dangerSoft },
+  pushTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  pushBody: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  pushHint: { color: t.color.danger, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
   container: { padding: 18, paddingBottom: 30, gap: 14 },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  title: { color: COLOR.text, fontFamily: FONT.heading, fontSize: 26 },
-  sub: { color: COLOR.sub, fontFamily: FONT.body, marginTop: 4 },
+  title: { color: t.color.text, fontFamily: t.type.title.fontFamily, fontSize: 26 },
+  sub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginTop: 4 },
   refreshBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 10,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  refreshText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  error: { color: "#B91C1C", fontFamily: FONT.bodyBold },
-  notice: { color: "#166534", fontFamily: FONT.bodyBold },
+  refreshText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  error: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily },
+  notice: { color: t.color.success, fontFamily: t.type.bodyStrong.fontFamily },
   kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   kpiCard: {
     minWidth: 180,
     flexGrow: 1,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 12,
     maxWidth: 260,
   },
   kpiRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  kpiValue: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 22 },
-  kpiLabel: { color: COLOR.text, fontFamily: FONT.bodyBold, marginTop: 8 },
-  kpiHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, marginTop: 2 },
+  kpiValue: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 22 },
+  kpiLabel: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, marginTop: 8 },
+  kpiHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 2 },
   card: {
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 14,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     padding: 14,
     gap: 10,
   },
-  cardTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
-  cardSub: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
-  mono: { fontFamily: FONT.mono, color: COLOR.text },
+  cardTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
+  cardSub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  mono: { fontFamily: "Menlo", color: t.color.text },
   settingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  label: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
-  value: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 15, marginTop: 2 },
+  label: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  value: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 15, marginTop: 2 },
   input: {
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 12,
-    backgroundColor: COLOR.bg,
+    backgroundColor: t.color.bg,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     minHeight: 72,
   },
   saveBtn: {
@@ -270,22 +273,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderRadius: 12,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     paddingVertical: 11,
   },
-  saveText: { color: "#fff", fontFamily: FONT.bodyBold },
+  saveText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   quickCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 12,
-    backgroundColor: COLOR.bg,
+    backgroundColor: t.color.bg,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  quickText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  quickText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 });
 

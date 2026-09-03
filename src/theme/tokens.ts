@@ -89,6 +89,15 @@ export type Palette = {
   scrim: string;
   /** Teinte des ombres portees. */
   shadow: string;
+
+  /**
+   * Fond des surfaces media : lecteur video, vignette sans couverture.
+   * Volontairement identique dans les deux themes -- une video ne se regarde
+   * pas sur fond clair, et un theme clair ne doit pas eclaircir le letterbox.
+   */
+  media: string;
+  /** Encre posee sur une surface media. */
+  onMedia: string;
 };
 
 export const LIGHT: Palette = {
@@ -122,6 +131,9 @@ export const LIGHT: Palette = {
 
   scrim: "rgba(11, 18, 32, 0.45)",
   shadow: "#0B1D39",
+
+  media: "#0F172A",
+  onMedia: "#FFFFFF",
 };
 
 export const DARK: Palette = {
@@ -156,6 +168,9 @@ export const DARK: Palette = {
 
   scrim: "rgba(0, 0, 0, 0.6)",
   shadow: "#000000",
+
+  media: "#0F172A",
+  onMedia: "#FFFFFF",
 };
 
 export const PALETTES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK };

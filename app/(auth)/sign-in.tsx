@@ -17,14 +17,24 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/providers/AuthProvider";
-import { COLOR, ELEVATION, FONT, RADIUS, SPACE } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 const DEFAULT_HOME = "/(app)/(tabs)";
-const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
-const SURFACE_BG = ["#F4F7FC", "#ECF2FF", "#F2F7FF"] as const;
+/** Degrade d'accent derive du theme. */
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
+/** Fond de page derive du theme. */
+const surfaceGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
 const isEmail = (s: string) => /^\S+@\S+\.\S+$/.test(s || "");
 
 export default function SignIn() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { signIn } = useAuth();
@@ -56,14 +66,14 @@ export default function SignIn() {
   };
 
   return (
-    <LinearGradient colors={SURFACE_BG} style={styles.bg}>
+    <LinearGradient colors={surfaceGradient(theme)} style={styles.bg}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={[
             styles.center,
             {
-              paddingTop: insets.top + SPACE.md,
-              paddingBottom: Math.max(SPACE.xl, insets.bottom + SPACE.md),
+              paddingTop: insets.top + theme.space.lg,
+              paddingBottom: Math.max(theme.space.xxl, insets.bottom + theme.space.lg),
             },
           ]}
           keyboardShouldPersistTaps="handled"
@@ -71,7 +81,7 @@ export default function SignIn() {
           <View style={styles.hero}>
             <Image source={require("../../assets/logo.png")} style={styles.logo} />
             <View style={styles.heroBadge}>
-              <Ionicons name="sparkles-outline" size={14} color={COLOR.primary} />
+              <Ionicons name="sparkles-outline" size={14} color={theme.color.primary} />
               <Text style={styles.heroBadgeText}>Apprendre autrement</Text>
             </View>
             <Text style={styles.heroTitle}>Bon retour sur iSkul</Text>
@@ -82,12 +92,12 @@ export default function SignIn() {
             <View style={styles.fieldBlock}>
               <Text style={styles.label}>Email</Text>
               <View style={[styles.inputShell, !!email && !isEmail(email) && styles.inputShellError]}>
-                <Ionicons name="mail-outline" size={18} color={COLOR.sub} />
+                <Ionicons name="mail-outline" size={18} color={theme.color.textMuted} />
                 <TextInput
                   autoCapitalize="none"
                   keyboardType="email-address"
                   placeholder="exemple@ecole.com"
-                  placeholderTextColor="#95A1B4"
+                  placeholderTextColor={theme.color.textFaint}
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
@@ -99,11 +109,11 @@ export default function SignIn() {
             <View style={styles.fieldBlock}>
               <Text style={styles.label}>Mot de passe</Text>
               <View style={styles.inputShell}>
-                <Ionicons name="lock-closed-outline" size={18} color={COLOR.sub} />
+                <Ionicons name="lock-closed-outline" size={18} color={theme.color.textMuted} />
                 <TextInput
                   secureTextEntry
                   placeholder="Votre mot de passe"
-                  placeholderTextColor="#95A1B4"
+                  placeholderTextColor={theme.color.textFaint}
                   style={styles.input}
                   value={password}
                   onChangeText={setPassword}
@@ -121,12 +131,12 @@ export default function SignIn() {
 
             <TouchableOpacity onPress={handle} activeOpacity={disabled ? 1 : 0.9} style={styles.ctaWrap}>
               <LinearGradient
-                colors={ACCENT}
+                colors={accentGradient(theme)}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[styles.primaryGrad, (disabled || loading) && styles.ctaDisabled]}
               >
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                <Ionicons name="arrow-forward" size={18} color={theme.color.textOnPrimary} />
                 <Text style={styles.primaryText}>{loading ? "Connexion..." : "Se connecter"}</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -141,15 +151,16 @@ export default function SignIn() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   bg: { flex: 1 },
   flex: { flex: 1 },
   center: {
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: SPACE.md,
-    gap: SPACE.md,
+    paddingHorizontal: t.space.lg,
+    gap: t.space.lg,
   },
   hero: {
     width: "100%",
@@ -162,48 +173,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    borderRadius: RADIUS.pill,
+    borderColor: t.color.borderStrong,
+    borderRadius: t.radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  heroBadgeText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 11 },
-  heroTitle: { color: COLOR.text, fontSize: 25, fontFamily: FONT.heading, textAlign: "center" },
-  heroSubtitle: { color: COLOR.sub, fontSize: 14, fontFamily: FONT.body, textAlign: "center" },
+  heroBadgeText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  heroTitle: { color: t.color.text, fontSize: 25, fontFamily: t.type.title.fontFamily, textAlign: "center" },
+  heroSubtitle: { color: t.color.textMuted, fontSize: 14, fontFamily: t.type.body.fontFamily, textAlign: "center" },
   card: {
     width: "100%",
     maxWidth: 440,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.xl,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.xl,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    padding: SPACE.lg,
-    gap: SPACE.sm,
-    ...ELEVATION.floating,
+    borderColor: t.color.border,
+    padding: t.space.xl,
+    gap: t.space.md,
+    ...t.elevation(3),
   },
   fieldBlock: { gap: 6 },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   inputShell: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: "#F8FAFF",
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 12,
     minHeight: 50,
   },
   inputShellError: {
-    borderColor: COLOR.danger,
-    backgroundColor: "#FFF4F4",
+    borderColor: t.color.danger,
+    backgroundColor: t.color.dangerSoft,
   },
   input: {
     flex: 1,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 14,
     paddingVertical: 11,
   },
@@ -212,22 +223,22 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   forgotText: {
-    color: COLOR.primary,
-    fontFamily: FONT.bodyBold,
+    color: t.color.primary,
+    fontFamily: t.type.bodyStrong.fontFamily,
     fontSize: 12,
   },
   ctaWrap: { marginTop: 6 },
   primaryGrad: {
     minHeight: 50,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   ctaDisabled: { opacity: 0.55 },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 15 },
-  footerText: { color: COLOR.sub, textAlign: "center", marginTop: 4, fontFamily: FONT.body },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 15 },
+  footerText: { color: t.color.textMuted, textAlign: "center", marginTop: 4, fontFamily: t.type.body.fontFamily },
 });
 
 

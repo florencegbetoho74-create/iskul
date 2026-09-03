@@ -24,7 +24,11 @@ import { useAuth } from "@/providers/AuthProvider";
 import { getProfile, upsertProfile } from "@/storage/profile";
 import { persistAttachments } from "@/storage/files";
 
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrade d'accent derive du theme. */
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 export default function EditProfile() {
   const { styles, theme } = useThemedStyles(makeStyles);
@@ -149,7 +153,7 @@ export default function EditProfile() {
 
         <View style={styles.avatarRow}>
           <View style={styles.avatarWrap}>
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatarRing}>
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatarRing}>
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               ) : (
@@ -264,7 +268,7 @@ export default function EditProfile() {
         </View>
 
         <TouchableOpacity onPress={save} activeOpacity={0.9} disabled={busy} style={{ marginTop: 6 }}>
-          <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
+          <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
             <Ionicons name="save-outline" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.primaryTxt}>{busy ? "En cours..." : "Enregistrer"}</Text>
           </LinearGradient>

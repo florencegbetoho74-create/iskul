@@ -5,16 +5,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { createCourse } from "@/storage/courses";
 import SelectionSheetField from "@/components/SelectionSheetField";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrade d'accent derive du theme. */
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 export default function NewCourse() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -98,7 +104,7 @@ export default function NewCourse() {
           <Text style={styles.label}>Titre</Text>
           <TextInput
             placeholder="Ex: Fractions pour la 3e"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             style={styles.input}
             value={title}
             onChangeText={setTitle}
@@ -133,8 +139,8 @@ export default function NewCourse() {
         </View>
 
         <Pressable style={[styles.primary, loading && { opacity: 0.7 }]} onPress={save} disabled={loading}>
-          <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
-            <Ionicons name="save-outline" size={18} color="#fff" />
+          <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
+            <Ionicons name="save-outline" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.primaryText}>{loading ? "Creation..." : "Enregistrer et continuer"}</Text>
           </LinearGradient>
         </Pressable>
@@ -143,29 +149,30 @@ export default function NewCourse() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, marginTop: 6, fontFamily: FONT.body },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, marginTop: 6, fontFamily: t.type.body.fontFamily },
 
   card: {
     marginTop: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     gap: 10,
   },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   input: {
-    backgroundColor: COLOR.muted,
-    color: COLOR.text,
+    backgroundColor: t.color.surfaceSunk,
+    color: t.color.text,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    fontFamily: FONT.body,
+    borderColor: t.color.border,
+    fontFamily: t.type.body.fontFamily,
   },
 
   primary: { marginTop: 16, borderRadius: 14, overflow: "hidden" },
@@ -176,8 +183,8 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "center",
   },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
-  errorText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, marginTop: 4 },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
+  errorText: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12, marginTop: 4 },
 });
 
 

@@ -85,6 +85,7 @@ function textPairs(p: Palette): Array<[string, string, string]> {
     ["erreur sur fond teinte", p.danger, p.dangerSoft],
     ["erreur sur surface", p.danger, p.surface],
     ["succes sur surface", p.success, p.surface],
+    ["encre sur surface media", p.onMedia, p.media],
   ];
 }
 
@@ -153,6 +154,13 @@ describe("coherence des deux themes", () => {
     const darkBg = relativeLuminance(DARK.bg) as number;
     assert.ok(lightBg > 0.5, "le fond clair doit etre clair");
     assert.ok(darkBg < 0.1, "le fond sombre doit etre sombre");
+  });
+
+  // Un lecteur video ne doit pas s'eclaircir en mode clair : ce jeton est
+  // volontairement identique des deux cotes.
+  it("garde la surface media identique dans les deux themes", () => {
+    assert.equal(LIGHT.media, DARK.media);
+    assert.equal(LIGHT.onMedia, DARK.onMedia);
   });
 
   it("garde le meme sens de lecture pour les surfaces", () => {

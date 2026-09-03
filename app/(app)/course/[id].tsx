@@ -4,19 +4,29 @@ import { useLocalSearchParams, useRouter, Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import TopBar from "@/components/TopBar";
 import ChapterCard from "@/components/ChapterCard";
 import { getCourse } from "@/storage/courses";
 import { useAuth } from "@/providers/AuthProvider";
 import { startThread } from "@/storage/chat";
 
-const BG = ["#F5F4F1", "#EAF0FF", "#F6F1EA"] as const;
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isValidUuid = (v?: string | null) => !!v && UUID_RE.test(v);
 
 export default function CourseDetail() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -66,27 +76,27 @@ export default function CourseDetail() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: COLOR.bg }]}>
-        <ActivityIndicator color={COLOR.primary} />
+      <View style={[styles.center, { backgroundColor: theme.color.bg }]}>
+        <ActivityIndicator color={theme.color.primary} />
       </View>
     );
   }
 
-  if (!course) return <View style={{ flex: 1, backgroundColor: COLOR.bg }} />;
+  if (!course) return <View style={{ flex: 1, backgroundColor: theme.color.bg }} />;
 
   const chapters = course?.chapters || [];
   const fallbackTitle = chapters?.[0]?.title || course.title || "Cours";
   const fallbackMeta = `${chapters.length || 0} lecons`;
 
   const Header = () => (
-    <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerWrap}>
+    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerWrap}>
       <TopBar title="Cours" right={null} />
 
       <View style={styles.heroCard}>
         <View style={styles.coverWrap}>
-          <LinearGradient colors={["#0f172a", "#1e293b"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cover, styles.coverFallback]}>
+          <LinearGradient colors={[theme.color.media, theme.color.surfaceSunk]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cover, styles.coverFallback]}>
             <View style={styles.coverIcon}>
-              <Ionicons name="play" size={18} color="#fff" />
+              <Ionicons name="play" size={18} color={theme.color.textOnPrimary} />
             </View>
             <Text numberOfLines={2} style={styles.coverTitle}>{fallbackTitle}</Text>
             <Text style={styles.coverMeta}>{fallbackMeta}</Text>
@@ -118,8 +128,8 @@ export default function CourseDetail() {
             {chapters.length ? (
               <Link href={`/(app)/course/play?courseId=${course.id}`} asChild>
                 <Pressable style={styles.primaryBtn}>
-                  <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
-                    <Ionicons name="play" size={16} color="#fff" />
+                  <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
+                    <Ionicons name="play" size={16} color={theme.color.textOnPrimary} />
                     <Text style={styles.primaryText}>Lire le cours</Text>
                   </LinearGradient>
                 </Pressable>
@@ -128,7 +138,7 @@ export default function CourseDetail() {
 
             {canContact ? (
               <Pressable style={styles.secondaryBtn} onPress={contactTeacher}>
-                <Ionicons name="chatbubbles-outline" size={16} color={COLOR.text} />
+                <Ionicons name="chatbubbles-outline" size={16} color={theme.color.text} />
                 <Text style={styles.secondaryText}>Contacter le prof</Text>
               </Pressable>
             ) : null}
@@ -160,26 +170,27 @@ export default function CourseDetail() {
           </View>
         )}
         ListHeaderComponent={Header}
-        ListEmptyComponent={<Text style={{ color: COLOR.sub, paddingHorizontal: 16 }}>Aucun chapitre.</Text>}
+        ListEmptyComponent={<Text style={{ color: theme.color.textMuted, paddingHorizontal: 16 }}>Aucun chapitre.</Text>}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   headerWrap: { paddingBottom: 8 },
   heroCard: {
     marginHorizontal: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     overflow: "hidden",
   },
-  coverWrap: { height: 180, backgroundColor: COLOR.muted },
+  coverWrap: { height: 180, backgroundColor: t.color.surfaceSunk },
   cover: { width: "100%", height: "100%" },
   coverFallback: { padding: 14, justifyContent: "flex-end", gap: 6 },
   coverIcon: {
@@ -190,8 +201,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  coverTitle: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 14 },
-  coverMeta: { color: "rgba(255,255,255,0.7)", fontFamily: FONT.body, fontSize: 12 },
+  coverTitle: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
+  coverMeta: { color: "rgba(255,255,255,0.7)", fontFamily: t.type.body.fontFamily, fontSize: 12 },
   coverFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 70 },
   coverBadgeRow: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", gap: 8 },
   badge: {
@@ -200,35 +211,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  badgeText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  badgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   heroBody: { padding: 14, gap: 6 },
-  title: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 18 },
-  meta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
-  desc: { color: COLOR.text, fontFamily: FONT.body, fontSize: 13 },
+  title: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 18 },
+  meta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  desc: { color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 13 },
 
   ctaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 },
   primaryBtn: { borderRadius: 12, overflow: "hidden" },
   primaryGrad: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 10 },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   secondaryBtn: {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  secondaryText: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  secondaryText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   sectionHeader: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-  sectionTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
+  sectionTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
 });
 
 

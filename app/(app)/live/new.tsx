@@ -14,7 +14,11 @@ import SelectionSheetField from "@/components/SelectionSheetField";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrade d'accent derive du theme. */
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 const IS_IOS = Platform.OS === "ios";
 
 const fmtDate = (d: Date) =>
@@ -241,7 +245,7 @@ export default function NewLive() {
           </View>
 
           <Pressable style={styles.primary} onPress={save}>
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
               <Ionicons name="calendar" size={18} color={theme.color.textOnPrimary} />
               <Text style={styles.primaryText}>Enregistrer</Text>
             </LinearGradient>

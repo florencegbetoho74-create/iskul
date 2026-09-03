@@ -317,7 +317,7 @@ export default function Settings() {
             onValueChange={toggleNotifications}
             disabled={notifsBusy}
             trackColor={{ false: theme.color.border, true: theme.color.primary }}
-            thumbColor="#fff"
+            thumbColor={theme.color.textOnPrimary}
           />
         </View>
 

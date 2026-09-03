@@ -12,11 +12,12 @@ import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { useFonts } from "@expo-google-fonts/sora";
 import { Sora_600SemiBold, Sora_700Bold } from "@expo-google-fonts/sora";
 import { Manrope_500Medium, Manrope_700Bold } from "@expo-google-fonts/manrope";
-import { COLOR } from "@/theme/colors";
-import { ThemeProvider } from "@/theme/ThemeProvider";
+import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady: boolean }) {
+  // Gate est rendu a l'interieur de ThemeProvider : il peut lire le theme.
+  const { color } = useTheme();
   const { initializing, user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -50,7 +51,7 @@ function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady:
         <View
           style={{
             flex: 1,
-            backgroundColor: COLOR.bg,
+            backgroundColor: color.bg,
             alignItems: "center",
             justifyContent: "center",
             padding: 24,
@@ -63,7 +64,7 @@ function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady:
           <Text
             style={{
               marginTop: 16,
-              color: COLOR.text,
+              color: color.text,
               fontWeight: "600",
               textAlign: "center",
               lineHeight: 20,
@@ -77,14 +78,14 @@ function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady:
               paddingHorizontal: 16,
               paddingVertical: 10,
               borderRadius: 999,
-              backgroundColor: COLOR.primary,
+              backgroundColor: color.primary,
             }}
             onPress={() => {
               console.log("[Auth] retry requested from splash fallback");
               setTimedOut(false);
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Réessayer</Text>
+            <Text style={{ color: color.textOnPrimary, fontWeight: "700" }}>Réessayer</Text>
           </Pressable>
         </View>
       );
@@ -94,7 +95,7 @@ function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady:
       <View
         style={{
           flex: 1,
-          backgroundColor: COLOR.bg,
+          backgroundColor: color.bg,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -112,12 +113,12 @@ function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady:
       <View
         style={{
           flex: 1,
-          backgroundColor: COLOR.bg,
+          backgroundColor: color.bg,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Text style={{ color: COLOR.text, fontSize: 16 }}>Chargement des polices…</Text>
+        <Text style={{ color: color.text, fontSize: 16 }}>Chargement des polices…</Text>
       </View>
     );
   }

@@ -25,7 +25,7 @@ export default function CourseItem({ item }: { item: any }) {
       <TouchableOpacity style={styles.card} activeOpacity={0.92}>
         <View style={[styles.thumb, styles.thumbFallback]}>
           <View style={styles.thumbIcon}>
-            <Ionicons name="play" size={16} color="#fff" />
+            <Ionicons name="play" size={16} color={theme.color.onMedia} />
           </View>
           <Text numberOfLines={2} style={styles.thumbTitle}>{fallbackTitle}</Text>
           <Text style={styles.thumbMeta}>{fallbackMeta}</Text>
@@ -55,7 +55,7 @@ const makeStyles = (t: Theme) =>
     elevation: 2,
   },
   thumb: { width: "100%", aspectRatio: 16 / 9, backgroundColor: t.color.surfaceSunk },
-  thumbFallback: { padding: 12, justifyContent: "flex-end", gap: 6, backgroundColor: "#0f172a" },
+  thumbFallback: { padding: 12, justifyContent: "flex-end", gap: 6, backgroundColor: t.color.media },
   thumbIcon: {
     height: 28,
     width: 28,
@@ -64,7 +64,7 @@ const makeStyles = (t: Theme) =>
     alignItems: "center",
     justifyContent: "center",
   },
-  thumbTitle: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  thumbTitle: { color: t.color.onMedia, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: t.type.body.fontFamily, fontSize: 11 },
   meta: { padding: 12, gap: 6 },
   title: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },

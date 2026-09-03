@@ -5,10 +5,19 @@ import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { supabase } from "@/lib/supabase";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
-const BG = ["#F4EEE6", "#EAF1FF", "#F4F7EE"] as const;
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 const isEmail = (s: string) => /^\S+@\S+\.\S+$/.test(s || "");
 
@@ -24,6 +33,7 @@ function getErrorMessage(error: any): string {
 }
 
 export default function TeacherPortal() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -81,12 +91,12 @@ export default function TeacherPortal() {
   };
 
   return (
-    <LinearGradient colors={BG} style={styles.page}>
+    <LinearGradient colors={backgroundGradient(theme)} style={styles.page}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
           <View style={styles.heroRow}>
             <View style={styles.heroBadge}>
-              <Ionicons name="shield-checkmark-outline" size={14} color={COLOR.text} />
+              <Ionicons name="shield-checkmark-outline" size={14} color={theme.color.text} />
               <Text style={styles.heroBadgeText}>Portail prive</Text>
             </View>
             <Text style={styles.heroTitle}>Inscription Professeur</Text>
@@ -148,7 +158,7 @@ export default function TeacherPortal() {
             {success ? <Text style={styles.success}>{success}</Text> : null}
 
             <Pressable onPress={onSubmit} disabled={disabled} style={{ marginTop: 14 }}>
-              <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.cta, disabled && { opacity: 0.6 }]}>
+              <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.cta, disabled && { opacity: 0.6 }]}>
                 <Text style={styles.ctaText}>{loading ? "Creation..." : "Creer mon compte prof"}</Text>
               </LinearGradient>
             </Pressable>
@@ -190,6 +200,7 @@ function Field({
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   keyboardType?: "default" | "email-address";
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={{ flex: 1, minWidth: 220 }}>
       <Text style={styles.label}>{label}</Text>
@@ -197,7 +208,7 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#7D8696"
+        placeholderTextColor={theme.color.textFaint}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
@@ -207,7 +218,8 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   page: { flex: 1 },
   wrap: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 28, paddingBottom: 28, alignItems: "center" },
   heroRow: { width: "100%", maxWidth: 980 },
@@ -217,15 +229,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  heroBadgeText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  heroTitle: { marginTop: 10, color: COLOR.text, fontFamily: FONT.heading, fontSize: 30 },
-  heroSub: { marginTop: 6, color: COLOR.sub, fontFamily: FONT.body, maxWidth: 720 },
+  heroBadgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  heroTitle: { marginTop: 10, color: t.color.text, fontFamily: t.type.title.fontFamily, fontSize: 30 },
+  heroSub: { marginTop: 6, color: t.color.textMuted, fontFamily: t.type.body.fontFamily, maxWidth: 720 },
   card: {
     width: "100%",
     maxWidth: 980,
@@ -233,47 +245,47 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     backgroundColor: "rgba(255,255,255,0.92)",
     gap: 10,
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.1,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },
     elevation: 4,
   },
   row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12, marginBottom: 6 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: "#F9FBFF",
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
   },
-  error: { marginTop: 8, color: "#B91C1C", fontFamily: FONT.bodyBold },
-  success: { marginTop: 8, color: "#15803D", fontFamily: FONT.bodyBold },
+  error: { marginTop: 8, color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily },
+  success: { marginTop: 8, color: t.color.success, fontFamily: t.type.bodyStrong.fontFamily },
   cta: {
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
   },
-  ctaText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 15 },
+  ctaText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 15 },
   footerRow: { marginTop: 10, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  footerText: { color: COLOR.sub, fontFamily: FONT.body },
+  footerText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   ghostBtn: {
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
   },
-  ghostText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  ghostText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 });
 
 

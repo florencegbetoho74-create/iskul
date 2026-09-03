@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import {
   listAdminUsers,
   setAdminUserAdmin,
@@ -21,6 +22,7 @@ const fmtDate = (ms?: number | null) => {
 };
 
 export default function AdminUsers() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function AdminUsers() {
           <Text style={styles.subtitle}>{loading ? "Chargement..." : `${filtered.length} comptes`}</Text>
         </View>
         <Pressable style={styles.refreshBtn} onPress={load}>
-          <Ionicons name="refresh" size={18} color={COLOR.text} />
+          <Ionicons name="refresh" size={18} color={theme.color.text} />
           <Text style={styles.refreshText}>Rafraichir</Text>
         </Pressable>
       </View>
@@ -115,17 +117,17 @@ export default function AdminUsers() {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={16} color={COLOR.sub} />
+        <Ionicons name="search" size={16} color={theme.color.textMuted} />
         <TextInput
           value={q}
           onChangeText={setQ}
           placeholder="Rechercher (nom, email, ecole, classe)"
-          placeholderTextColor={COLOR.sub}
+          placeholderTextColor={theme.color.textMuted}
           style={styles.searchInput}
         />
         {!!q && (
           <Pressable onPress={() => setQ("")} hitSlop={6}>
-            <Ionicons name="close" size={16} color={COLOR.sub} />
+            <Ionicons name="close" size={16} color={theme.color.textMuted} />
           </Pressable>
         )}
       </View>
@@ -182,68 +184,69 @@ export default function AdminUsers() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   container: { padding: 20, paddingBottom: 32, gap: 16 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   refreshBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  refreshText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  errorText: { color: COLOR.danger, fontFamily: FONT.body },
+  refreshText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  errorText: { color: t.color.danger, fontFamily: t.type.body.fontFamily },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 8,
   },
-  searchInput: { flex: 1, color: COLOR.text, fontFamily: FONT.body },
+  searchInput: { flex: 1, color: t.color.text, fontFamily: t.type.body.fontFamily },
   table: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     overflow: "hidden",
   },
   tableHeader: {
     flexDirection: "row",
     padding: 12,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderBottomWidth: 1,
-    borderBottomColor: COLOR.border,
+    borderBottomColor: t.color.border,
   },
-  th: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
+  th: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   tableRow: {
     flexDirection: "row",
     padding: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLOR.border,
+    borderBottomColor: t.color.border,
     gap: 10,
   },
-  td: { color: COLOR.text, fontFamily: FONT.body, fontSize: 13 },
-  meta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11, marginTop: 2 },
+  td: { color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 13 },
+  meta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, marginTop: 2 },
   actionBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.bg,
+    borderColor: t.color.border,
+    backgroundColor: t.color.bg,
   },
-  actionText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 11 },
-  emptyText: { color: COLOR.sub, fontFamily: FONT.body, padding: 16 },
+  actionText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  emptyText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, padding: 16 },
 });

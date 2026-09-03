@@ -760,7 +760,7 @@ const makeStyles = (t: Theme) =>
     paddingVertical: 6,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
-  attImgText: { color: "#fff", fontSize: 11, fontFamily: t.type.bodyStrong.fontFamily },
+  attImgText: { color: t.color.textOnPrimary, fontSize: 11, fontFamily: t.type.bodyStrong.fontFamily },
 
   pendingCard: {
     flexDirection: "row",

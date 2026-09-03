@@ -555,7 +555,7 @@ export default function LiveRoom() {
 
           {joining && (
             <View style={styles.overlay}>
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.color.textOnPrimary} />
               <Text style={styles.overlayText}>Connexion...</Text>
             </View>
           )}
@@ -918,7 +918,7 @@ const makeStyles = (t: Theme) =>
 
   stage: {
     height: 320,
-    backgroundColor: "#0B0B0C",
+    backgroundColor: t.color.media,
     borderRadius: t.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
@@ -934,9 +934,9 @@ const makeStyles = (t: Theme) =>
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  stageLabelText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  stageLabelText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   emptyStage: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
-  emptyStageText: { color: "#fff", fontFamily: t.type.heading.fontFamily, fontSize: 14, textAlign: "center" },
+  emptyStageText: { color: t.color.textOnPrimary, fontFamily: t.type.heading.fontFamily, fontSize: 14, textAlign: "center" },
   linkBtn: {
     marginTop: 6,
     flexDirection: "row",
@@ -957,7 +957,7 @@ const makeStyles = (t: Theme) =>
     paddingVertical: 8,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
-  overlayText: { color: "#fff", fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 4 },
+  overlayText: { color: t.color.textOnPrimary, fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 4 },
   liveBadge: {
     position: "absolute",
     top: 12,
@@ -970,8 +970,8 @@ const makeStyles = (t: Theme) =>
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  liveDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: "#EF4444" },
-  liveBadgeText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  liveDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: t.color.danger },
+  liveBadgeText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 
   thumbRow: { gap: 8, paddingVertical: 2 },
   thumb: {
@@ -981,7 +981,7 @@ const makeStyles = (t: Theme) =>
     overflow: "hidden",
     borderWidth: 1,
     borderColor: t.color.border,
-    backgroundColor: "#0B0B0C",
+    backgroundColor: t.color.media,
   },
   thumbActive: { borderColor: t.color.primary, borderWidth: 2 },
   thumbVideo: { width: "100%", height: "100%" },
@@ -994,7 +994,7 @@ const makeStyles = (t: Theme) =>
     paddingVertical: 3,
     backgroundColor: "rgba(0,0,0,0.55)",
   },
-  thumbLabelText: { color: "#fff", fontFamily: t.type.body.fontFamily, fontSize: 10 },
+  thumbLabelText: { color: t.color.textOnPrimary, fontFamily: t.type.body.fontFamily, fontSize: 10 },
   thumbHand: { position: "absolute", top: 4, right: 4 },
   thumbHandText: { fontSize: 13 },
   thumbMuted: {

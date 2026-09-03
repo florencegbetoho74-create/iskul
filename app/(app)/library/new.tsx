@@ -7,7 +7,8 @@ import * as DocumentPicker from "expo-document-picker";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { uploadOne } from "@/lib/upload";
 import { addBook } from "@/storage/books";
 import { useAuth } from "@/providers/AuthProvider";
@@ -21,6 +22,7 @@ import { isValidExamYear } from "@/lib/documentTaxonomy";
 type SourceType = "link" | "upload";
 
 export default function NewBook() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user, canAccessAdmin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -113,7 +115,7 @@ export default function NewBook() {
     return (
       <View style={[styles.container, { padding: 16 }]}>
         <Text style={styles.title}>Acces refuse</Text>
-        <Text style={{ color: COLOR.sub, marginTop: 4 }}>Seuls les enseignants peuvent ajouter des documents.</Text>
+        <Text style={{ color: theme.color.textMuted, marginTop: 4 }}>Seuls les enseignants peuvent ajouter des documents.</Text>
       </View>
     );
   }
@@ -256,7 +258,7 @@ export default function NewBook() {
 
       <View style={styles.card}>
         <Text style={styles.label}>Titre</Text>
-        <TextInput placeholder="Titre" placeholderTextColor={COLOR.sub} style={styles.input} value={title} onChangeText={setTitle} />
+        <TextInput placeholder="Titre" placeholderTextColor={theme.color.textMuted} style={styles.input} value={title} onChangeText={setTitle} />
 
         <SelectionSheetField
           label="Type de document"
@@ -276,7 +278,7 @@ export default function NewBook() {
             <Text style={styles.label}>Examen</Text>
             <TextInput
               placeholder="Ex: BEPC, BAC, Composition"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.input}
               value={examName}
               onChangeText={setExamName}
@@ -285,7 +287,7 @@ export default function NewBook() {
             <Text style={styles.label}>Session</Text>
             <TextInput
               placeholder="Ex: Juin"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.input}
               value={examSession}
               onChangeText={setExamSession}
@@ -294,7 +296,7 @@ export default function NewBook() {
             <Text style={styles.label}>Annee</Text>
             <TextInput
               placeholder="Ex: 2024"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               keyboardType="number-pad"
               maxLength={4}
               style={styles.input}
@@ -309,7 +311,7 @@ export default function NewBook() {
             <Text style={styles.label}>Auteur</Text>
             <TextInput
               placeholder="Ex: Olympe Bhely-Quenum"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.input}
               value={author}
               onChangeText={setAuthor}
@@ -346,7 +348,7 @@ export default function NewBook() {
       </View>
 
       <Pressable style={[styles.secondary, busy && { opacity: 0.6 }]} onPress={pickCover} disabled={busy}>
-        <Ionicons name="image" size={18} color={COLOR.text} />
+        <Ionicons name="image" size={18} color={theme.color.text} />
         <Text style={styles.secondaryText}>{coverUrl ? "Changer la couverture" : "Importer une couverture"}</Text>
       </Pressable>
       {coverProgress != null && <ProgressLine label="Upload couverture" value={coverProgress} />}
@@ -356,14 +358,14 @@ export default function NewBook() {
           style={[styles.toggle, sourceType === "link" && styles.toggleActive]}
           onPress={() => setSourceType("link")}
         >
-          <Ionicons name="link" size={14} color={sourceType === "link" ? "#fff" : COLOR.sub} />
+          <Ionicons name="link" size={14} color={sourceType === "link" ? theme.color.textOnPrimary : theme.color.textMuted} />
           <Text style={[styles.toggleText, sourceType === "link" && styles.toggleTextActive]}>Lien externe</Text>
         </Pressable>
         <Pressable
           style={[styles.toggle, sourceType === "upload" && styles.toggleActive]}
           onPress={() => setSourceType("upload")}
         >
-          <Ionicons name="cloud-upload" size={14} color={sourceType === "upload" ? "#fff" : COLOR.sub} />
+          <Ionicons name="cloud-upload" size={14} color={sourceType === "upload" ? theme.color.textOnPrimary : theme.color.textMuted} />
           <Text style={[styles.toggleText, sourceType === "upload" && styles.toggleTextActive]}>Uploader un fichier</Text>
         </Pressable>
       </View>
@@ -373,7 +375,7 @@ export default function NewBook() {
           <Text style={styles.label}>Lien du document</Text>
           <TextInput
             placeholder="URL du PDF/EPUB"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             style={styles.input}
             autoCapitalize="none"
             autoCorrect={false}
@@ -390,7 +392,7 @@ export default function NewBook() {
 
       {sourceType === "upload" ? (
         <Pressable style={[styles.secondary, busy && { opacity: 0.6 }]} onPress={pickFileAndUpload} disabled={busy}>
-          <Ionicons name="document-text" size={18} color={COLOR.text} />
+          <Ionicons name="document-text" size={18} color={theme.color.text} />
           <Text style={styles.secondaryText}>{fileUrl ? "Remplacer le fichier" : "Importer le fichier"}</Text>
         </Pressable>
       ) : null}
@@ -415,7 +417,7 @@ export default function NewBook() {
                     startInLoadingState
                     renderLoading={() => (
                       <View style={styles.loader}>
-                        <ActivityIndicator color={COLOR.primary} />
+                        <ActivityIndicator color={theme.color.primary} />
                         <Text style={styles.loaderText}>Chargement du PDF…</Text>
                       </View>
                     )}
@@ -423,7 +425,7 @@ export default function NewBook() {
                 </View>
               ) : (
                 <Pressable style={styles.openBtn} onPress={() => viewerUrl && WebBrowser.openBrowserAsync(viewerUrl)}>
-                  <Ionicons name="link" size={14} color="#fff" />
+                  <Ionicons name="link" size={14} color={theme.color.textOnPrimary} />
                   <Text style={styles.openBtnText}>Ouvrir l'aperçu</Text>
                 </Pressable>
               )}
@@ -441,6 +443,7 @@ export default function NewBook() {
 }
 
 function ProgressLine({ label, value }: { label: string; value: number }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const pct = Math.max(0, Math.min(100, value || 0));
   return (
     <View style={styles.progressWrap} accessibilityRole="progressbar" accessibilityValue={{ now: pct, min: 0, max: 100 }}>
@@ -483,35 +486,36 @@ function normalizeCloudLink(raw: string): string {
   return u;
 }
 
-const styles = StyleSheet.create({
-  errorText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, marginTop: 4 },
-  container: { flex: 1, backgroundColor: COLOR.bg },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, marginTop: 6, fontFamily: FONT.body },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  errorText: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12, marginTop: 4 },
+  container: { flex: 1, backgroundColor: t.color.bg },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, marginTop: 6, fontFamily: t.type.body.fontFamily },
 
   card: {
     marginTop: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     gap: 10,
   },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   input: {
-    backgroundColor: COLOR.muted,
-    color: COLOR.text,
+    backgroundColor: t.color.surfaceSunk,
+    color: t.color.text,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    fontFamily: FONT.body,
+    borderColor: t.color.border,
+    fontFamily: t.type.body.fontFamily,
   },
 
   secondary: {
     marginTop: 12,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 14,
     padding: 14,
     alignItems: "center",
@@ -519,9 +523,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  secondaryText: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  secondaryText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   toggleRow: { flexDirection: "row", gap: 10, marginTop: 16 },
   toggle: {
@@ -533,44 +537,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     gap: 6,
   },
-  toggleActive: { backgroundColor: COLOR.primary, borderColor: COLOR.primary },
-  toggleText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
-  toggleTextActive: { color: "#fff" },
+  toggleActive: { backgroundColor: t.color.primary, borderColor: t.color.primary },
+  toggleText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  toggleTextActive: { color: t.color.textOnPrimary },
 
-  note: { color: COLOR.sub, fontSize: 12, marginTop: 6, fontFamily: FONT.body },
+  note: { color: t.color.textMuted, fontSize: 12, marginTop: 6, fontFamily: t.type.body.fontFamily },
 
   primary: {
     marginTop: 16,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     borderRadius: 14,
     padding: 14,
     alignItems: "center",
   },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   previewCard: {
     marginTop: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     gap: 12,
   },
-  previewTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 },
+  previewTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
   previewBlock: { gap: 8 },
-  previewLabel: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
-  coverPreview: { width: "100%", height: 160, borderRadius: 12, borderWidth: 1, borderColor: COLOR.border },
-  viewer: { height: 280, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: COLOR.border },
-  loader: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: COLOR.muted },
-  loaderText: { color: COLOR.sub, fontFamily: FONT.body },
+  previewLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  coverPreview: { width: "100%", height: 160, borderRadius: 12, borderWidth: 1, borderColor: t.color.border },
+  viewer: { height: 280, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: t.color.border },
+  loader: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: t.color.surfaceSunk },
+  loaderText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
   openBtn: {
     alignSelf: "flex-start",
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -578,17 +582,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  openBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  openBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   progressWrap: { marginTop: 6, gap: 4 },
-  progressLabel: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  progressLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   progressBar: {
     height: 8,
     borderRadius: 8,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  progressFill: { height: "100%", backgroundColor: COLOR.primary },
+  progressFill: { height: "100%", backgroundColor: t.color.primary },
 });
