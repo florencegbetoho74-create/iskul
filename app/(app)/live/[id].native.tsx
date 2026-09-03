@@ -1,29 +1,54 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
   ActivityIndicator,
   Alert,
-  ScrollView,
-  Platform,
-  PermissionsAndroid,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
+  PermissionsAndroid,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
+import * as ScreenOrientation from "expo-screen-orientation";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { COLOR, FONT, RADIUS } from "@/theme/colors";
 import TopBar from "@/components/TopBar";
 import { getLive, setStatus } from "@/storage/lives";
 import { addLiveJoin } from "@/storage/usage";
 import { useAuth } from "@/providers/AuthProvider";
 import { fetchAgoraToken } from "@/lib/agora";
 import { supabase } from "@/lib/supabase";
+import {
+  getAttendance,
+  heartbeatLive,
+  joinLive,
+  leaveLive,
+  moderateParticipant,
+  postLiveMessage,
+  setHandRaised,
+  watchLiveMessages,
+  watchParticipants,
+  type AttendanceRow,
+  type LiveMessage,
+  type LiveParticipant,
+} from "@/storage/liveRoom";
+import {
+  formatDuration,
+  micDisabled,
+  presentOnly,
+  raisedHands,
+  sortRoster,
+  tileLabel,
+} from "@/lib/liveRoster";
 
-type Participant = { uid: number; userName: string };
 type AgoraModule = {
   ChannelProfileType: { ChannelProfileLiveBroadcasting: number };
   ClientRoleType: { ClientRoleBroadcaster: number; ClientRoleAudience: number };
@@ -31,9 +56,16 @@ type AgoraModule = {
   RtcSurfaceView: React.ComponentType<any>;
 };
 
+type Panel = "none" | "chat" | "people" | "attendance";
+
+const HEARTBEAT_MS = 30_000;
+
 function fmtWhen(ts: number) {
-  const d = new Date(ts);
-  return d.toLocaleString();
+  return new Date(ts).toLocaleString();
+}
+
+function fmtTime(ms: number) {
+  return new Date(ms).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function makeUid(userId?: string | null) {
@@ -45,15 +77,14 @@ function makeUid(userId?: string | null) {
 }
 
 function isHttpUrl(value?: string | null) {
-  const raw = String(value || "").trim();
-  if (!raw) return false;
-  return /^https?:\/\/\S+$/i.test(raw);
+  return /^https?:\/\/\S+$/i.test(String(value || "").trim());
 }
 
 export default function LiveRoom() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const liveId = String(id || "");
   const { user } = useAuth();
-  const appId = (process.env as any)?.EXPO_PUBLIC_AGORA_APP_ID || "43e30d99341342d2b81b14e67ad3edd0";
+  const appId = (process.env as any)?.EXPO_PUBLIC_AGORA_APP_ID || "";
   const engineRef = useRef<any | null>(null);
 
   const [live, setLive] = useState<any | null>(null);
@@ -69,39 +100,120 @@ export default function LiveRoom() {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [channelName, setChannelName] = useState("");
-  const RtcSurface = agoraModule?.RtcSurfaceView;
 
-  const isOwner = !!user && live && user.id === live.ownerId;
-  const statusTone = live?.status === "live" ? COLOR.success : live?.status === "ended" ? COLOR.sub : COLOR.warn;
+  const [roster, setRoster] = useState<LiveParticipant[]>([]);
+  const [messages, setMessages] = useState<LiveMessage[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
+  const [panel, setPanel] = useState<Panel>("none");
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [moderating, setModerating] = useState<LiveParticipant | null>(null);
+
+  const RtcSurface = agoraModule?.RtcSurfaceView;
+  const isOwner = !!user && !!live && user.id === live.ownerId;
   const externalUrl = useMemo(
     () => (isHttpUrl(live?.streamingUrl) ? String(live?.streamingUrl).trim() : null),
     [live?.streamingUrl]
   );
 
+  const me = useMemo(
+    () => roster.find((p) => p.userId === user?.id) ?? null,
+    [roster, user?.id]
+  );
+  const present = useMemo(() => sortRoster(presentOnly(roster)), [roster]);
+  const hands = useMemo(() => raisedHands(roster), [roster]);
+  const handRaised = !!me?.handRaisedAtMs;
+  const forcedMute = micDisabled(me);
+
+  /* ---------------------------------------------------------------- seance */
   useEffect(() => {
     (async () => {
-      if (!id) return;
+      if (!liveId) return;
       setLoading(true);
-      const l = await getLive(id);
-      setLive(l ?? null);
+      setLive((await getLive(liveId)) ?? null);
       setLoading(false);
     })();
-  }, [id]);
+  }, [liveId]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!liveId) return;
     const channel = supabase
-      .channel(`live-status-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "lives", filter: `id=eq.${id}` }, async () => {
-        const next = await getLive(id);
-        if (next) setLive(next);
-      })
+      .channel(`live-status-${liveId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lives", filter: `id=eq.${liveId}` },
+        async () => {
+          const next = await getLive(liveId);
+          if (next) setLive(next);
+        }
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id]);
+  }, [liveId]);
 
+  // La video merite l'ecran entier : le verrou portrait du layout racine est
+  // leve le temps de la seance.
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    ScreenOrientation.unlockAsync().catch(() => {});
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    };
+  }, []);
+
+  /* ------------------------------------------------------------- roster */
+  useEffect(() => {
+    if (!liveId || !joined) return;
+    const stopRoster = watchParticipants(liveId, setRoster);
+    const stopMessages = watchLiveMessages(liveId, setMessages);
+    return () => {
+      stopRoster();
+      stopMessages();
+    };
+  }, [liveId, joined]);
+
+  useEffect(() => {
+    if (!liveId || !joined) return;
+    const timer = setInterval(() => {
+      heartbeatLive(liveId).catch(() => {});
+    }, HEARTBEAT_MS);
+    return () => clearInterval(timer);
+  }, [liveId, joined]);
+
+  // Quitter l'ecran sans prevenir la base laisserait le participant "present"
+  // indefiniment sur la feuille de presence.
+  useEffect(() => {
+    return () => {
+      if (liveId) leaveLive(liveId).catch(() => {});
+    };
+  }, [liveId]);
+
+  // Le silence impose par l'animateur doit couper le flux, pas seulement
+  // l'affichage.
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine || !joined) return;
+    if (forcedMute && micOn) {
+      engine.muteLocalAudioStream(true);
+      setMicOn(false);
+    }
+  }, [forcedMute, joined, micOn]);
+
+  // Un participant exclu est sorti de la salle sans attendre son accord.
+  useEffect(() => {
+    if (!joined || !me?.isBanned) return;
+    const engine = engineRef.current;
+    if (engine) {
+      engine.stopPreview();
+      engine.leaveChannel();
+    }
+    setJoined(false);
+    Alert.alert("Seance quittee", "L'animateur vous a retire de cette seance.");
+  }, [joined, me?.isBanned]);
+
+  /* -------------------------------------------------------------- agora */
   const ensurePermissions = useCallback(async () => {
     if (Platform.OS !== "android") return true;
     try {
@@ -109,24 +221,23 @@ export default function LiveRoom() {
         PermissionsAndroid.PERMISSIONS.CAMERA,
         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
       ]);
-      const okCamera = result[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED;
-      const okAudio = result[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
-      return okCamera && okAudio;
+      return (
+        result[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED &&
+        result[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED
+      );
     } catch {
       return false;
     }
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === "web") return;
-    if (!appId) return;
+    if (Platform.OS === "web" || !appId) return;
     let mod: AgoraModule | null = null;
     try {
-      // Keep Agora loading runtime-only so web bundling does not resolve the native module.
       const runtimeRequire = (globalThis as any).require ?? (0, eval)("require");
       mod = runtimeRequire("react-native-agora") as AgoraModule;
     } catch {
-      setAgoraError("Agora SDK indisponible sur cette build. Utilisez un dev build, pas Expo Go.");
+      setAgoraError("Agora indisponible sur cette build. Utilisez un dev build, pas Expo Go.");
       setAgoraModule(null);
       setEngineReady(false);
       return;
@@ -142,16 +253,16 @@ export default function LiveRoom() {
     setEngineReady(true);
 
     const handler: any = {
-      onJoinChannelSuccess: (_connection: any, uid: number) => {
+      onJoinChannelSuccess: (_c: any, uid: number) => {
         setJoined(true);
         setLocalUid(uid);
         setActiveUid((prev) => prev ?? uid);
       },
-      onUserJoined: (_connection: any, uid: number) => {
+      onUserJoined: (_c: any, uid: number) => {
         setRemoteUids((prev) => (prev.includes(uid) ? prev : [...prev, uid]));
         setActiveUid((prev) => prev ?? uid);
       },
-      onUserOffline: (_connection: any, uid: number) => {
+      onUserOffline: (_c: any, uid: number) => {
         setRemoteUids((prev) => prev.filter((u) => u !== uid));
         setActiveUid((prev) => (prev === uid ? null : prev));
       },
@@ -161,7 +272,7 @@ export default function LiveRoom() {
         setActiveUid(null);
       },
       onError: (err: number) => {
-        if (Number.isFinite(err)) Alert.alert("Agora", `Erreur: ${err}`);
+        if (Number.isFinite(err)) Alert.alert("Agora", `Erreur ${err}`);
       },
     };
     engine.registerEventHandler(handler);
@@ -186,47 +297,36 @@ export default function LiveRoom() {
     if (next) setActiveUid(next);
   }, [activeUid, remoteUids, localUid, joined]);
 
-  const participants = useMemo<Participant[]>(() => {
-    if (!joined) return [];
-    const list: Participant[] = [];
-    if (localUid) list.push({ uid: localUid, userName: user?.name || "Moi" });
-    remoteUids.forEach((uid) => list.push({ uid, userName: `Participant ${uid}` }));
-    return list;
-  }, [joined, localUid, remoteUids, user?.name]);
-
   const joinSession = useCallback(
     async (role: "host" | "attendee") => {
       if (!user?.id || !live) return;
-      if (Platform.OS === "web") {
-        Alert.alert("Indisponible", "Le live video n'est pas supporte sur web.");
-        return;
-      }
       if (!appId) {
         Alert.alert("Indisponible", "AGORA_APP_ID manquant dans l'app.");
         return;
       }
-      const engine = engineRef.current;
-      if (!engine || !engineReady || !agoraModule) {
-        Alert.alert("Indisponible", "Agora SDK indisponible sur cet appareil.");
-        return;
-      }
-      const okPerms = await ensurePermissions();
-      if (!okPerms) {
-        Alert.alert("Permissions", "Autorisez la camera et le micro pour rejoindre le live.");
-        return;
-      }
+
+      const uid = makeUid(user.id);
       try {
         setJoining(true);
-        const uid = makeUid(user.id);
+
+        // L'inscription en base precede la connexion video : c'est elle qui
+        // associe l'identifiant Agora a un nom.
+        await joinLive(live.id, uid);
+
         if (externalUrl) {
-          if (role === "host" && live.status !== "live") {
-            const next = await setStatus(live.id, "live");
-            setLive(next);
-          }
-          if (role === "attendee") {
-            addLiveJoin(user.id).catch(() => {});
-          }
+          if (role === "host" && live.status !== "live") setLive(await setStatus(live.id, "live"));
+          if (role === "attendee") addLiveJoin(user.id).catch(() => {});
           await Linking.openURL(externalUrl);
+          return;
+        }
+
+        const engine = engineRef.current;
+        if (!engine || !engineReady || !agoraModule) {
+          Alert.alert("Indisponible", "Agora indisponible sur cet appareil.");
+          return;
+        }
+        if (!(await ensurePermissions())) {
+          Alert.alert("Permissions", "Autorisez la camera et le micro pour rejoindre.");
           return;
         }
 
@@ -234,68 +334,43 @@ export default function LiveRoom() {
         const tokenRes = await fetchAgoraToken({ channelName: channel, uid, role });
         setChannelName(tokenRes.channelName);
         setLocalUid(uid);
-        engine.setClientRole(
+
+        const clientRole =
           role === "host"
             ? agoraModule.ClientRoleType.ClientRoleBroadcaster
-            : agoraModule.ClientRoleType.ClientRoleAudience
-        );
+            : agoraModule.ClientRoleType.ClientRoleAudience;
+        engine.setClientRole(clientRole);
         engine.joinChannel(tokenRes.token, tokenRes.channelName, uid, {
           autoSubscribeAudio: true,
           autoSubscribeVideo: true,
           publishCameraTrack: role === "host",
           publishMicrophoneTrack: role === "host",
-          clientRoleType:
-            role === "host"
-              ? agoraModule.ClientRoleType.ClientRoleBroadcaster
-              : agoraModule.ClientRoleType.ClientRoleAudience,
+          clientRoleType: clientRole,
         });
-        if (role === "attendee") {
-          addLiveJoin(user.id).catch(() => {});
-        }
-        if (role === "host") engine.startPreview();
+
+        if (role === "attendee") addLiveJoin(user.id).catch(() => {});
         if (role === "host") {
-          const next = await setStatus(live.id, "live");
-          setLive(next);
+          engine.startPreview();
+          setLive(await setStatus(live.id, "live"));
         }
       } catch (e: any) {
-        Alert.alert("Erreur", e?.message || "Impossible de rejoindre le live.");
+        Alert.alert("Erreur", e?.message || "Impossible de rejoindre la seance.");
       } finally {
         setJoining(false);
       }
     },
-    [live, user?.id, user?.name, user?.email, ensurePermissions, appId, engineReady, agoraModule, externalUrl]
+    [live, user?.id, ensurePermissions, appId, engineReady, agoraModule, externalUrl]
   );
-
-  const openExternal = useCallback(async () => {
-    if (!externalUrl) return;
-    try {
-      await Linking.openURL(externalUrl);
-    } catch {
-      Alert.alert("Lien invalide", "Impossible d'ouvrir ce lien live.");
-    }
-  }, [externalUrl]);
-
-  const endLiveForAll = useCallback(async () => {
-    if (!live) return;
-    const next = await setStatus(live.id, "ended").catch(() => null);
-    if (next) setLive(next);
-    const engine = engineRef.current;
-    if (engine) {
-      engine.stopPreview();
-      engine.leaveChannel();
-    }
-    setJoined(false);
-    setRemoteUids([]);
-    setActiveUid(null);
-  }, [live]);
 
   const leaveSession = useCallback(
     async (endForAll: boolean) => {
       if (!live) return;
       const engine = engineRef.current;
-      if (!engine) return;
-      engine.stopPreview();
-      engine.leaveChannel();
+      if (engine) {
+        engine.stopPreview();
+        engine.leaveChannel();
+      }
+      await leaveLive(live.id).catch(() => {});
       if (endForAll) {
         const next = await setStatus(live.id, "ended").catch(() => null);
         if (next) setLive(next);
@@ -307,216 +382,444 @@ export default function LiveRoom() {
     [live]
   );
 
-  const toggleMic = useCallback(async () => {
+  /* ------------------------------------------------------------ actions */
+  const toggleMic = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
-    try {
-      engine.muteLocalAudioStream(micOn);
-      setMicOn((v) => !v);
-    } catch {
-      // ignore
+    if (forcedMute) {
+      Alert.alert("Micro coupe", "L'animateur a coupe votre micro.");
+      return;
     }
-  }, [micOn]);
+    engine.muteLocalAudioStream(micOn);
+    setMicOn((v) => !v);
+  }, [micOn, forcedMute]);
 
-  const toggleCam = useCallback(async () => {
+  const toggleCam = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
-    try {
-      engine.muteLocalVideoStream(camOn);
-      setCamOn((v) => !v);
-    } catch {
-      // ignore
-    }
+    engine.muteLocalVideoStream(camOn);
+    setCamOn((v) => !v);
   }, [camOn]);
 
-  const switchCam = useCallback(async () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.switchCamera();
-  }, []);
+  const toggleHand = useCallback(async () => {
+    if (!liveId) return;
+    try {
+      await setHandRaised(liveId, !handRaised);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Action impossible.");
+    }
+  }, [liveId, handRaised]);
+
+  const sendMessage = useCallback(async () => {
+    const text = draft.trim();
+    if (!text || !liveId || sending) return;
+    setSending(true);
+    try {
+      await postLiveMessage(liveId, text);
+      setDraft("");
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Message non envoye.");
+    } finally {
+      setSending(false);
+    }
+  }, [draft, liveId, sending]);
+
+  const runModeration = useCallback(
+    async (target: LiveParticipant, action: "mute" | "unmute" | "lower_hand" | "kick") => {
+      try {
+        await moderateParticipant(liveId, target.userId, action);
+        setModerating(null);
+      } catch (e: any) {
+        Alert.alert("Erreur", e?.message || "Moderation impossible.");
+      }
+    },
+    [liveId]
+  );
+
+  const openAttendance = useCallback(async () => {
+    try {
+      setAttendance(await getAttendance(liveId));
+      setPanel("attendance");
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Feuille de presence indisponible.");
+    }
+  }, [liveId]);
 
   const copySession = useCallback(async () => {
     const value = externalUrl || channelName || live?.streamingUrl || live?.id;
     if (!value) return;
     await Clipboard.setStringAsync(value);
-    Alert.alert("Copie", externalUrl ? "Lien live copie." : "Code de session copie.");
+    Alert.alert("Copie", externalUrl ? "Lien copie." : "Code de session copie.");
   }, [channelName, live?.streamingUrl, live?.id, externalUrl]);
 
-  const statusLabel = live?.status === "live" ? "En direct" : live?.status === "ended" ? "Termine" : "Programme";
-  const displaySession = externalUrl || channelName || live?.streamingUrl || live?.id || "";
+  /* ------------------------------------------------------------- rendu */
+  const statusTone =
+    live?.status === "live" ? COLOR.success : live?.status === "ended" ? COLOR.sub : COLOR.warn;
+  const statusLabel =
+    live?.status === "live" ? "En direct" : live?.status === "ended" ? "Termine" : "Programme";
   const primaryUid = activeUid ?? remoteUids[0] ?? (localUid || null);
-  const emptyMessage = useMemo(() => {
+
+  // Les flux effectivement publies : l'animateur et, plus tard, les
+  // intervenants promus. Les autres apparaissent dans le panneau Participants.
+  const videoUids = useMemo(() => {
+    const list = localUid ? [localUid, ...remoteUids] : [...remoteUids];
+    return Array.from(new Set(list)).filter((u) => Number.isFinite(u) && u > 0);
+  }, [localUid, remoteUids]);
+
+  const participantByUid = useMemo(() => {
+    const map = new Map<number, LiveParticipant>();
+    roster.forEach((p) => {
+      if (p.agoraUid !== null) map.set(p.agoraUid, p);
+    });
+    return map;
+  }, [roster]);
+
+  const stageMessage = useMemo(() => {
     if (externalUrl) {
-      if (live?.status === "ended") return "Le live est termine.";
-      return "Ce live se fait via un lien externe.";
+      return live?.status === "ended" ? "La seance est terminee." : "Cette seance passe par un lien externe.";
     }
-    if (Platform.OS === "web") return "Le live video est disponible uniquement sur mobile.";
     if (!appId) return "AGORA_APP_ID manquant dans l'app.";
     if (agoraError) return agoraError;
-    if (!engineReady) return "Agora SDK indisponible. Rebuild l'app.";
-    if (live?.status === "ended") return "Le live est termine.";
-    if (live?.status === "live") return joined ? "Connexion au live..." : "Rejoignez pour voir le live.";
-    return "Le live n'a pas encore demarre.";
+    if (!engineReady) return "Agora indisponible. Reconstruisez l'application.";
+    if (live?.status === "ended") return "La seance est terminee.";
+    if (live?.status === "live") return joined ? "Connexion..." : "Rejoignez pour voir la seance.";
+    return "La seance n'a pas encore commence.";
   }, [live?.status, joined, engineReady, appId, agoraError, externalUrl]);
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: COLOR.bg }]}>
+      <View style={styles.center}>
         <ActivityIndicator color={COLOR.primary} />
-        <Text style={{ color: COLOR.sub, marginTop: 8, fontFamily: FONT.body }}>Chargement...</Text>
       </View>
     );
   }
 
   if (!live) {
     return (
-      <View style={[styles.center, { backgroundColor: COLOR.bg }]}>
-        <Text style={{ color: COLOR.sub }}>Live introuvable.</Text>
+      <View style={styles.center}>
+        <Text style={styles.muted}>Seance introuvable.</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLOR.bg }}>
-      <TopBar title="Live" right={null} />
+    <View style={styles.root}>
+      <TopBar title="Seance en direct" right={null} />
+
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{live.title}</Text>
-          <Text style={styles.meta}>{live.ownerName || "Professeur"} - {fmtWhen(live.startAt)}</Text>
+          <Text style={styles.meta}>
+            {live.ownerName || "Professeur"} · {fmtWhen(live.startAt)}
+          </Text>
           <View style={styles.headerRow}>
-            <View style={[styles.statusPill, { borderColor: statusTone }]}>
-              <View style={[styles.statusDot, { backgroundColor: statusTone }]} />
-              <Text style={styles.statusText}>{statusLabel}</Text>
+            <View style={[styles.pill, { borderColor: statusTone }]}>
+              <View style={[styles.dot, { backgroundColor: statusTone }]} />
+              <Text style={styles.pillText}>{statusLabel}</Text>
             </View>
-            {displaySession ? (
-              <Pressable style={styles.sessionPill} onPress={copySession}>
-                <Ionicons name="copy-outline" size={14} color={COLOR.text} />
-                <Text style={styles.sessionText} numberOfLines={1}>
-                  {externalUrl ? "Lien: " : "Code: "}
-                  {displaySession}
+            {(externalUrl || channelName) && (
+              <Pressable style={styles.pill} onPress={copySession}>
+                <Ionicons name="copy-outline" size={13} color={COLOR.text} />
+                <Text style={styles.pillText} numberOfLines={1}>
+                  {externalUrl ? "Lien" : "Code"}
                 </Text>
               </Pressable>
-            ) : null}
+            )}
           </View>
         </View>
 
         <View style={styles.stage}>
           {joined && primaryUid && engineReady && RtcSurface ? (
-            <RtcSurface style={styles.video} canvas={{ uid: primaryUid }} />
+            <>
+              <RtcSurface style={styles.video} canvas={{ uid: primaryUid }} />
+              <View style={styles.stageLabel}>
+                <Text style={styles.stageLabelText}>
+                  {tileLabel(primaryUid, roster, localUid)}
+                </Text>
+              </View>
+            </>
           ) : (
             <View style={styles.emptyStage}>
               <Ionicons name="videocam-outline" size={28} color={COLOR.sub} />
-              <Text style={styles.emptyTitle}>{emptyMessage}</Text>
-              {externalUrl ? (
-                <Pressable style={styles.openLinkBtn} onPress={openExternal}>
+              <Text style={styles.emptyStageText}>{stageMessage}</Text>
+              {externalUrl && (
+                <Pressable style={styles.linkBtn} onPress={() => Linking.openURL(externalUrl)}>
                   <Ionicons name="open-outline" size={15} color="#fff" />
-                  <Text style={styles.openLinkText}>Ouvrir le lien live</Text>
+                  <Text style={styles.linkBtnText}>Ouvrir le lien</Text>
                 </Pressable>
-              ) : null}
+              )}
             </View>
           )}
-          {joining ? (
-            <View style={styles.loadingOverlay}>
+
+          {joining && (
+            <View style={styles.overlay}>
               <ActivityIndicator color="#fff" />
-              <Text style={styles.loadingText}>Connexion...</Text>
+              <Text style={styles.overlayText}>Connexion...</Text>
             </View>
-          ) : null}
-          {joined ? (
+          )}
+
+          {joined && (
             <View style={styles.liveBadge}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
-              <Text style={styles.liveCount}>{participants.length}</Text>
+              <Text style={styles.liveBadgeText}>LIVE · {present.length}</Text>
             </View>
-          ) : null}
-        </View>
-
-        {joined && participants.length && engineReady && RtcSurface ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
-            {participants.map((p) => (
-              <Pressable
-                key={p.uid}
-                style={[styles.thumb, activeUid === p.uid && styles.thumbActive]}
-                onPress={() => setActiveUid(p.uid)}
-              >
-                <RtcSurface style={styles.thumbVideo} canvas={{ uid: p.uid }} />
-                <View style={styles.thumbLabel}>
-                  <Text style={styles.thumbText} numberOfLines={1}>
-                    {p.userName || "Participant"}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
-        ) : null}
-
-        <View style={styles.controls}>
-          {externalUrl ? (
-            isOwner ? (
-              live.status === "ended" ? (
-                <ControlButton icon="checkmark-circle" label="Termine" onPress={() => {}} disabled />
-              ) : live.status === "live" ? (
-                <>
-                  <ControlButton icon="open-outline" label="Ouvrir lien" onPress={openExternal} primary />
-                  <ControlButton icon="stop" label="Terminer" onPress={endLiveForAll} danger />
-                </>
-              ) : (
-                <ControlButton icon="radio" label="Demarrer" onPress={() => joinSession("host")} primary />
-              )
-            ) : live.status === "live" ? (
-              <ControlButton icon="open-outline" label="Rejoindre via lien" onPress={openExternal} primary />
-            ) : live.status === "ended" ? (
-              <ControlButton icon="checkmark-circle" label="Termine" onPress={() => {}} disabled />
-            ) : (
-              <ControlButton icon="time" label="En attente" onPress={() => {}} disabled />
-            )
-          ) : (
-            isOwner ? (
-              live.status === "ended" ? (
-                <ControlButton icon="checkmark-circle" label="Termine" onPress={() => {}} disabled />
-              ) : joined || live.status === "live" ? (
-                <>
-                  <ControlButton icon={micOn ? "mic" : "mic-off"} label="Micro" onPress={toggleMic} active={micOn} />
-                  <ControlButton icon={camOn ? "videocam" : "videocam-off"} label="Camera" onPress={toggleCam} active={camOn} />
-                  <ControlButton icon="camera-reverse" label="Flip" onPress={switchCam} />
-                  <ControlButton icon="stop" label="Terminer" onPress={() => leaveSession(true)} danger />
-                </>
-              ) : (
-                <ControlButton icon="radio" label="Demarrer" onPress={() => joinSession("host")} primary />
-              )
-            ) : (
-              <>
-                {live.status === "live" ? (
-                  joined ? (
-                    <ControlButton icon="exit" label="Quitter" onPress={() => leaveSession(false)} danger />
-                  ) : (
-                    <ControlButton icon="play" label="Rejoindre" onPress={() => joinSession("attendee")} primary />
-                  )
-                ) : live.status === "ended" ? (
-                  <ControlButton icon="checkmark-circle" label="Termine" onPress={() => {}} disabled />
-                ) : (
-                  <ControlButton icon="time" label="En attente" onPress={() => {}} disabled />
-                )}
-              </>
-            )
           )}
         </View>
 
-        {Platform.OS === "web" ? (
-          <Text style={styles.webNote}>Live video n'est pas supporte sur web.</Text>
-        ) : null}
+        {joined && videoUids.length > 1 && engineReady && RtcSurface && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
+            {videoUids.map((uid) => {
+              const entry = participantByUid.get(uid) ?? null;
+              return (
+                <Pressable
+                  key={uid}
+                  style={[styles.thumb, activeUid === uid && styles.thumbActive]}
+                  onPress={() => setActiveUid(uid)}
+                  onLongPress={() =>
+                    isOwner && entry && entry.userId !== user?.id && setModerating(entry)
+                  }
+                >
+                  <RtcSurface style={styles.thumbVideo} canvas={{ uid }} />
+                  <View style={styles.thumbLabel}>
+                    <Text style={styles.thumbLabelText} numberOfLines={1}>
+                      {tileLabel(uid, roster, localUid)}
+                    </Text>
+                  </View>
+                  {entry?.handRaisedAtMs ? (
+                    <View style={styles.thumbHand}>
+                      <Text style={styles.thumbHandText}>✋</Text>
+                    </View>
+                  ) : null}
+                  {entry?.mutedByHost ? (
+                    <View style={styles.thumbMuted}>
+                      <Ionicons name="mic-off" size={11} color="#fff" />
+                    </View>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {joined && isOwner && hands.length > 0 && (
+          <View style={styles.handsBar}>
+            <Text style={styles.handsTitle}>
+              {hands.length} main{hands.length > 1 ? "s" : ""} levee{hands.length > 1 ? "s" : ""}
+            </Text>
+            <Text style={styles.handsNames} numberOfLines={2}>
+              {hands.map((h) => h.displayName).join(", ")}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.controls}>
+          {live.status === "ended" ? (
+            <Control icon="checkmark-circle" label="Termine" onPress={() => {}} disabled />
+          ) : isOwner ? (
+            joined || live.status === "live" ? (
+              <>
+                <Control icon={micOn ? "mic" : "mic-off"} label="Micro" onPress={toggleMic} />
+                <Control icon={camOn ? "videocam" : "videocam-off"} label="Camera" onPress={toggleCam} />
+                <Control
+                  icon="camera-reverse"
+                  label="Flip"
+                  onPress={() => engineRef.current?.switchCamera()}
+                />
+                <Control icon="stop" label="Terminer" onPress={() => leaveSession(true)} danger />
+              </>
+            ) : (
+              <Control icon="radio" label="Demarrer" onPress={() => joinSession("host")} primary />
+            )
+          ) : live.status === "live" ? (
+            joined ? (
+              <>
+                <Control
+                  icon={handRaised ? "hand-left" : "hand-left-outline"}
+                  label={handRaised ? "Baisser" : "Lever la main"}
+                  onPress={toggleHand}
+                  primary={handRaised}
+                />
+                <Control icon={micOn ? "mic" : "mic-off"} label="Micro" onPress={toggleMic} />
+                <Control icon="exit" label="Quitter" onPress={() => leaveSession(false)} danger />
+              </>
+            ) : (
+              <Control icon="play" label="Rejoindre" onPress={() => joinSession("attendee")} primary />
+            )
+          ) : (
+            <Control icon="time" label="En attente" onPress={() => {}} disabled />
+          )}
+        </View>
+
+        {joined && (
+          <View style={styles.panelTabs}>
+            <PanelTab
+              icon="chatbubbles-outline"
+              label={`Chat${messages.length ? ` (${messages.length})` : ""}`}
+              active={panel === "chat"}
+              onPress={() => setPanel(panel === "chat" ? "none" : "chat")}
+            />
+            <PanelTab
+              icon="people-outline"
+              label={`Participants (${present.length})`}
+              active={panel === "people"}
+              onPress={() => setPanel(panel === "people" ? "none" : "people")}
+            />
+            {isOwner && (
+              <PanelTab
+                icon="clipboard-outline"
+                label="Presence"
+                active={panel === "attendance"}
+                onPress={() => (panel === "attendance" ? setPanel("none") : openAttendance())}
+              />
+            )}
+          </View>
+        )}
+
+        {panel === "chat" && joined && (
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <View style={styles.panel}>
+              {messages.length === 0 ? (
+                <Text style={styles.muted}>Aucun message. Posez votre question ici.</Text>
+              ) : (
+                messages.slice(-50).map((m) => (
+                  <View key={m.id} style={styles.message}>
+                    <Text style={[styles.messageAuthor, m.isHost && styles.messageAuthorHost]}>
+                      {m.authorName}
+                      {m.isHost ? " · animateur" : ""} · {fmtTime(m.atMs)}
+                    </Text>
+                    <Text style={styles.messageText}>{m.text}</Text>
+                  </View>
+                ))
+              )}
+              <View style={styles.composer}>
+                <TextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder="Votre question..."
+                  placeholderTextColor={COLOR.sub}
+                  style={styles.composerInput}
+                  multiline
+                  maxLength={1000}
+                />
+                <Pressable
+                  onPress={sendMessage}
+                  disabled={!draft.trim() || sending}
+                  style={[styles.sendBtn, (!draft.trim() || sending) && styles.disabled]}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="send" size={16} color="#fff" />
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        )}
+
+        {panel === "people" && joined && (
+          <View style={styles.panel}>
+            {present.map((p) => (
+              <Pressable
+                key={p.userId}
+                style={styles.personRow}
+                onPress={() => isOwner && p.userId !== user?.id && setModerating(p)}
+              >
+                <Ionicons
+                  name={p.role === "host" ? "school" : "person-circle-outline"}
+                  size={18}
+                  color={p.role === "host" ? COLOR.primary : COLOR.sub}
+                />
+                <Text style={styles.personName} numberOfLines={1}>
+                  {p.userId === user?.id ? `${p.displayName} (vous)` : p.displayName}
+                </Text>
+                {p.handRaisedAtMs && <Text style={styles.personHand}>✋</Text>}
+                {p.mutedByHost && <Ionicons name="mic-off" size={15} color={COLOR.danger} />}
+                {isOwner && p.userId !== user?.id && (
+                  <Ionicons name="ellipsis-horizontal" size={16} color={COLOR.sub} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {panel === "attendance" && isOwner && (
+          <View style={styles.panel}>
+            {attendance.length === 0 ? (
+              <Text style={styles.muted}>Personne n'a encore rejoint.</Text>
+            ) : (
+              attendance.map((row) => (
+                <View key={row.userId} style={styles.personRow}>
+                  <Ionicons
+                    name={row.stillPresent ? "ellipse" : "ellipse-outline"}
+                    size={11}
+                    color={row.stillPresent ? COLOR.success : COLOR.sub}
+                  />
+                  <Text style={styles.personName} numberOfLines={1}>
+                    {row.displayName}
+                    {row.isBanned ? " · exclu" : ""}
+                  </Text>
+                  <Text style={styles.personTime}>{formatDuration(row.totalMs)}</Text>
+                </View>
+              ))
+            )}
+          </View>
+        )}
       </ScrollView>
+
+      <Modal visible={!!moderating} transparent animationType="fade" onRequestClose={() => setModerating(null)}>
+        <View style={styles.modalRoot}>
+          <Pressable style={styles.backdrop} onPress={() => setModerating(null)} />
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{moderating?.displayName}</Text>
+            {moderating?.handRaisedAtMs && (
+              <ModAction
+                icon="hand-left-outline"
+                label="Baisser la main"
+                onPress={() => moderating && runModeration(moderating, "lower_hand")}
+              />
+            )}
+            <ModAction
+              icon={moderating?.mutedByHost ? "mic" : "mic-off"}
+              label={moderating?.mutedByHost ? "Rendre le micro" : "Couper le micro"}
+              onPress={() =>
+                moderating && runModeration(moderating, moderating.mutedByHost ? "unmute" : "mute")
+              }
+            />
+            <ModAction
+              icon="exit-outline"
+              label="Retirer de la seance"
+              danger
+              onPress={() =>
+                moderating &&
+                Alert.alert(
+                  "Retirer ce participant",
+                  `${moderating.displayName} ne pourra plus revenir dans cette seance.`,
+                  [
+                    { text: "Annuler", style: "cancel" },
+                    {
+                      text: "Retirer",
+                      style: "destructive",
+                      onPress: () => runModeration(moderating, "kick"),
+                    },
+                  ]
+                )
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-function ControlButton({
+function Control({
   icon,
   label,
   onPress,
   primary,
   danger,
   disabled,
-  active,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -524,95 +827,131 @@ function ControlButton({
   primary?: boolean;
   danger?: boolean;
   disabled?: boolean;
-  active?: boolean;
 }) {
-  const tone = danger ? COLOR.danger : primary ? COLOR.primary : COLOR.surface;
-  const border = danger || primary ? "transparent" : COLOR.border;
-  const text = danger || primary ? "#fff" : COLOR.text;
+  const bg = danger ? COLOR.danger : primary ? COLOR.primary : COLOR.surface;
+  const fg = danger || primary ? "#fff" : COLOR.text;
   return (
     <Pressable
-      style={[
-        styles.ctrlBtn,
-        { backgroundColor: tone, borderColor: border },
-        disabled && { opacity: 0.5 },
-        active === false && !primary && !danger ? { backgroundColor: COLOR.muted } : null,
-      ]}
       onPress={onPress}
       disabled={disabled}
+      style={[
+        styles.control,
+        { backgroundColor: bg, borderColor: danger || primary ? "transparent" : COLOR.border },
+        disabled && styles.disabled,
+      ]}
     >
-      <Ionicons name={icon} size={16} color={text} />
-      <Text style={[styles.ctrlText, { color: text }]}>{label}</Text>
+      <Ionicons name={icon} size={16} color={fg} />
+      <Text style={[styles.controlText, { color: fg }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function PanelTab({
+  icon,
+  label,
+  active,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[styles.panelTab, active && styles.panelTabActive]}>
+      <Ionicons name={icon} size={15} color={active ? COLOR.primary : COLOR.sub} />
+      <Text style={[styles.panelTabText, active && styles.panelTabTextActive]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ModAction({
+  icon,
+  label,
+  onPress,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.modAction}>
+      <Ionicons name={icon} size={18} color={danger ? COLOR.danger : COLOR.text} />
+      <Text style={[styles.modActionText, danger && { color: COLOR.danger }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 14, paddingBottom: 120 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  root: { flex: 1, backgroundColor: COLOR.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLOR.bg },
+  container: { padding: 16, gap: 12, paddingBottom: 140 },
+  muted: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 13 },
 
-  header: { gap: 6 },
+  header: { gap: 5 },
   title: { color: COLOR.text, fontSize: 20, fontFamily: FONT.headingAlt },
-  meta: { color: COLOR.sub, fontFamily: FONT.body },
-  headerRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  statusPill: {
-    alignSelf: "flex-start",
+  meta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  headerRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
+  pill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: COLOR.surface,
-  },
-  statusDot: { width: 6, height: 6, borderRadius: 999 },
-  statusText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  sessionPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    gap: 5,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLOR.border,
     backgroundColor: COLOR.surface,
-    maxWidth: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  sessionText: { color: COLOR.text, fontFamily: FONT.body, fontSize: 12 },
+  pillText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 11 },
+  dot: { width: 6, height: 6, borderRadius: 999 },
 
   stage: {
-    height: 360,
-    backgroundColor: "#0b0b0c",
-    borderRadius: 18,
+    height: 320,
+    backgroundColor: "#0B0B0C",
+    borderRadius: RADIUS.lg,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: COLOR.border,
   },
   video: { width: "100%", height: "100%" },
-  emptyStage: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
-  emptyTitle: { color: "#fff", fontFamily: FONT.headingAlt, textAlign: "center" },
-  openLinkBtn: {
-    marginTop: 6,
+  stageLabel: {
+    position: "absolute",
+    left: 12,
+    bottom: 12,
+    backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: COLOR.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  stageLabelText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  emptyStage: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
+  emptyStageText: { color: "#fff", fontFamily: FONT.headingAlt, fontSize: 14, textAlign: "center" },
+  linkBtn: {
+    marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    borderRadius: 999,
+    backgroundColor: COLOR.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  openLinkText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
-  loadingOverlay: {
+  linkBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  overlay: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    paddingVertical: 8,
     alignItems: "center",
+    paddingVertical: 8,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
-  loadingText: { color: "#fff", fontFamily: FONT.body, fontSize: 12, marginTop: 4 },
+  overlayText: { color: "#fff", fontFamily: FONT.body, fontSize: 12, marginTop: 4 },
   liveBadge: {
     position: "absolute",
     top: 12,
@@ -620,26 +959,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   liveDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: "#EF4444" },
-  liveText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
-  liveCount: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  liveBadgeText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 11 },
 
-  thumbRow: { gap: 10, paddingVertical: 4 },
+  thumbRow: { gap: 8, paddingVertical: 2 },
   thumb: {
-    width: 120,
-    height: 84,
+    width: 110,
+    height: 78,
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: COLOR.border,
-    backgroundColor: "#0b0b0c",
+    backgroundColor: "#0B0B0C",
   },
-  thumbActive: { borderColor: COLOR.primary },
+  thumbActive: { borderColor: COLOR.primary, borderWidth: 2 },
   thumbVideo: { width: "100%", height: "100%" },
   thumbLabel: {
     position: "absolute",
@@ -647,22 +985,117 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 6,
-    paddingVertical: 4,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingVertical: 3,
+    backgroundColor: "rgba(0,0,0,0.55)",
   },
-  thumbText: { color: "#fff", fontFamily: FONT.body, fontSize: 11 },
+  thumbLabelText: { color: "#fff", fontFamily: FONT.body, fontSize: 10 },
+  thumbHand: { position: "absolute", top: 4, right: 4 },
+  thumbHandText: { fontSize: 13 },
+  thumbMuted: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    backgroundColor: COLOR.danger,
+    borderRadius: 999,
+    padding: 3,
+  },
 
-  controls: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" },
-  ctrlBtn: {
+  handsBar: {
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    backgroundColor: COLOR.tint,
+    padding: 10,
+    gap: 2,
+  },
+  handsTitle: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
+  handsNames: { color: COLOR.text, fontFamily: FONT.body, fontSize: 12 },
+
+  controls: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  control: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
-  ctrlText: { fontFamily: FONT.bodyBold, fontSize: 12 },
+  controlText: { fontFamily: FONT.bodyBold, fontSize: 12 },
+  disabled: { opacity: 0.5 },
 
-  webNote: { color: COLOR.sub, fontFamily: FONT.body, textAlign: "center" },
+  panelTabs: { flexDirection: "row", gap: 8 },
+  panelTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.surface,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+  },
+  panelTabActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
+  panelTabText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  panelTabTextActive: { color: COLOR.primary },
+
+  panel: {
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.surface,
+    padding: 12,
+    gap: 8,
+  },
+
+  message: { gap: 2 },
+  messageAuthor: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 10 },
+  messageAuthorHost: { color: COLOR.primary },
+  messageText: { color: COLOR.text, fontFamily: FONT.body, fontSize: 13, lineHeight: 18 },
+
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 4 },
+  composerInput: {
+    flex: 1,
+    maxHeight: 90,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.muted,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    color: COLOR.text,
+    fontFamily: FONT.body,
+    fontSize: 13,
+  },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: COLOR.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  personRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 7 },
+  personName: { flex: 1, color: COLOR.text, fontFamily: FONT.body, fontSize: 13 },
+  personHand: { fontSize: 14 },
+  personTime: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+
+  modalRoot: { flex: 1, justifyContent: "flex-end" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.4)" },
+  sheet: {
+    backgroundColor: COLOR.surface,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    padding: 16,
+    gap: 4,
+  },
+  sheetTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16, marginBottom: 6 },
+  modAction: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
+  modActionText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 },
 });
