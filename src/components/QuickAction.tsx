@@ -1,9 +1,11 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from "react-native";
-import { COLOR, ELEVATION, FONT, RADIUS, SPACE } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 type Props = { label: string; onPress?: () => void; style?: ViewStyle; left?: React.ReactNode };
 export default function QuickAction({ label, onPress, style, left }: Props) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity style={[styles.btn, style]} onPress={onPress} activeOpacity={0.85}>
       {left}
@@ -11,19 +13,20 @@ export default function QuickAction({ label, onPress, style, left }: Props) {
     </TouchableOpacity>
   );
 }
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   btn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACE.xs,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    gap: t.space.sm,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
-    paddingVertical: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    borderRadius: RADIUS.md,
+    paddingVertical: t.space.md,
+    paddingHorizontal: t.space.lg,
+    borderRadius: t.radius.md,
     minHeight: 48,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  text: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 }
+  text: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 }
 });

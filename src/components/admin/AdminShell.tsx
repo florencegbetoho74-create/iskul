@@ -2,7 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import { Link, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 
 type NavItem = { label: string; href: string; icon: keyof typeof Ionicons.glyphMap };
@@ -18,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { width } = useWindowDimensions();
   const pathname = usePathname();
   const { signOut, user } = useAuth();
@@ -28,7 +30,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     return (
       <Link key={item.href} href={item.href} asChild>
         <Pressable style={[styles.navItem, active && styles.navItemActive]}>
-          <Ionicons name={item.icon} size={18} color={active ? COLOR.text : COLOR.sub} />
+          <Ionicons name={item.icon} size={18} color={active ? theme.color.text : theme.color.textMuted} />
           <Text style={[styles.navText, active && styles.navTextActive]}>{item.label}</Text>
         </Pressable>
       </Link>
@@ -54,7 +56,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <Text style={styles.profileName} numberOfLines={1}>{user?.name || "Admin"}</Text>
             <Text style={styles.profileMeta} numberOfLines={1}>{user?.email || "admin@iskul"}</Text>
             <Pressable style={styles.signOutBtn} onPress={() => signOut?.()}>
-              <Ionicons name="log-out-outline" size={16} color={COLOR.text} />
+              <Ionicons name="log-out-outline" size={16} color={theme.color.text} />
               <Text style={styles.signOutText}>Deconnexion</Text>
             </Pressable>
           </View>
@@ -64,7 +66,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <View style={styles.topBar}>
             <Text style={styles.brandText}>iSkul Admin</Text>
             <Pressable style={styles.signOutIcon} onPress={() => signOut?.()}>
-              <Ionicons name="log-out-outline" size={18} color={COLOR.text} />
+              <Ionicons name="log-out-outline" size={18} color={theme.color.text} />
             </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topNavRow}>
@@ -78,19 +80,20 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLOR.bg, flexDirection: "row" },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.bg, flexDirection: "row" },
   sidebar: {
     width: 260,
     padding: 18,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRightWidth: 1,
-    borderRightColor: COLOR.border,
+    borderRightColor: t.color.border,
     gap: 18,
   },
   brand: { flexDirection: "row", alignItems: "center", gap: 10 },
-  brandDot: { width: 12, height: 12, borderRadius: 4, backgroundColor: COLOR.primary },
-  brandText: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
+  brandDot: { width: 12, height: 12, borderRadius: 4, backgroundColor: t.color.primary },
+  brandText: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
   navList: { gap: 8, marginTop: 8 },
   navItem: {
     flexDirection: "row",
@@ -103,22 +106,22 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   navItemActive: {
-    backgroundColor: COLOR.tint,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.primarySoft,
+    borderColor: t.color.border,
   },
-  navText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 13 },
-  navTextActive: { color: COLOR.text },
+  navText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  navTextActive: { color: t.color.text },
   profileCard: {
     marginTop: "auto",
-    backgroundColor: COLOR.bg,
+    backgroundColor: t.color.bg,
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     gap: 6,
   },
-  profileName: { color: COLOR.text, fontFamily: FONT.bodyBold },
-  profileMeta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  profileName: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
+  profileMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
   signOutBtn: {
     marginTop: 8,
     flexDirection: "row",
@@ -127,17 +130,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  signOutText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  content: { flex: 1, backgroundColor: COLOR.bg },
+  signOutText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  content: { flex: 1, backgroundColor: t.color.bg },
   topNav: {
     width: "100%",
     borderBottomWidth: 1,
-    borderBottomColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderBottomColor: t.color.border,
+    backgroundColor: t.color.surface,
     position: "absolute",
     left: 0,
     right: 0,
@@ -154,8 +157,8 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.bg,
+    borderColor: t.color.border,
+    backgroundColor: t.color.bg,
   },
   topNavRow: {
     paddingHorizontal: 10,

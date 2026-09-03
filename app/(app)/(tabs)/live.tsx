@@ -10,7 +10,8 @@ import {
   Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import SectionHeader from "@/components/SectionHeader";
 import LiveItem from "@/components/LiveItem";
 import Segmented from "@/components/Segmented";
@@ -18,8 +19,16 @@ import { listUpcoming } from "@/storage/lives";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
-const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 type LiveRow = {
   id: string;
@@ -62,6 +71,7 @@ function fmtRelative(ts: number) {
 }
 
 export default function LiveTab() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [rows, setRows] = useState<LiveRow[]>([]);
@@ -132,7 +142,7 @@ export default function LiveTab() {
   }, [rows, filter]);
 
   const ListHeader = () => (
-    <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
+    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
       <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Live</Text>
@@ -164,7 +174,7 @@ export default function LiveTab() {
       <SkeletonList shimmer={shimmer} />
     ) : (
       <View style={styles.emptyWrap}>
-        <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
+        <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
         <Text style={styles.emptyTitle}>Aucun direct pour le moment</Text>
         <Text style={styles.emptySub}>Revenez plus tard ou verifiez vos notifications.</Text>
       </View>
@@ -196,9 +206,9 @@ export default function LiveTab() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLOR.text}
-            colors={[COLOR.text]}
-            progressBackgroundColor={COLOR.surface}
+            tintColor={theme.color.text}
+            colors={[theme.color.text]}
+            progressBackgroundColor={theme.color.surface}
           />
         }
       />
@@ -207,6 +217,7 @@ export default function LiveTab() {
 }
 
 function SkeletonList({ shimmer }: { shimmer: Animated.Value }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const items = Array.from({ length: 5 }).map((_, i) => i);
   const translateX = shimmer.interpolate({ inputRange: [0, 1], outputRange: [-80, 80] });
   return (
@@ -230,47 +241,48 @@ function SkeletonList({ shimmer }: { shimmer: Animated.Value }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
 
   headerBg: { paddingBottom: 12 },
   headerRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, fontSize: 12, marginTop: 2, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
 
-  errorText: { color: COLOR.danger, marginTop: 6, fontFamily: FONT.body },
+  errorText: { color: t.color.danger, marginTop: 6, fontFamily: t.type.body.fontFamily },
 
   emptyWrap: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.lg,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.lg,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    ...ELEVATION.card,
+    borderColor: t.color.border,
+    ...t.elevation(2),
   },
   emptyIcon: { borderRadius: 12, padding: 8, marginBottom: 6, height: 28, width: 28 },
-  emptyTitle: { color: COLOR.text, fontSize: 16, fontFamily: FONT.headingAlt },
-  emptySub: { color: COLOR.sub, fontSize: 13, fontFamily: FONT.body },
+  emptyTitle: { color: t.color.text, fontSize: 16, fontFamily: t.type.heading.fontFamily },
+  emptySub: { color: t.color.textMuted, fontSize: 13, fontFamily: t.type.body.fontFamily },
 
   skelCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.lg,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.lg,
     padding: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     marginBottom: 12,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
   skelBadge: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     overflow: "hidden",
   },
   skelLineShort: {
@@ -278,7 +290,7 @@ const styles = StyleSheet.create({
     width: "55%",
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     marginBottom: 8,
   },
   skelLineLong: {
@@ -286,7 +298,7 @@ const styles = StyleSheet.create({
     width: "85%",
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
   skelSheen: { position: "absolute", top: 0, bottom: 0, width: 80, backgroundColor: "rgba(255,255,255,0.5)" },
   skelSheenThin: { position: "absolute", top: 0, bottom: 0, width: 60, backgroundColor: "rgba(255,255,255,0.5)" },

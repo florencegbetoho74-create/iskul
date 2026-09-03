@@ -241,7 +241,7 @@ export default function Courses() {
         </View>
         {isTeacher ? (
           <Pressable onPress={() => router.push("/(app)/course/new")} style={styles.addBtn}>
-            <Ionicons name="add" size={16} color="#fff" />
+            <Ionicons name="add" size={16} color={theme.color.textOnPrimary} />
             <Text style={styles.addBtnText}>Nouveau</Text>
           </Pressable>
         ) : (
@@ -346,7 +346,7 @@ export default function Courses() {
         {isTeacher ? (
           <Pressable onPress={() => router.push("/(app)/course/new")} style={[styles.fabWrap, { bottom: 16 + insets.bottom }]}>
             <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
-              <Ionicons name="add" size={18} color="#fff" />
+              <Ionicons name="add" size={18} color={theme.color.textOnPrimary} />
               <Text style={styles.fabText}>Creer un cours</Text>
             </LinearGradient>
           </Pressable>
@@ -565,7 +565,7 @@ const makeStyles = (t: Theme) =>
     gap: 6,
     minHeight: 40,
   },
-  addBtnText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  addBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   menuBtn: {
     backgroundColor: t.color.surface,
@@ -646,7 +646,7 @@ const makeStyles = (t: Theme) =>
     elevation: 3,
   },
   levelChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  levelChipTextActive: { color: "#fff" },
+  levelChipTextActive: { color: t.color.textOnPrimary },
   levelCount: {
     minWidth: 22,
     height: 22,
@@ -658,7 +658,7 @@ const makeStyles = (t: Theme) =>
   },
   levelCountActive: { backgroundColor: "rgba(255,255,255,0.2)" },
   levelCountText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-  levelCountTextActive: { color: "#fff" },
+  levelCountTextActive: { color: t.color.textOnPrimary },
 
   levelCard: {
     marginHorizontal: 16,
@@ -754,7 +754,7 @@ const makeStyles = (t: Theme) =>
     elevation: 6,
   },
   fab: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  fabText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily },
+  fabText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   menuRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(11, 17, 32, 0.28)" },
   menuBackdrop: { ...StyleSheet.absoluteFillObject },

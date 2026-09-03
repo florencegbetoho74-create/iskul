@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { filterCountries, type Country } from "@/lib/referentialSupport";
 
 type Props = {
@@ -31,6 +32,7 @@ export default function CountryField({
   onChange,
   helperText,
 }: Props) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -48,7 +50,7 @@ export default function CountryField({
   return (
     <View style={styles.wrap}>
       <View style={styles.labelRow}>
-        <Ionicons name="earth-outline" size={16} color={COLOR.sub} />
+        <Ionicons name="earth-outline" size={16} color={theme.color.textMuted} />
         <Text style={styles.label}>{label}</Text>
       </View>
       {helperText ? <Text style={styles.helper}>{helperText}</Text> : null}
@@ -61,7 +63,7 @@ export default function CountryField({
         accessibilityState={{ disabled: loading }}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={COLOR.sub} />
+          <ActivityIndicator size="small" color={theme.color.textMuted} />
         ) : selected ? (
           <>
             <Text style={styles.flag}>{selected.flag}</Text>
@@ -72,7 +74,7 @@ export default function CountryField({
         ) : (
           <Text style={[styles.triggerText, styles.placeholder]}>Selectionnez votre pays</Text>
         )}
-        <Ionicons name="chevron-down" size={16} color={COLOR.sub} />
+        <Ionicons name="chevron-down" size={16} color={theme.color.textMuted} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
@@ -82,24 +84,24 @@ export default function CountryField({
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>{label}</Text>
               <Pressable onPress={close} style={styles.closeBtn} accessibilityLabel="Fermer">
-                <Ionicons name="close" size={18} color={COLOR.text} />
+                <Ionicons name="close" size={18} color={theme.color.text} />
               </Pressable>
             </View>
 
             <View style={styles.searchShell}>
-              <Ionicons name="search-outline" size={16} color={COLOR.sub} />
+              <Ionicons name="search-outline" size={16} color={theme.color.textMuted} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Rechercher un pays"
-                placeholderTextColor={COLOR.sub}
+                placeholderTextColor={theme.color.textMuted}
                 style={styles.searchInput}
                 autoCorrect={false}
                 autoCapitalize="none"
               />
               {query ? (
                 <Pressable onPress={() => setQuery("")} accessibilityLabel="Effacer">
-                  <Ionicons name="close-circle" size={16} color={COLOR.sub} />
+                  <Ionicons name="close-circle" size={16} color={theme.color.textMuted} />
                 </Pressable>
               ) : null}
             </View>
@@ -138,7 +140,7 @@ export default function CountryField({
                       </View>
                     ) : null}
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={18} color={COLOR.primary} />
+                      <Ionicons name="checkmark-circle" size={18} color={theme.color.primary} />
                     ) : null}
                   </Pressable>
                 );
@@ -151,17 +153,18 @@ export default function CountryField({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   wrap: { marginTop: 10 },
   labelRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
-  helper: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, marginBottom: 8 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  helper: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, marginBottom: 8 },
 
   trigger: {
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 12,
     minHeight: 46,
@@ -170,18 +173,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   triggerDisabled: { opacity: 0.6 },
-  triggerText: { color: COLOR.text, fontFamily: FONT.body, fontSize: 14, flex: 1 },
-  placeholder: { color: COLOR.sub },
+  triggerText: { color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 14, flex: 1 },
+  placeholder: { color: t.color.textMuted },
   flag: { fontSize: 18 },
 
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.4)" },
   sheet: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingTop: 10,
     paddingBottom: 14,
@@ -193,16 +196,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  sheetTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
+  sheetTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
   closeBtn: {
     width: 30,
     height: 30,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
 
   searchShell: {
@@ -211,16 +214,16 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 12,
     minHeight: 44,
     marginBottom: 10,
   },
   searchInput: {
     flex: 1,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 14,
     paddingVertical: 10,
   },
@@ -232,25 +235,25 @@ const styles = StyleSheet.create({
     gap: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 12,
     paddingVertical: 12,
     marginBottom: 8,
   },
-  optionActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
-  optionText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13, flex: 1 },
-  optionTextActive: { color: COLOR.primary },
+  optionActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
+  optionText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13, flex: 1 },
+  optionTextActive: { color: t.color.primary },
   contentTag: {
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  contentTagText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 10 },
+  contentTagText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
   empty: {
-    color: COLOR.sub,
-    fontFamily: FONT.body,
+    color: t.color.textMuted,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 13,
     textAlign: "center",
     paddingVertical: 24,

@@ -3,16 +3,18 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 export default function LiveWebFallback() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const sessionId = String(id || "").trim();
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Ionicons name="desktop-outline" size={22} color={COLOR.text} />
+        <Ionicons name="desktop-outline" size={22} color={theme.color.text} />
         <Text style={styles.title}>Live video indisponible sur cette version web</Text>
         <Text style={styles.sub}>
           Utilisez l'application mobile pour participer au live Agora.
@@ -31,10 +33,11 @@ export default function LiveWebFallback() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLOR.bg,
+    backgroundColor: t.color.bg,
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
@@ -44,32 +47,32 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     padding: 18,
     gap: 8,
   },
-  title: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 20 },
-  sub: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 13 },
+  title: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 20 },
+  sub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13 },
   meta: {
     marginTop: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.bg,
+    borderColor: t.color.border,
+    backgroundColor: t.color.bg,
     padding: 10,
   },
-  metaLabel: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
-  metaValue: { color: COLOR.text, fontFamily: FONT.mono, marginTop: 3 },
+  metaLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  metaValue: { color: t.color.text, fontFamily: "Menlo", marginTop: 3 },
   pill: {
     alignSelf: "flex-start",
     marginTop: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
   },
-  pillText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 11 },
+  pillText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 });

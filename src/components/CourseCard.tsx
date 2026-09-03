@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import type { Course } from "@/types/course";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 type Props = { item: Course; onPress?: () => void };
 
 export default function CourseCard({ item, onPress }: Props) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const fallbackTitle = item.chapters?.[0]?.title || item.title || "Cours";
   const fallbackMeta = `${item.chapters?.length || 0} lecons`;
 
@@ -43,22 +45,23 @@ export default function CourseCard({ item, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     overflow: "hidden",
     minHeight: 220,
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.08,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 3
   },
-  thumbWrap: { height: 120, backgroundColor: COLOR.muted },
+  thumbWrap: { height: 120, backgroundColor: t.color.surfaceSunk },
   thumbFallback: { flex: 1, padding: 12, justifyContent: "flex-end", gap: 6 },
   thumbIcon: {
     height: 30,
@@ -68,8 +71,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  thumbTitle: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 13 },
-  thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: FONT.body, fontSize: 11 },
+  thumbTitle: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: t.type.body.fontFamily, fontSize: 11 },
   thumbShade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 60 },
   thumbBadge: {
     position: "absolute",
@@ -80,21 +83,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-  thumbBadgeText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  thumbBadgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   body: { padding: 12, gap: 6 },
-  title: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 15 },
-  meta: { color: COLOR.sub, fontSize: 12, fontFamily: FONT.body },
+  title: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
+  meta: { color: t.color.textMuted, fontSize: 12, fontFamily: t.type.body.fontFamily },
   badge: {
     alignSelf: "flex-start",
-    color: COLOR.text,
-    backgroundColor: COLOR.tint,
-    borderColor: COLOR.border,
+    color: t.color.text,
+    backgroundColor: t.color.primarySoft,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
     fontSize: 12,
-    fontFamily: FONT.bodyBold,
+    fontFamily: t.type.bodyStrong.fontFamily,
     overflow: "hidden"
   }
 });

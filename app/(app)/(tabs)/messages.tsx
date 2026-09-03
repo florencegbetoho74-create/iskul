@@ -11,7 +11,8 @@ import {
   Easing,
   Pressable,
 } from "react-native";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
@@ -21,8 +22,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import Segmented from "@/components/Segmented";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BG = ["#F5F4F1", "#EAF0FF", "#F6F1EA"] as const;
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 type FilterKey = "all" | "unread";
 
@@ -45,6 +54,7 @@ function fmtTime(ts?: number) {
 }
 
 export default function Inbox() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<Thread[]>([]);
@@ -96,7 +106,7 @@ export default function Inbox() {
   }, [rows, filter, q, user?.id]);
 
   const Header = (
-    <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
+    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
       <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Messages</Text>
@@ -105,19 +115,19 @@ export default function Inbox() {
       </View>
 
       <View style={styles.searchRow} accessible accessibilityRole="search">
-        <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+        <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
         <TextInput
           value={q}
           onChangeText={setQ}
           placeholder="Rechercher un contact"
-          placeholderTextColor={COLOR.sub}
+          placeholderTextColor={theme.color.textMuted}
           style={styles.input}
           returnKeyType="search"
           accessibilityLabel="Rechercher dans les conversations"
         />
         {q.length > 0 && (
           <Pressable onPress={() => setQ("")} hitSlop={8} accessibilityLabel="Effacer la recherche">
-            <Ionicons name="close" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+            <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
           </Pressable>
         )}
       </View>
@@ -137,7 +147,7 @@ export default function Inbox() {
 
   const Empty = ready ? (
     <View style={styles.emptyWrap}>
-      <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
+      <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
       <Text style={styles.emptyTitle}>Aucune conversation</Text>
       <Text style={styles.emptySub}>Vos messages apparaitront ici.</Text>
     </View>
@@ -163,7 +173,7 @@ export default function Inbox() {
             <Link href={`/(app)/messages/${item.id}`} asChild>
               <TouchableOpacity style={styles.thread} activeOpacity={0.9}>
                 <View style={styles.avatar}>
-                  <Ionicons name="person" size={18} color={COLOR.sub} />
+                  <Ionicons name="person" size={18} color={theme.color.textMuted} />
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -179,7 +189,7 @@ export default function Inbox() {
                   </Text>
                 </View>
 
-                {unread ? <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.dot} /> : null}
+                {unread ? <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.dot} /> : null}
               </TouchableOpacity>
             </Link>
           );
@@ -189,9 +199,9 @@ export default function Inbox() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLOR.text}
-            colors={[COLOR.text]}
-            progressBackgroundColor={COLOR.surface}
+            tintColor={theme.color.text}
+            colors={[theme.color.text]}
+            progressBackgroundColor={theme.color.surface}
           />
         }
       />
@@ -200,6 +210,7 @@ export default function Inbox() {
 }
 
 function SkeletonList({ shimmer }: { shimmer: Animated.Value }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const items = Array.from({ length: 6 }).map((_, i) => i);
   const translateX = shimmer.interpolate({ inputRange: [0, 1], outputRange: [-80, 80] });
   return (
@@ -223,39 +234,40 @@ function SkeletonList({ shimmer }: { shimmer: Animated.Value }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
 
   headerBg: { paddingBottom: 12 },
   headerRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, fontSize: 12, marginTop: 2, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
 
   searchRow: {
     marginTop: 6,
     marginHorizontal: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
     height: 44,
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   },
-  input: { flex: 1, color: COLOR.text, fontSize: 15, fontFamily: FONT.body },
+  input: { flex: 1, color: t.color.text, fontSize: 15, fontFamily: t.type.body.fontFamily },
 
   segmentWrap: { marginTop: 10, paddingHorizontal: 16 },
 
   thread: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 12,
@@ -264,40 +276,40 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
-  name: { color: COLOR.text, fontFamily: FONT.headingAlt, paddingRight: 8, maxWidth: "75%" },
-  nameUnread: { color: COLOR.primary },
-  time: { color: COLOR.sub, fontSize: 11, marginLeft: "auto", fontFamily: FONT.body },
+  name: { color: t.color.text, fontFamily: t.type.heading.fontFamily, paddingRight: 8, maxWidth: "75%" },
+  nameUnread: { color: t.color.primary },
+  time: { color: t.color.textMuted, fontSize: 11, marginLeft: "auto", fontFamily: t.type.body.fontFamily },
 
-  meta: { color: COLOR.sub, fontSize: 12, marginTop: 2, fontFamily: FONT.body },
-  last: { color: COLOR.text, fontSize: 12, marginTop: 2, fontFamily: FONT.body },
-  lastUnread: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  meta: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
+  last: { color: t.color.text, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
+  lastUnread: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   dot: { width: 10, height: 10, borderRadius: 999, marginLeft: 10 },
 
   emptyWrap: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
   emptyIcon: { width: 28, height: 28, borderRadius: 8, marginBottom: 8 },
-  emptyTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16 },
-  emptySub: { color: COLOR.sub, marginTop: 4, fontFamily: FONT.body },
+  emptyTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
+  emptySub: { color: t.color.textMuted, marginTop: 4, fontFamily: t.type.body.fontFamily },
 
   skelRow: { flexDirection: "row", gap: 12, alignItems: "center", marginBottom: 12 },
   skelAvatar: {
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     overflow: "hidden",
   },
   skelLineShort: {
@@ -305,7 +317,7 @@ const styles = StyleSheet.create({
     width: "55%",
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     marginBottom: 8,
   },
   skelLineLong: {
@@ -313,7 +325,7 @@ const styles = StyleSheet.create({
     width: "85%",
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
   skelSheen: { position: "absolute", top: 0, bottom: 0, width: 80, backgroundColor: "rgba(255,255,255,0.5)" },
   skelSheenThin: { position: "absolute", top: 0, bottom: 0, width: 60, backgroundColor: "rgba(255,255,255,0.5)" },

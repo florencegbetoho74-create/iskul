@@ -18,7 +18,8 @@ import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { getProfile, upsertProfile } from "@/storage/profile";
 import { persistAttachments } from "@/storage/files";
@@ -26,6 +27,7 @@ import { persistAttachments } from "@/storage/files";
 const ACCENT = ["#1D4ED8", "#2563EB"] as const;
 
 export default function EditProfile() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user, ...auth } = useAuth() as any;
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -135,7 +137,7 @@ export default function EditProfile() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: COLOR.bg }}
+      style={{ flex: 1, backgroundColor: theme.color.bg }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
@@ -152,7 +154,7 @@ export default function EditProfile() {
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Ionicons name="person" size={24} color="#fff" />
+                  <Ionicons name="person" size={24} color={theme.color.textOnPrimary} />
                 </View>
               )}
             </LinearGradient>
@@ -160,19 +162,19 @@ export default function EditProfile() {
 
           <View style={{ flex: 1 }}>
             <TouchableOpacity style={styles.secondary} onPress={pickAvatar} disabled={busy} activeOpacity={0.9}>
-              <Ionicons name="image-outline" size={16} color={COLOR.text} />
+              <Ionicons name="image-outline" size={16} color={theme.color.text} />
               <Text style={styles.secondaryTxt}>{busy ? "Import..." : "Choisir une photo"}</Text>
             </TouchableOpacity>
 
             <View style={{ height: 8 }} />
 
             <View style={styles.urlRow}>
-              <Ionicons name="link-outline" size={16} color={COLOR.sub} />
+              <Ionicons name="link-outline" size={16} color={theme.color.textMuted} />
               <TextInput
                 ref={urlRef}
                 style={styles.urlInput}
                 placeholder="Ou coller une URL d'image"
-                placeholderTextColor={COLOR.sub}
+                placeholderTextColor={theme.color.textMuted}
                 value={avatarUrl}
                 onChangeText={setAvatarUrl}
                 keyboardType="url"
@@ -183,7 +185,7 @@ export default function EditProfile() {
               />
               {!!avatarUrl && (
                 <TouchableOpacity onPress={() => setAvatarUrl("")} hitSlop={8}>
-                  <Ionicons name="close" size={16} color={COLOR.sub} />
+                  <Ionicons name="close" size={16} color={theme.color.textMuted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -195,14 +197,14 @@ export default function EditProfile() {
           <TextInput
             style={styles.input}
             placeholder="Nom complet *"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             value={name}
             onChangeText={setName}
           />
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -211,7 +213,7 @@ export default function EditProfile() {
           <TextInput
             style={styles.input}
             placeholder="Telephone"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -219,7 +221,7 @@ export default function EditProfile() {
           <TextInput
             style={styles.input}
             placeholder="Etablissement"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             value={school}
             onChangeText={setSchool}
           />
@@ -231,7 +233,7 @@ export default function EditProfile() {
             <TextInput
               style={styles.input}
               placeholder="Matieres (separees par des virgules)"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               value={subjects}
               onChangeText={setSubjects}
               autoCapitalize="sentences"
@@ -242,20 +244,20 @@ export default function EditProfile() {
               style={styles.linkRow}
               accessibilityRole="button"
             >
-              <Ionicons name="school-outline" size={18} color={COLOR.sub} />
+              <Ionicons name="school-outline" size={18} color={theme.color.textMuted} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.linkRowLabel}>Classe</Text>
                 <Text style={styles.linkRowValue}>{grade || "Non renseignee"}</Text>
               </View>
               <Text style={styles.linkRowAction}>Modifier</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLOR.sub} />
+              <Ionicons name="chevron-forward" size={16} color={theme.color.textMuted} />
             </Pressable>
           )}
           <TextInput
             style={[styles.input, { minHeight: 96 }]}
             multiline
             placeholder="Bio"
-            placeholderTextColor={COLOR.sub}
+            placeholderTextColor={theme.color.textMuted}
             value={bio}
             onChangeText={setBio}
           />
@@ -263,7 +265,7 @@ export default function EditProfile() {
 
         <TouchableOpacity onPress={save} activeOpacity={0.9} disabled={busy} style={{ marginTop: 6 }}>
           <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
-            <Ionicons name="save-outline" size={18} color="#fff" />
+            <Ionicons name="save-outline" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.primaryTxt}>{busy ? "En cours..." : "Enregistrer"}</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -274,28 +276,29 @@ export default function EditProfile() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 12,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 12,
     paddingVertical: 12,
     minHeight: 46,
   },
-  linkRowLabel: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11 },
-  linkRowValue: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14, marginTop: 1 },
-  linkRowAction: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading, marginBottom: 10 },
+  linkRowLabel: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11 },
+  linkRowValue: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14, marginTop: 1 },
+  linkRowAction: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily, marginBottom: 10 },
 
   avatarRow: { flexDirection: "row", alignItems: "center" },
   avatarWrap: { marginRight: 12 },
   avatarRing: { width: 88, height: 88, borderRadius: 999, padding: 3 },
-  avatar: { width: "100%", height: "100%", borderRadius: 999, backgroundColor: COLOR.muted, borderWidth: 2, borderColor: COLOR.border },
+  avatar: { width: "100%", height: "100%", borderRadius: 999, backgroundColor: t.color.surfaceSunk, borderWidth: 2, borderColor: t.color.border },
   avatarFallback: { alignItems: "center", justifyContent: "center" },
 
   urlRow: {
@@ -303,39 +306,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   urlInput: {
     flex: 1,
-    color: COLOR.text,
+    color: t.color.text,
     marginHorizontal: 8,
     paddingVertical: 0,
-    fontFamily: FONT.body,
+    fontFamily: t.type.body.fontFamily,
   },
 
   group: {
     marginTop: 14,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 12,
   },
-  groupTitle: { color: COLOR.sub, fontFamily: FONT.bodyBold, marginBottom: 8 },
+  groupTitle: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, marginBottom: 8 },
 
   input: {
-    backgroundColor: COLOR.muted,
-    color: COLOR.text,
+    backgroundColor: t.color.surfaceSunk,
+    color: t.color.text,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     marginTop: 8,
-    fontFamily: FONT.body,
+    fontFamily: t.type.body.fontFamily,
   },
 
   primaryGrad: {
@@ -347,19 +350,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  primaryTxt: { color: "#fff", fontFamily: FONT.bodyBold, marginLeft: 8 },
+  primaryTxt: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, marginLeft: 8 },
 
   secondary: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  secondaryTxt: { color: COLOR.text, fontFamily: FONT.bodyBold, marginLeft: 8 },
+  secondaryTxt: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, marginLeft: 8 },
 });
 
 

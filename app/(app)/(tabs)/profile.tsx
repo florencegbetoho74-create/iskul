@@ -14,7 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/providers/AuthProvider";
 import { getProfile } from "@/storage/profile";
@@ -35,8 +36,16 @@ type UsageSummary = {
   quizAttempts: number;
 };
 
-const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
-const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 const USAGE_DAYS = 7;
 
 function fmtDuration(ms: number) {
@@ -48,6 +57,7 @@ function fmtDuration(ms: number) {
 }
 
 export default function ProfileTab() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user, signOut } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -119,7 +129,7 @@ export default function ProfileTab() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={BG}
+        colors={backgroundGradient(theme)}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerBg, { paddingTop: insets.top + 12 }]}
@@ -128,7 +138,7 @@ export default function ProfileTab() {
           <View style={styles.rolePill}>
             <Text style={styles.roleText}>{isTeacher ? "Espace prof" : "Mon espace"}</Text>
           </View>
-          <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.heroTag}>
+          <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.heroTag}>
             <Text style={styles.heroTagText}>iSkul 2026</Text>
           </LinearGradient>
         </View>
@@ -146,14 +156,14 @@ export default function ProfileTab() {
 
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push("/(app)/profile/edit")} activeOpacity={0.9}>
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
-              <Ionicons name="create-outline" size={16} color="#fff" />
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
+              <Ionicons name="create-outline" size={16} color={theme.color.textOnPrimary} />
               <Text style={styles.primaryTxt}>Modifier</Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push("/(app)/profile/settings")} activeOpacity={0.9}>
-            <Ionicons name="settings-outline" size={16} color={COLOR.text} />
+            <Ionicons name="settings-outline" size={16} color={theme.color.text} />
             <Text style={styles.secondaryTxt}>Reglages</Text>
           </TouchableOpacity>
         </View>
@@ -166,9 +176,9 @@ export default function ProfileTab() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={load}
-            tintColor={COLOR.text}
-            colors={[COLOR.text]}
-            progressBackgroundColor={COLOR.surface}
+            tintColor={theme.color.text}
+            colors={[theme.color.text]}
+            progressBackgroundColor={theme.color.surface}
           />
         }
       >
@@ -202,7 +212,7 @@ export default function ProfileTab() {
               </View>
             )}
             ListEmptyComponent={
-              <Text style={{ color: COLOR.sub, paddingHorizontal: 16 }}>
+              <Text style={{ color: theme.color.textMuted, paddingHorizontal: 16 }}>
                 Aucune donnee disponible.
               </Text>
             }
@@ -243,15 +253,15 @@ export default function ProfileTab() {
             </View>
             <View style={styles.quickRow}>
               <TouchableOpacity style={styles.quickItem} onPress={() => router.push("/(app)/course/new")} activeOpacity={0.9}>
-                <Ionicons name="add-circle" size={18} color={COLOR.text} />
+                <Ionicons name="add-circle" size={18} color={theme.color.text} />
                 <Text style={styles.quickTxt}>Nouveau cours</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickItem} onPress={() => router.push("/(app)/live/new")} activeOpacity={0.9}>
-                <Ionicons name="videocam-outline" size={18} color={COLOR.text} />
+                <Ionicons name="videocam-outline" size={18} color={theme.color.text} />
                 <Text style={styles.quickTxt}>Programmer un live</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.quickItem} onPress={() => router.push("/(app)/library/new")} activeOpacity={0.9}>
-                <Ionicons name="book-outline" size={18} color={COLOR.text} />
+                <Ionicons name="book-outline" size={18} color={theme.color.text} />
                 <Text style={styles.quickTxt}>Ajouter un livre</Text>
               </TouchableOpacity>
             </View>
@@ -264,7 +274,7 @@ export default function ProfileTab() {
             onPress={() => (signOut ? signOut() : null)}
             activeOpacity={0.9}
           >
-            <Ionicons name="log-out-outline" size={18} color="#fff" />
+            <Ionicons name="log-out-outline" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.logoutTxt}>Se deconnecter</Text>
           </TouchableOpacity>
         </View>
@@ -275,8 +285,9 @@ export default function ProfileTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
 
   headerBg: { paddingBottom: 12 },
   headerTop: {
@@ -286,52 +297,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   rolePill: {
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.ring,
+    borderColor: t.color.borderStrong,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  roleText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
+  roleText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   heroTag: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  heroTagText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  heroTagText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
-  name: { color: COLOR.text, fontSize: 20, fontFamily: FONT.headingAlt },
-  sub: { color: COLOR.sub, marginTop: 2, fontFamily: FONT.body },
+  name: { color: t.color.text, fontSize: 20, fontFamily: t.type.heading.fontFamily },
+  sub: { color: t.color.textMuted, marginTop: 2, fontFamily: t.type.body.fontFamily },
 
   bio: {
-    color: COLOR.text,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    color: t.color.text,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     padding: 12,
     marginHorizontal: 16,
     marginTop: 10,
-    fontFamily: FONT.body,
-    ...ELEVATION.card,
+    fontFamily: t.type.body.fontFamily,
+    ...t.elevation(2),
   },
 
   actionsRow: { flexDirection: "row", paddingHorizontal: 16, marginTop: 10 },
-  primaryBtn: { borderRadius: RADIUS.md, overflow: "hidden", marginRight: 10 },
+  primaryBtn: { borderRadius: t.radius.md, overflow: "hidden", marginRight: 10 },
   primaryGrad: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  primaryTxt: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryTxt: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   secondaryBtn: {
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    ...ELEVATION.card,
+    borderColor: t.color.border,
+    ...t.elevation(2),
   },
-  secondaryTxt: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  secondaryTxt: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 
   sectionHeader: {
     paddingHorizontal: 16,
@@ -341,74 +352,74 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  sectionTitle: { color: COLOR.text, fontFamily: FONT.headingAlt },
-  sectionMeta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
-  link: { color: COLOR.primary, fontFamily: FONT.bodyBold },
+  sectionTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily },
+  sectionMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  link: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily },
 
   statsSkeletonRow: { flexDirection: "row", paddingHorizontal: 16, marginTop: 4 },
   skelCard: {
     flex: 1,
     height: 70,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     marginRight: 10,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
 
   statCard: {
     flex: 1,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     padding: 14,
     alignItems: "center",
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  statVal: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 18 },
-  statLbl: { color: COLOR.sub, marginTop: 4, textAlign: "center", fontFamily: FONT.body },
+  statVal: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 18 },
+  statLbl: { color: t.color.textMuted, marginTop: 4, textAlign: "center", fontFamily: t.type.body.fontFamily },
 
   usageCard: {
     marginHorizontal: 16,
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
-    borderRadius: RADIUS.lg,
+    borderRadius: t.radius.lg,
     padding: 12,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
   usageItem: {
     flexBasis: "48%",
-    backgroundColor: COLOR.muted,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surfaceSunk,
+    borderRadius: t.radius.md,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  usageValue: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 18 },
-  usageLabel: { color: COLOR.sub, fontFamily: FONT.body, marginTop: 6 },
+  usageValue: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 18 },
+  usageLabel: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginTop: 6 },
 
   quickRow: { flexDirection: "row", paddingHorizontal: 16, marginTop: 4 },
   quickItem: {
     flex: 1,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingVertical: 12,
     alignItems: "center",
     marginRight: 10,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  quickTxt: { color: COLOR.text, fontFamily: FONT.bodyBold, marginTop: 6, textAlign: "center" },
+  quickTxt: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, marginTop: 6, textAlign: "center" },
 
   logout: {
-    backgroundColor: COLOR.danger,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.danger,
+    borderRadius: t.radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: "row",
@@ -416,7 +427,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  logoutTxt: { color: "#fff", fontFamily: FONT.bodyBold },
+  logoutTxt: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 });
 
 

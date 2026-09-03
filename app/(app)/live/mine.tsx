@@ -4,7 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useFocusEffect } from "expo-router";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { listMine } from "@/storage/lives";
 
@@ -16,6 +17,7 @@ function fmtDate(ts: number) {
 }
 
 export default function MyLives() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
 
@@ -36,7 +38,7 @@ export default function MyLives() {
         </View>
         <Link href="/(app)/live/new" asChild>
           <Pressable style={styles.addBtn}>
-            <Ionicons name="add" size={18} color="#fff" />
+            <Ionicons name="add" size={18} color={theme.color.textOnPrimary} />
             <Text style={styles.addText}>Programmer</Text>
           </Pressable>
         </Link>
@@ -58,27 +60,28 @@ export default function MyLives() {
             </View>
             <Link href={`/(app)/live/${item.id}`} asChild>
               <Pressable style={styles.secondary}>
-                <Ionicons name="play" size={16} color={COLOR.text} />
+                <Ionicons name="play" size={16} color={theme.color.text} />
                 <Text style={styles.secondaryText}>Ouvrir</Text>
               </Pressable>
             </Link>
           </View>
         )}
         ListHeaderComponent={Header}
-        ListEmptyComponent={<Text style={{ color: COLOR.sub, paddingTop: 8 }}>Aucun live programme.</Text>}
+        ListEmptyComponent={<Text style={{ color: theme.color.textMuted, paddingTop: 8 }}>Aucun live programme.</Text>}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
   header: { paddingBottom: 8 },
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, marginTop: 4, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, marginTop: 4, fontFamily: t.type.body.fontFamily },
   addBtn: {
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     flexDirection: "row",
     gap: 6,
     paddingHorizontal: 12,
@@ -86,22 +89,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  addText: { color: "#fff", fontFamily: FONT.bodyBold },
+  addText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 
   item: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     padding: 14,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  itemTitle: { color: COLOR.text, fontFamily: FONT.headingAlt },
-  meta: { color: COLOR.sub, marginTop: 4, fontFamily: FONT.body },
+  itemTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily },
+  meta: { color: t.color.textMuted, marginTop: 4, fontFamily: t.type.body.fontFamily },
   secondary: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -109,9 +112,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
-  secondaryText: { color: COLOR.text, fontFamily: FONT.bodyBold },
+  secondaryText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
 });
 
 

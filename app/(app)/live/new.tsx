@@ -5,7 +5,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { createLive } from "@/storage/lives";
 import { useRouter } from "expo-router";
@@ -22,6 +23,7 @@ const fmtTime = (d: Date) =>
   d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 export default function NewLive() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -108,7 +110,7 @@ export default function NewLive() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           ref={scrollRef}
@@ -123,7 +125,7 @@ export default function NewLive() {
             <Text style={styles.label}>Titre</Text>
             <TextInput
               placeholder="Ex: Physique - Terminale"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.input}
               value={title}
               onChangeText={setTitle}
@@ -140,7 +142,7 @@ export default function NewLive() {
                   setShowTimePicker(false);
                 }}
               >
-                <Ionicons name="calendar-outline" size={16} color={COLOR.sub} />
+                <Ionicons name="calendar-outline" size={16} color={theme.color.textMuted} />
                 <Text style={styles.dateText}>{fmtDate(startAt)}</Text>
               </Pressable>
               <Pressable
@@ -150,7 +152,7 @@ export default function NewLive() {
                   setShowDatePicker(false);
                 }}
               >
-                <Ionicons name="time-outline" size={16} color={COLOR.sub} />
+                <Ionicons name="time-outline" size={16} color={theme.color.textMuted} />
                 <Text style={styles.dateText}>{fmtTime(startAt)}</Text>
               </Pressable>
             </View>
@@ -215,7 +217,7 @@ export default function NewLive() {
             <TextInput
               ref={descRef}
               placeholder="Description (optionnel)"
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={[styles.input, { minHeight: 90 }]}
               value={desc}
               onChangeText={setDesc}
@@ -226,7 +228,7 @@ export default function NewLive() {
             <TextInput
               ref={sessionRef}
               placeholder="Ex: PHYSIQUE-TLE ou https://meet.google.com/..."
-              placeholderTextColor={COLOR.sub}
+              placeholderTextColor={theme.color.textMuted}
               style={styles.input}
               value={sessionName}
               onChangeText={setSessionName}
@@ -240,7 +242,7 @@ export default function NewLive() {
 
           <Pressable style={styles.primary} onPress={save}>
             <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
-              <Ionicons name="calendar" size={18} color="#fff" />
+              <Ionicons name="calendar" size={18} color={theme.color.textOnPrimary} />
               <Text style={styles.primaryText}>Enregistrer</Text>
             </LinearGradient>
           </Pressable>
@@ -251,45 +253,46 @@ export default function NewLive() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, marginTop: 6, fontFamily: FONT.body },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, marginTop: 6, fontFamily: t.type.body.fontFamily },
 
   card: {
     marginTop: 16,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 14,
     gap: 10,
   },
-  label: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   input: {
-    backgroundColor: COLOR.muted,
-    color: COLOR.text,
+    backgroundColor: t.color.surfaceSunk,
+    color: t.color.text,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    fontFamily: FONT.body,
+    borderColor: t.color.border,
+    fontFamily: t.type.body.fontFamily,
   },
   dateRow: { flexDirection: "row", gap: 10 },
   dateField: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  dateText: { color: COLOR.text, fontFamily: FONT.body },
-  note: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
-  pickerWrap: { marginTop: 6, backgroundColor: COLOR.muted, borderRadius: 12, borderWidth: 1, borderColor: COLOR.border, padding: 8 },
+  dateText: { color: t.color.text, fontFamily: t.type.body.fontFamily },
+  note: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  pickerWrap: { marginTop: 6, backgroundColor: t.color.surfaceSunk, borderRadius: 12, borderWidth: 1, borderColor: t.color.border, padding: 8 },
   pickerDone: {
     marginTop: 8,
     alignSelf: "flex-end",
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  pickerDoneText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  pickerDoneText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   primary: { marginTop: 16, borderRadius: 14, overflow: "hidden" },
   primaryGrad: {
@@ -299,7 +302,7 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "center",
   },
-  primaryText: { color: "#fff", fontFamily: FONT.bodyBold },
+  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
 });
 
 

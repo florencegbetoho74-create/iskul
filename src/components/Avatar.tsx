@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { COLOR, ELEVATION, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 export default function Avatar({ uri, name, size = 72 }: { uri?: string; name?: string; size?: number }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const initials = (name || "")
     .split(" ")
     .filter(Boolean)
@@ -21,20 +23,21 @@ export default function Avatar({ uri, name, size = 72 }: { uri?: string; name?: 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   img: {
     borderWidth: 2,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
-    ...ELEVATION.card,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
+    ...t.elevation(2),
   },
   fallback: {
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: COLOR.border,
-    ...ELEVATION.card,
+    borderColor: t.color.border,
+    ...t.elevation(2),
   },
-  txt: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 22 }
+  txt: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 22 }
 });

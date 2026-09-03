@@ -13,8 +13,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLOR, FONT, RADIUS } from "@/theme/colors";
-import { useTheme, type ThemePreference } from "@/theme/ThemeProvider";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
+import type { ThemePreference } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { invalidateReferentials } from "@/storage/referentials";
@@ -39,8 +40,10 @@ const THEME_CHOICES: Array<{ key: ThemePreference; label: string; hint: string }
 ];
 
 export default function Settings() {
+  // useThemedStyles fournit deja le theme : le selecteur d'apparence s'en sert
+  // pour lire et changer la preference.
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { user, updateSchooling } = useAuth();
-  const theme = useTheme();
 
   const [countryCode, setCountryCode] = useState<string>(user?.countryCode ?? "");
   const [gradeLevelId, setGradeLevelId] = useState<string>(user?.gradeLevelId ?? "");
@@ -248,9 +251,9 @@ export default function Settings() {
           accessibilityState={{ disabled: !canSave }}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.color.textOnPrimary} />
           ) : (
-            <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+            <Ionicons name="checkmark-circle-outline" size={18} color={theme.color.textOnPrimary} />
           )}
           <Text style={styles.primaryBtnText}>
             {saving ? "Enregistrement..." : "Enregistrer ma scolarite"}
@@ -284,7 +287,7 @@ export default function Settings() {
                       : "moon-outline"
                   }
                   size={18}
-                  color={active ? COLOR.primary : COLOR.sub}
+                  color={active ? theme.color.primary : theme.color.textMuted}
                 />
                 <Text style={[styles.themeLabel, active && styles.themeLabelActive]}>
                   {choice.label}
@@ -302,7 +305,7 @@ export default function Settings() {
         <Text style={styles.sectionTitle}>Application</Text>
 
         <View style={styles.row}>
-          <Ionicons name="notifications-outline" size={18} color={COLOR.text} />
+          <Ionicons name="notifications-outline" size={18} color={theme.color.text} />
           <View style={styles.rowBody}>
             <Text style={styles.rowTitle}>Notifications</Text>
             <Text style={styles.rowSub}>
@@ -313,7 +316,7 @@ export default function Settings() {
             value={notifsEnabled}
             onValueChange={toggleNotifications}
             disabled={notifsBusy}
-            trackColor={{ false: COLOR.border, true: COLOR.primary }}
+            trackColor={{ false: theme.color.border, true: theme.color.primary }}
             thumbColor="#fff"
           />
         </View>
@@ -324,14 +327,14 @@ export default function Settings() {
           style={styles.row}
           accessibilityRole="button"
         >
-          <Ionicons name="refresh-outline" size={18} color={COLOR.text} />
+          <Ionicons name="refresh-outline" size={18} color={theme.color.text} />
           <View style={styles.rowBody}>
             <Text style={styles.rowTitle}>Vider le cache des contenus</Text>
             <Text style={styles.rowSub}>
               Force le rechargement des pays, classes et rappels. Vous restez connecte.
             </Text>
           </View>
-          {clearing ? <ActivityIndicator size="small" color={COLOR.sub} /> : null}
+          {clearing ? <ActivityIndicator size="small" color={theme.color.textMuted} /> : null}
         </Pressable>
       </View>
 
@@ -359,9 +362,9 @@ export default function Settings() {
           accessibilityRole="button"
         >
           {parentBusy ? (
-            <ActivityIndicator size="small" color={COLOR.primary} />
+            <ActivityIndicator size="small" color={theme.color.primary} />
           ) : (
-            <Ionicons name="key-outline" size={18} color={COLOR.primary} />
+            <Ionicons name="key-outline" size={18} color={theme.color.primary} />
           )}
           <Text style={styles.secondaryBtnText}>
             {pairingCode ? "Generer un nouveau code" : "Generer un code parent"}
@@ -371,7 +374,7 @@ export default function Settings() {
         {parentLinks.length ? (
           parentLinks.map((link) => (
             <View key={link.id} style={styles.row}>
-              <Ionicons name="people-outline" size={18} color={COLOR.text} />
+              <Ionicons name="people-outline" size={18} color={theme.color.text} />
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>{link.label || "Parent"}</Text>
                 <Text style={styles.rowSub}>
@@ -393,7 +396,7 @@ export default function Settings() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Compte</Text>
         <View style={styles.row}>
-          <Ionicons name="person-circle-outline" size={18} color={COLOR.text} />
+          <Ionicons name="person-circle-outline" size={18} color={theme.color.text} />
           <View style={styles.rowBody}>
             <Text style={styles.rowTitle}>{user?.name || "Sans nom"}</Text>
             <Text style={styles.rowSub}>{user?.email || "Adresse inconnue"}</Text>
@@ -409,88 +412,89 @@ export default function Settings() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.color.bg },
   content: { padding: 16, gap: 16, paddingBottom: 120 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
 
   section: {
-    backgroundColor: COLOR.surface,
-    borderColor: COLOR.border,
+    backgroundColor: t.color.surface,
+    borderColor: t.color.border,
     borderWidth: 1,
-    borderRadius: RADIUS.lg,
+    borderRadius: t.radius.lg,
     padding: 14,
     gap: 4,
   },
-  sectionTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 15 },
+  sectionTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
   sectionHint: {
-    color: COLOR.sub,
-    fontFamily: FONT.body,
+    color: t.color.textMuted,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 12,
     lineHeight: 17,
     marginBottom: 4,
   },
 
   notice: {
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 12,
     lineHeight: 17,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    borderRadius: RADIUS.sm,
+    borderColor: t.color.borderStrong,
+    borderRadius: t.radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginTop: 10,
   },
-  errorText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, marginTop: 8 },
+  errorText: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12, marginTop: 8 },
 
   primaryBtn: {
     marginTop: 14,
     minHeight: 46,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLOR.primary,
+    borderRadius: t.radius.md,
+    backgroundColor: t.color.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   primaryBtnDisabled: { opacity: 0.5 },
-  primaryBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 14 },
+  primaryBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
 
   secondaryBtn: {
     marginTop: 10,
     minHeight: 44,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  secondaryBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 13 },
+  secondaryBtnText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
 
   codeBox: {
     marginTop: 10,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
     paddingVertical: 14,
     paddingHorizontal: 12,
     alignItems: "center",
   },
   codeValue: {
-    color: COLOR.primary,
-    fontFamily: FONT.mono,
+    color: t.color.primary,
+    fontFamily: "Menlo",
     fontSize: 26,
     letterSpacing: 4,
   },
-  codeHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11, marginTop: 6 },
-  revokeText: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12 },
+  codeHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, marginTop: 6 },
+  revokeText: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   row: {
     flexDirection: "row",
@@ -499,8 +503,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   rowBody: { flex: 1 },
-  rowTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 },
-  rowSub: { color: COLOR.sub, marginTop: 2, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  rowTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
+  rowSub: { color: t.color.textMuted, marginTop: 2, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
 
   themeRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   themeOption: {
@@ -509,20 +513,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 12,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
   },
-  themeOptionActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
-  themeLabel: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
-  themeLabelActive: { color: COLOR.primary },
+  themeOptionActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
+  themeLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  themeLabelActive: { color: t.color.primary },
 
   roleTag: {
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  roleTagText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 11 },
+  roleTagText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 });

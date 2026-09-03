@@ -19,7 +19,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import * as ScreenOrientation from "expo-screen-orientation";
 
-import { COLOR, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import TopBar from "@/components/TopBar";
 import { getLive, setStatus } from "@/storage/lives";
 import { addLiveJoin } from "@/storage/usage";
@@ -81,6 +82,7 @@ function isHttpUrl(value?: string | null) {
 }
 
 export default function LiveRoom() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const liveId = String(id || "");
   const { user } = useAuth();
@@ -454,7 +456,7 @@ export default function LiveRoom() {
 
   /* ------------------------------------------------------------- rendu */
   const statusTone =
-    live?.status === "live" ? COLOR.success : live?.status === "ended" ? COLOR.sub : COLOR.warn;
+    live?.status === "live" ? theme.color.success : live?.status === "ended" ? theme.color.textMuted : theme.color.warning;
   const statusLabel =
     live?.status === "live" ? "En direct" : live?.status === "ended" ? "Termine" : "Programme";
   const primaryUid = activeUid ?? remoteUids[0] ?? (localUid || null);
@@ -489,7 +491,7 @@ export default function LiveRoom() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={COLOR.primary} />
+        <ActivityIndicator color={theme.color.primary} />
       </View>
     );
   }
@@ -519,7 +521,7 @@ export default function LiveRoom() {
             </View>
             {(externalUrl || channelName) && (
               <Pressable style={styles.pill} onPress={copySession}>
-                <Ionicons name="copy-outline" size={13} color={COLOR.text} />
+                <Ionicons name="copy-outline" size={13} color={theme.color.text} />
                 <Text style={styles.pillText} numberOfLines={1}>
                   {externalUrl ? "Lien" : "Code"}
                 </Text>
@@ -540,11 +542,11 @@ export default function LiveRoom() {
             </>
           ) : (
             <View style={styles.emptyStage}>
-              <Ionicons name="videocam-outline" size={28} color={COLOR.sub} />
+              <Ionicons name="videocam-outline" size={28} color={theme.color.textMuted} />
               <Text style={styles.emptyStageText}>{stageMessage}</Text>
               {externalUrl && (
                 <Pressable style={styles.linkBtn} onPress={() => Linking.openURL(externalUrl)}>
-                  <Ionicons name="open-outline" size={15} color="#fff" />
+                  <Ionicons name="open-outline" size={15} color={theme.color.textOnPrimary} />
                   <Text style={styles.linkBtnText}>Ouvrir le lien</Text>
                 </Pressable>
               )}
@@ -592,7 +594,7 @@ export default function LiveRoom() {
                   ) : null}
                   {entry?.mutedByHost ? (
                     <View style={styles.thumbMuted}>
-                      <Ionicons name="mic-off" size={11} color="#fff" />
+                      <Ionicons name="mic-off" size={11} color={theme.color.textOnPrimary} />
                     </View>
                   ) : null}
                 </Pressable>
@@ -696,7 +698,7 @@ export default function LiveRoom() {
                   value={draft}
                   onChangeText={setDraft}
                   placeholder="Votre question..."
-                  placeholderTextColor={COLOR.sub}
+                  placeholderTextColor={theme.color.textMuted}
                   style={styles.composerInput}
                   multiline
                   maxLength={1000}
@@ -707,9 +709,9 @@ export default function LiveRoom() {
                   style={[styles.sendBtn, (!draft.trim() || sending) && styles.disabled]}
                 >
                   {sending ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={theme.color.textOnPrimary} />
                   ) : (
-                    <Ionicons name="send" size={16} color="#fff" />
+                    <Ionicons name="send" size={16} color={theme.color.textOnPrimary} />
                   )}
                 </Pressable>
               </View>
@@ -728,15 +730,15 @@ export default function LiveRoom() {
                 <Ionicons
                   name={p.role === "host" ? "school" : "person-circle-outline"}
                   size={18}
-                  color={p.role === "host" ? COLOR.primary : COLOR.sub}
+                  color={p.role === "host" ? theme.color.primary : theme.color.textMuted}
                 />
                 <Text style={styles.personName} numberOfLines={1}>
                   {p.userId === user?.id ? `${p.displayName} (vous)` : p.displayName}
                 </Text>
                 {p.handRaisedAtMs && <Text style={styles.personHand}>✋</Text>}
-                {p.mutedByHost && <Ionicons name="mic-off" size={15} color={COLOR.danger} />}
+                {p.mutedByHost && <Ionicons name="mic-off" size={15} color={theme.color.danger} />}
                 {isOwner && p.userId !== user?.id && (
-                  <Ionicons name="ellipsis-horizontal" size={16} color={COLOR.sub} />
+                  <Ionicons name="ellipsis-horizontal" size={16} color={theme.color.textMuted} />
                 )}
               </Pressable>
             ))}
@@ -753,7 +755,7 @@ export default function LiveRoom() {
                   <Ionicons
                     name={row.stillPresent ? "ellipse" : "ellipse-outline"}
                     size={11}
-                    color={row.stillPresent ? COLOR.success : COLOR.sub}
+                    color={row.stillPresent ? theme.color.success : theme.color.textMuted}
                   />
                   <Text style={styles.personName} numberOfLines={1}>
                     {row.displayName}
@@ -828,15 +830,16 @@ function Control({
   danger?: boolean;
   disabled?: boolean;
 }) {
-  const bg = danger ? COLOR.danger : primary ? COLOR.primary : COLOR.surface;
-  const fg = danger || primary ? "#fff" : COLOR.text;
+  const { styles, theme } = useThemedStyles(makeStyles);
+  const bg = danger ? theme.color.danger : primary ? theme.color.primary : theme.color.surface;
+  const fg = danger || primary ? theme.color.textOnPrimary : theme.color.text;
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       style={[
         styles.control,
-        { backgroundColor: bg, borderColor: danger || primary ? "transparent" : COLOR.border },
+        { backgroundColor: bg, borderColor: danger || primary ? "transparent" : theme.color.border },
         disabled && styles.disabled,
       ]}
     >
@@ -857,9 +860,10 @@ function PanelTab({
   active: boolean;
   onPress: () => void;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <Pressable onPress={onPress} style={[styles.panelTab, active && styles.panelTabActive]}>
-      <Ionicons name={icon} size={15} color={active ? COLOR.primary : COLOR.sub} />
+      <Ionicons name={icon} size={15} color={active ? theme.color.primary : theme.color.textMuted} />
       <Text style={[styles.panelTabText, active && styles.panelTabTextActive]} numberOfLines={1}>
         {label}
       </Text>
@@ -878,23 +882,25 @@ function ModAction({
   onPress: () => void;
   danger?: boolean;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <Pressable onPress={onPress} style={styles.modAction}>
-      <Ionicons name={icon} size={18} color={danger ? COLOR.danger : COLOR.text} />
-      <Text style={[styles.modActionText, danger && { color: COLOR.danger }]}>{label}</Text>
+      <Ionicons name={icon} size={18} color={danger ? theme.color.danger : theme.color.text} />
+      <Text style={[styles.modActionText, danger && { color: theme.color.danger }]}>{label}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLOR.bg },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: COLOR.bg },
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.color.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.color.bg },
   container: { padding: 16, gap: 12, paddingBottom: 140 },
-  muted: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 13 },
+  muted: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13 },
 
   header: { gap: 5 },
-  title: { color: COLOR.text, fontSize: 20, fontFamily: FONT.headingAlt },
-  meta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  title: { color: t.color.text, fontSize: 20, fontFamily: t.type.heading.fontFamily },
+  meta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
   headerRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
   pill: {
     flexDirection: "row",
@@ -902,21 +908,21 @@ const styles = StyleSheet.create({
     gap: 5,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  pillText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 11 },
+  pillText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   dot: { width: 6, height: 6, borderRadius: 999 },
 
   stage: {
     height: 320,
     backgroundColor: "#0B0B0C",
-    borderRadius: RADIUS.lg,
+    borderRadius: t.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
   video: { width: "100%", height: "100%" },
   stageLabel: {
@@ -928,20 +934,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  stageLabelText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  stageLabelText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   emptyStage: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16 },
-  emptyStageText: { color: "#fff", fontFamily: FONT.headingAlt, fontSize: 14, textAlign: "center" },
+  emptyStageText: { color: "#fff", fontFamily: t.type.heading.fontFamily, fontSize: 14, textAlign: "center" },
   linkBtn: {
     marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     borderRadius: 999,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  linkBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  linkBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   overlay: {
     position: "absolute",
     left: 0,
@@ -951,7 +957,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
-  overlayText: { color: "#fff", fontFamily: FONT.body, fontSize: 12, marginTop: 4 },
+  overlayText: { color: "#fff", fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 4 },
   liveBadge: {
     position: "absolute",
     top: 12,
@@ -965,7 +971,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   liveDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: "#EF4444" },
-  liveBadgeText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 11 },
+  liveBadgeText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 
   thumbRow: { gap: 8, paddingVertical: 2 },
   thumb: {
@@ -974,10 +980,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     backgroundColor: "#0B0B0C",
   },
-  thumbActive: { borderColor: COLOR.primary, borderWidth: 2 },
+  thumbActive: { borderColor: t.color.primary, borderWidth: 2 },
   thumbVideo: { width: "100%", height: "100%" },
   thumbLabel: {
     position: "absolute",
@@ -988,28 +994,28 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     backgroundColor: "rgba(0,0,0,0.55)",
   },
-  thumbLabelText: { color: "#fff", fontFamily: FONT.body, fontSize: 10 },
+  thumbLabelText: { color: "#fff", fontFamily: t.type.body.fontFamily, fontSize: 10 },
   thumbHand: { position: "absolute", top: 4, right: 4 },
   thumbHandText: { fontSize: 13 },
   thumbMuted: {
     position: "absolute",
     top: 4,
     left: 4,
-    backgroundColor: COLOR.danger,
+    backgroundColor: t.color.danger,
     borderRadius: 999,
     padding: 3,
   },
 
   handsBar: {
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
     padding: 10,
     gap: 2,
   },
-  handsTitle: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
-  handsNames: { color: COLOR.text, fontFamily: FONT.body, fontSize: 12 },
+  handsTitle: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  handsNames: { color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 12 },
 
   controls: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   control: {
@@ -1021,7 +1027,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  controlText: { fontFamily: FONT.bodyBold, fontSize: 12 },
+  controlText: { fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   disabled: { opacity: 0.5 },
 
   panelTabs: { flexDirection: "row", gap: 8 },
@@ -1031,30 +1037,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    borderRadius: RADIUS.md,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     paddingVertical: 9,
     paddingHorizontal: 6,
   },
-  panelTabActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
-  panelTabText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
-  panelTabTextActive: { color: COLOR.primary },
+  panelTabActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
+  panelTabText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+  panelTabTextActive: { color: t.color.primary },
 
   panel: {
-    borderRadius: RADIUS.lg,
+    borderRadius: t.radius.lg,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     padding: 12,
     gap: 8,
   },
 
   message: { gap: 2 },
-  messageAuthor: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 10 },
-  messageAuthorHost: { color: COLOR.primary },
-  messageText: { color: COLOR.text, fontFamily: FONT.body, fontSize: 13, lineHeight: 18 },
+  messageAuthor: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
+  messageAuthorHost: { color: t.color.primary },
+  messageText: { color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 13, lineHeight: 18 },
 
   composer: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 4 },
   composerInput: {
@@ -1062,40 +1068,40 @@ const styles = StyleSheet.create({
     maxHeight: 90,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    color: COLOR.text,
-    fontFamily: FONT.body,
+    color: t.color.text,
+    fontFamily: t.type.body.fontFamily,
     fontSize: 13,
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: COLOR.primary,
+    backgroundColor: t.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },
 
   personRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 7 },
-  personName: { flex: 1, color: COLOR.text, fontFamily: FONT.body, fontSize: 13 },
+  personName: { flex: 1, color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 13 },
   personHand: { fontSize: 14 },
-  personTime: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  personTime: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
 
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.4)" },
   sheet: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 16,
     gap: 4,
   },
-  sheetTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 16, marginBottom: 6 },
+  sheetTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16, marginBottom: 6 },
   modAction: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
-  modActionText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 },
+  modActionText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
 });

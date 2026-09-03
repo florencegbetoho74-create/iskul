@@ -1167,7 +1167,7 @@ const makeStyles = (t: Theme) =>
   teacherDashEmpty: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
   primaryBtn: { borderRadius: 12, overflow: "hidden", marginRight: 10 },
   primaryBtnGrad: { paddingHorizontal: 12, paddingVertical: 8 },
-  primaryBtnText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  primaryBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
 
   ghostBtn: {
     borderRadius: 12,
@@ -1213,7 +1213,7 @@ const makeStyles = (t: Theme) =>
     borderWidth: 2,
     borderColor: t.color.bg,
   },
-  msgBadgeText: { color: "#fff", fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily },
+  msgBadgeText: { color: t.color.textOnPrimary, fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily },
 
   levelCard: {
     marginHorizontal: 16,

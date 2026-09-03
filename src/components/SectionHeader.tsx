@@ -1,10 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
-import { COLOR, FONT, RADIUS, SPACE } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 type Props = { title: string; href?: string; cta?: string };
 export default function SectionHeader({ title, href, cta = "Voir tout" }: Props) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={styles.row}>
       <Text style={styles.title}>{title}</Text>
@@ -17,25 +19,26 @@ export default function SectionHeader({ title, href, cta = "Voir tout" }: Props)
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SPACE.xs,
-    marginBottom: SPACE.xs,
-    gap: SPACE.sm,
+    paddingHorizontal: t.space.sm,
+    marginBottom: t.space.sm,
+    gap: t.space.md,
   },
-  title: { color: COLOR.text, fontSize: 17, fontFamily: FONT.headingAlt, flex: 1 },
+  title: { color: t.color.text, fontSize: 17, fontFamily: t.type.heading.fontFamily, flex: 1 },
   cta: {
-    color: COLOR.primary,
-    fontFamily: FONT.bodyBold,
+    color: t.color.primary,
+    fontFamily: t.type.bodyStrong.fontFamily,
     fontSize: 12,
     borderWidth: 1,
-    borderColor: COLOR.ring,
-    backgroundColor: COLOR.tint,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACE.sm,
+    borderColor: t.color.borderStrong,
+    backgroundColor: t.color.primarySoft,
+    borderRadius: t.radius.pill,
+    paddingHorizontal: t.space.md,
     paddingVertical: 5,
     overflow: "hidden",
   }

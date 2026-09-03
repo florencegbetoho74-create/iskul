@@ -2,7 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 export type Course = {
   id: string;
@@ -13,6 +14,7 @@ export type Course = {
 };
 
 export default function CourseItem({ item }: { item: any }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const title = item.title ?? "Cours";
   const level = item.level ?? "";
   const fallbackTitle = item?.chapters?.[0]?.title || title;
@@ -38,20 +40,21 @@ export default function CourseItem({ item }: { item: any }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   card: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 18,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderWidth: 1,
     overflow: "hidden",
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 2,
   },
-  thumb: { width: "100%", aspectRatio: 16 / 9, backgroundColor: COLOR.muted },
+  thumb: { width: "100%", aspectRatio: 16 / 9, backgroundColor: t.color.surfaceSunk },
   thumbFallback: { padding: 12, justifyContent: "flex-end", gap: 6, backgroundColor: "#0f172a" },
   thumbIcon: {
     height: 28,
@@ -61,9 +64,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  thumbTitle: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
-  thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: FONT.body, fontSize: 11 },
+  thumbTitle: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  thumbMeta: { color: "rgba(255,255,255,0.7)", fontFamily: t.type.body.fontFamily, fontSize: 11 },
   meta: { padding: 12, gap: 6 },
-  title: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 15 },
-  level: { color: COLOR.sub, fontFamily: FONT.body }
+  title: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
+  level: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily }
 });

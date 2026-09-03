@@ -1,10 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 type Item = { key: string; label: string };
 type Props = { value: string; items: Item[]; onChange: (k: string) => void };
 export default function Segmented({ value, items, onChange }: Props) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={styles.wrap}>
       {items.map((it) => (
@@ -15,26 +17,27 @@ export default function Segmented({ value, items, onChange }: Props) {
     </View>
   );
 }
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   wrap: {
     flexDirection: "row",
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     padding: 4,
     gap: 4,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
   item: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: RADIUS.sm,
+    borderRadius: t.radius.sm,
     alignItems: "center",
     minHeight: 40,
     justifyContent: "center",
   },
-  active: { backgroundColor: COLOR.primary },
-  txt: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 13 },
-  txtActive: { color: "#fff" }
+  active: { backgroundColor: t.color.primary },
+  txt: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  txtActive: { color: t.color.textOnPrimary },
 });

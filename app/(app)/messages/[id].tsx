@@ -22,7 +22,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system/legacy";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import Avatar from "@/components/Avatar";
 import { addMessage, markRead, watchMessages, watchThread } from "@/storage/chat";
@@ -40,7 +41,11 @@ type Msg = {
   failed?: boolean;
 };
 
-const ACCENT = ["#1D4ED8", "#2563EB"] as const;
+/** Degrade primaire derive du theme. */
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const fmtTime = (ms: number) => {
@@ -98,11 +103,12 @@ function DuoHeader({
   subtitle?: string;
   onBack: () => void;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
       <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={8}>
-        <Ionicons name="chevron-back" size={20} color={COLOR.text} />
+        <Ionicons name="chevron-back" size={20} color={theme.color.text} />
       </TouchableOpacity>
 
       <View style={{ width: 48, height: 32, position: "relative", marginRight: 10 }}>
@@ -123,6 +129,7 @@ function DuoHeader({
 }
 
 function DateDivider({ label }: { label: string }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={styles.divider}>
       <View style={styles.dividerLine} />
@@ -159,6 +166,7 @@ function Bubble({
   openingId?: string | null;
   onOpenAttachment: (att: ChatAttachment) => void;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const radius = {
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -177,7 +185,7 @@ function Bubble({
 
   const Content = (
     <>
-      {!!text && <Text style={[styles.bubbleText, mine ? { color: "#fff" } : { color: COLOR.text }]}>{text}</Text>}
+      {!!text && <Text style={[styles.bubbleText, mine ? { color: theme.color.textOnPrimary } : { color: theme.color.text }]}>{text}</Text>}
 
       {!!attachments?.length && (
         <View style={{ gap: 8, marginTop: text ? 8 : 0 }}>
@@ -200,10 +208,10 @@ function Bubble({
                 ) : (
                   <>
                     <View style={styles.attIcon}>
-                      <Ionicons name="document-text" size={14} color={mine ? "#fff" : COLOR.text} />
+                      <Ionicons name="document-text" size={14} color={mine ? theme.color.textOnPrimary : theme.color.text} />
                     </View>
                     <View style={styles.attBody}>
-                      <Text style={[styles.attText, mine && { color: "#fff" }]} numberOfLines={1}>
+                      <Text style={[styles.attText, mine && { color: theme.color.textOnPrimary }]} numberOfLines={1}>
                         {a.name || "fichier"}
                       </Text>
                       <Text style={[styles.attMeta, mine && { color: "rgba(255,255,255,0.7)" }]}>
@@ -214,7 +222,7 @@ function Bubble({
                       <Text style={styles.attExtText}>{fileExt(a.name)}</Text>
                     </View>
                     {openingId === a.id ? (
-                      <ActivityIndicator size="small" color={mine ? "#fff" : COLOR.text} />
+                      <ActivityIndicator size="small" color={mine ? theme.color.textOnPrimary : theme.color.text} />
                     ) : null}
                   </>
                 )}
@@ -233,12 +241,12 @@ function Bubble({
           <View />
         )}
         <View style={styles.msgMetaRight}>
-          <Text style={[styles.msgTime, mine ? { color: "#fff" } : { color: COLOR.sub }]}>{fmtTime(atMs)}</Text>
+          <Text style={[styles.msgTime, mine ? { color: theme.color.textOnPrimary } : { color: theme.color.textMuted }]}>{fmtTime(atMs)}</Text>
           {mine ? (
             <Ionicons
               name={read ? "checkmark-done" : "checkmark"}
               size={13}
-              color={read ? "#0d5c4b" : "#fff"}
+              color={theme.color.textOnPrimary}
               style={{ marginLeft: 6 }}
             />
           ) : null}
@@ -258,7 +266,7 @@ function Bubble({
       )}
 
       {mine ? (
-        <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bubble, styles.mine, radius]}>
+        <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bubble, styles.mine, radius]}>
           {Content}
         </LinearGradient>
       ) : (
@@ -281,6 +289,7 @@ type RowDivider = { __type: "divider"; key: string; label: string };
 type PendingAttachment = ChatAttachment & { progress?: number };
 
 export default function ChatRoom() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -512,15 +521,15 @@ export default function ChatRoom() {
 
   if (!thread) {
     return (
-      <View style={{ flex: 1, backgroundColor: COLOR.bg, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: COLOR.sub }}>Conversation introuvable.</Text>
+      <View style={{ flex: 1, backgroundColor: theme.color.bg, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: theme.color.textMuted }}>Conversation introuvable.</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: COLOR.bg }}
+      style={{ flex: 1, backgroundColor: theme.color.bg }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 64 : 0}
     >
@@ -580,7 +589,7 @@ export default function ChatRoom() {
           );
         }}
         ListEmptyComponent={
-          <Text style={{ color: COLOR.sub, textAlign: "center", marginVertical: 24 }}>
+          <Text style={{ color: theme.color.textMuted, textAlign: "center", marginVertical: 24 }}>
             Aucun message pour l'instant.
           </Text>
         }
@@ -594,8 +603,8 @@ export default function ChatRoom() {
           contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 6 }}
           ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
           renderItem={({ item, index }) => (
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pendingCard}>
-              <Ionicons name={isImg(item.mime) ? "image" : "document-text"} size={14} color="#fff" />
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.pendingCard}>
+              <Ionicons name={isImg(item.mime) ? "image" : "document-text"} size={14} color={theme.color.textOnPrimary} />
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.pendingText}>
                   {item.name || "fichier"}
@@ -607,7 +616,7 @@ export default function ChatRoom() {
                 ) : null}
               </View>
               <TouchableOpacity onPress={() => removePending(index)} style={{ marginLeft: 4 }} hitSlop={8}>
-                <Ionicons name="close" size={14} color="#fff" />
+                <Ionicons name="close" size={14} color={theme.color.textOnPrimary} />
               </TouchableOpacity>
             </LinearGradient>
           )}
@@ -616,15 +625,15 @@ export default function ChatRoom() {
       )}
 
       <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtn}>
+        <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtn}>
           <TouchableOpacity onPress={pickFile} activeOpacity={0.9} style={styles.actionBtnInner}>
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color={theme.color.textOnPrimary} />
           </TouchableOpacity>
         </LinearGradient>
 
         <TextInput
           placeholder="Ecrire un message"
-          placeholderTextColor={COLOR.sub}
+          placeholderTextColor={theme.color.textMuted}
           style={[styles.input, { height: Math.min(120, Math.max(40, inputH)) }]}
           value={input}
           onChangeText={setInput}
@@ -634,22 +643,22 @@ export default function ChatRoom() {
           onSubmitEditing={send}
         />
 
-        <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtn}>
+        <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtn}>
           <TouchableOpacity
             style={[styles.actionBtnInner, (sending || (!input.trim() && pending.length === 0)) && { opacity: 0.6 }]}
             onPress={send}
             disabled={sending || (!input.trim() && pending.length === 0)}
             activeOpacity={0.9}
           >
-            {sending ? <ActivityIndicator color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
+            {sending ? <ActivityIndicator color={theme.color.textOnPrimary} /> : <Ionicons name="send" size={18} color={theme.color.textOnPrimary} />}
           </TouchableOpacity>
         </LinearGradient>
       </View>
 
       {showJump && (
-        <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.jump}>
+        <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.jump}>
           <TouchableOpacity onPress={() => listRef.current?.scrollToOffset({ animated: true, offset: 0 })} activeOpacity={0.9}>
-            <Ionicons name="chevron-down" size={16} color="#fff" />
+            <Ionicons name="chevron-down" size={16} color={theme.color.textOnPrimary} />
           </TouchableOpacity>
         </LinearGradient>
       )}
@@ -659,7 +668,7 @@ export default function ChatRoom() {
           <Pressable style={styles.viewerBackdrop} onPress={() => setViewer(null)} />
           {viewer ? <Image source={{ uri: viewer.uri }} style={styles.viewerImage} resizeMode="contain" /> : null}
           <Pressable style={styles.viewerClose} onPress={() => setViewer(null)}>
-            <Ionicons name="close" size={18} color="#fff" />
+            <Ionicons name="close" size={18} color={theme.color.textOnPrimary} />
           </Pressable>
         </View>
       </Modal>
@@ -667,28 +676,29 @@ export default function ChatRoom() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   header: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLOR.border,
+    borderBottomColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
   },
   backBtn: {
     width: 34,
     height: 34,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
   },
-  title: { color: COLOR.text, fontSize: 17, fontFamily: FONT.headingAlt },
-  meta: { color: COLOR.sub, marginTop: 2, fontSize: 12, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 17, fontFamily: t.type.heading.fontFamily },
+  meta: { color: t.color.textMuted, marginTop: 2, fontSize: 12, fontFamily: t.type.body.fontFamily },
 
   divider: {
     flexDirection: "row",
@@ -696,28 +706,28 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: 6,
   },
-  dividerLine: { height: 1, width: 46, backgroundColor: COLOR.border },
-  dividerText: { color: COLOR.sub, fontSize: 12, marginHorizontal: 8, fontFamily: FONT.body },
+  dividerLine: { height: 1, width: 46, backgroundColor: t.color.border },
+  dividerText: { color: t.color.textMuted, fontSize: 12, marginHorizontal: 8, fontFamily: t.type.body.fontFamily },
 
   bubbleRow: { flexDirection: "row", alignItems: "flex-end" },
-  bubble: { maxWidth: "78%", borderRadius: 18, padding: 10, borderWidth: 1, borderColor: COLOR.border },
+  bubble: { maxWidth: "78%", borderRadius: 18, padding: 10, borderWidth: 1, borderColor: t.color.border },
   mine: { borderColor: "transparent" },
-  theirs: { backgroundColor: COLOR.surface, borderColor: COLOR.border },
-  bubbleText: { fontSize: 15, lineHeight: 20, fontFamily: FONT.body },
+  theirs: { backgroundColor: t.color.surface, borderColor: t.color.border },
+  bubbleText: { fontSize: 15, lineHeight: 20, fontFamily: t.type.body.fontFamily },
 
   msgMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
   msgMetaRight: { flexDirection: "row", alignItems: "center" },
-  msgTime: { fontSize: 10, fontFamily: FONT.body },
-  msgStatus: { fontSize: 10, fontFamily: FONT.bodyBold, color: "rgba(255,255,255,0.8)" },
-  msgStatusFail: { color: COLOR.danger },
+  msgTime: { fontSize: 10, fontFamily: t.type.body.fontFamily },
+  msgStatus: { fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily, color: "rgba(255,255,255,0.8)" },
+  msgStatusFail: { color: t.color.danger },
 
   attRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 12,
     padding: 8,
   },
@@ -730,15 +740,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15,23,42,0.08)",
   },
   attBody: { flex: 1 },
-  attText: { color: COLOR.text, fontSize: 12, fontFamily: FONT.bodyBold },
-  attMeta: { color: COLOR.sub, fontSize: 11, fontFamily: FONT.body, marginTop: 2 },
+  attText: { color: t.color.text, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
+  attMeta: { color: t.color.textMuted, fontSize: 11, fontFamily: t.type.body.fontFamily, marginTop: 2 },
   attExt: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: "rgba(15,23,42,0.08)",
   },
-  attExtText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 10 },
+  attExtText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
   attImgWrap: { padding: 0, borderRadius: 12, overflow: "hidden", borderWidth: 0 },
   attImg: { width: 220, height: 160, borderRadius: 12 },
   attImgOverlay: {
@@ -750,7 +760,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
-  attImgText: { color: "#fff", fontSize: 11, fontFamily: FONT.bodyBold },
+  attImgText: { color: "#fff", fontSize: 11, fontFamily: t.type.bodyStrong.fontFamily },
 
   pendingCard: {
     flexDirection: "row",
@@ -763,9 +773,9 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     minWidth: 180,
   },
-  pendingText: { color: "#fff", fontSize: 12, fontFamily: FONT.bodyBold },
+  pendingText: { color: t.color.textOnPrimary, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
   pendingBar: { height: 4, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 999, marginTop: 6 },
-  pendingBarFill: { height: 4, backgroundColor: "#fff", borderRadius: 999 },
+  pendingBarFill: { height: 4, backgroundColor: t.color.textOnPrimary, borderRadius: 999 },
 
   inputRow: {
     flexDirection: "row",
@@ -773,19 +783,19 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: COLOR.border,
-    backgroundColor: COLOR.bg,
+    borderTopColor: t.color.border,
+    backgroundColor: t.color.bg,
   },
   input: {
     flex: 1,
-    backgroundColor: COLOR.muted,
-    color: COLOR.text,
+    backgroundColor: t.color.surfaceSunk,
+    color: t.color.text,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: COLOR.border,
-    fontFamily: FONT.body,
+    borderColor: t.color.border,
+    fontFamily: t.type.body.fontFamily,
   },
 
   actionBtn: {

@@ -2,7 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Chapter } from "@/types/course";
-import { COLOR, FONT } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import type { Theme } from "@/theme/ThemeProvider";
 
 type Props = {
   item: Chapter;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function ChapterCard({ item, index, active, onPress }: Props) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -20,7 +22,7 @@ export default function ChapterCard({ item, index, active, onPress }: Props) {
     >
       <View style={styles.thumbWrap}>
         <View style={styles.thumbFallback}>
-          <Ionicons name="videocam" size={20} color={COLOR.sub} />
+          <Ionicons name="videocam" size={20} color={theme.color.textMuted} />
         </View>
 
         <View style={styles.topBadge}>
@@ -31,7 +33,7 @@ export default function ChapterCard({ item, index, active, onPress }: Props) {
 
         {item.videoUrl ? (
           <View style={styles.playBadge}>
-            <Ionicons name="play" size={14} color={COLOR.text} />
+            <Ionicons name="play" size={14} color={theme.color.text} />
           </View>
         ) : null}
       </View>
@@ -44,38 +46,39 @@ export default function ChapterCard({ item, index, active, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     overflow: "hidden",
     minHeight: 180,
-    shadowColor: "#0B1D39",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   cardActive: {
-    borderColor: COLOR.primary,
+    borderColor: t.color.primary,
   },
-  thumbWrap: { height: 110, backgroundColor: COLOR.muted },
+  thumbWrap: { height: 110, backgroundColor: t.color.surfaceSunk },
   thumbFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
   body: { padding: 12, gap: 6 },
-  title: { color: COLOR.text, fontFamily: FONT.headingAlt },
-  sub: { color: COLOR.sub, fontSize: 12, fontFamily: FONT.body },
+  title: { color: t.color.text, fontFamily: t.type.heading.fontFamily },
+  sub: { color: t.color.textMuted, fontSize: 12, fontFamily: t.type.body.fontFamily },
   topBadge: {
     position: "absolute", top: 8, left: 8,
     backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2,
-    borderWidth: 1, borderColor: COLOR.border
+    borderWidth: 1, borderColor: t.color.border
   },
-  topBadgeText: { color: COLOR.text, fontSize: 12, fontFamily: FONT.bodyBold },
+  topBadgeText: { color: t.color.text, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
   playBadge: {
     position: "absolute", right: 8, bottom: 8,
     backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 999, padding: 6,
-    borderWidth: 1, borderColor: COLOR.border
+    borderWidth: 1, borderColor: t.color.border
   }
 });
