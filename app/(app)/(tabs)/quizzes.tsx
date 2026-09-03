@@ -1,65 +1,51 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  TextInput,
-  RefreshControl,
-  ActivityIndicator,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { FlatList, Pressable, RefreshControl, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useThemedStyles } from "@/theme/useStyles";
-import type { Theme } from "@/theme/ThemeProvider";
-import Segmented from "@/components/Segmented";
+import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
+import Text from "@/components/ui/Text";
+import Badge from "@/components/ui/Badge";
+import EmptyState from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
+import FilterChips, { type FilterOption } from "@/components/catalog/FilterChips";
 import { listQuizzes, type Quiz } from "@/storage/quizzes";
-import { GRADE_LEVELS, normalizeCourseLevel } from "@/constants/gradeLevels";
-import { COURSE_SUBJECTS, canonicalizeCourseSubject } from "@/constants/courseSubjects";
 
-/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
-const backgroundGradient = (t: Theme): readonly [string, string, string] =>
-  t.name === "dark"
-    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
-    : [t.color.bg, t.color.primarySoft, t.color.bg];
-
-const accentGradient = (t: Theme): readonly [string, string] => [
-  t.color.primary,
-  t.color.primaryPressed,
-];
-
-type ScopeFilter = "all" | "standalone" | "lesson";
-type SubjectGroup = { subject: string; quizzes: Quiz[] };
-type LevelGroup = { level: string; subjects: SubjectGroup[]; quizzes: number };
-
-export default function QuizzesTab() {
-  const { styles, theme } = useThemedStyles(makeStyles);
+/**
+ * Quiz.
+ *
+ * L'ecran melangeait deux idees : parcourir les quiz disponibles et gerer les
+ * siens. Le role decide desormais lequel on voit.
+ */
+export default function Quizzes() {
+  const { color, space, radius } = useTheme();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
-  const isTeacher = String((user as any)?.role || "") === "teacher";
+
+  const isTeacher = String(user?.role || "") === "teacher";
 
   const [rows, setRows] = useState<Quiz[]>([]);
+  const [query, setQuery] = useState("");
+  const [subject, setSubject] = useState("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery] = useState("");
-  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
-  const [levelFilter, setLevelFilter] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!user?.id && isTeacher) return;
-    setLoading(true);
+    setError(null);
     try {
-      const list = await listQuizzes({
-        ownerId: isTeacher ? user?.id : undefined,
-        publishedOnly: !isTeacher,
-      });
-      setRows(list || []);
+      setRows(
+        await listQuizzes(
+          isTeacher
+            ? { ownerId: user?.id, limit: 200 }
+            : { publishedOnly: true, limit: 200 }
+        )
+      );
+    } catch (e: any) {
+      setError(e?.message || "Quiz indisponibles.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,421 +53,273 @@ export default function QuizzesTab() {
   }, [isTeacher, user?.id]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
-  const levelRank = useMemo(() => {
-    const map = new Map<string, number>();
-    GRADE_LEVELS.forEach((lvl, i) => map.set(lvl, i));
-    return map;
-  }, []);
-
-  const subjectRank = useMemo(() => {
-    const map = new Map<string, number>();
-    COURSE_SUBJECTS.forEach((subj, i) => map.set(subj, i));
-    return map;
-  }, []);
-
-  const scoped = useMemo(() => {
-    if (scopeFilter === "standalone") return rows.filter((q) => q.scope === "standalone");
-    if (scopeFilter === "lesson") return rows.filter((q) => q.scope === "lesson");
-    return rows;
-  }, [rows, scopeFilter]);
-
-  const searched = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return scoped;
-    return scoped.filter((quiz) => {
-      return (
-        (quiz.title || "").toLowerCase().includes(q) ||
-        (quiz.description || "").toLowerCase().includes(q) ||
-        (quiz.subject || "").toLowerCase().includes(q) ||
-        (quiz.level || "").toLowerCase().includes(q) ||
-        (quiz.courseTitle || "").toLowerCase().includes(q) ||
-        (quiz.lessonTitle || "").toLowerCase().includes(q)
-      );
-    });
-  }, [query, scoped]);
-
-  const levelOptions = useMemo(() => {
+  const subjectOptions = useMemo<FilterOption[]>(() => {
     const counts = new Map<string, number>();
-    for (const quiz of searched) {
-      const lvl = normalizeCourseLevel(quiz.level);
-      counts.set(lvl, (counts.get(lvl) || 0) + 1);
+    for (const q of rows) {
+      const key = q.subject?.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + 1);
     }
-    const items = Array.from(counts.entries())
-      .sort((a, b) => {
-        const ra = levelRank.has(a[0]) ? (levelRank.get(a[0]) as number) : 999;
-        const rb = levelRank.has(b[0]) ? (levelRank.get(b[0]) as number) : 999;
-        if (ra !== rb) return ra - rb;
-        return a[0].localeCompare(b[0], "fr", { sensitivity: "base" });
-      })
-      .map(([key, count]) => ({ key, label: key, count }));
-    return [{ key: "all", label: "Toutes classes", count: searched.length }, ...items];
-  }, [levelRank, searched]);
+    const list = Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], "fr", { sensitivity: "base" }))
+      .map(([label, count]) => ({ key: label, label, count }));
+    return [{ key: "all", label: "Toutes", count: rows.length }, ...list];
+  }, [rows]);
 
   useEffect(() => {
-    if (levelOptions.some((opt) => opt.key === levelFilter)) return;
-    setLevelFilter("all");
-  }, [levelFilter, levelOptions]);
+    if (subjectOptions.some((o) => o.key === subject)) return;
+    setSubject("all");
+  }, [subjectOptions, subject]);
 
   const filtered = useMemo(() => {
-    if (levelFilter === "all") return searched;
-    return searched.filter((quiz) => normalizeCourseLevel(quiz.level) === levelFilter);
-  }, [levelFilter, searched]);
-
-  const grouped = useMemo<LevelGroup[]>(() => {
-    const byLevel = new Map<string, Map<string, Quiz[]>>();
-    for (const quiz of filtered) {
-      const level = normalizeCourseLevel(quiz.level);
-      const subject = canonicalizeCourseSubject(quiz.subject || "") || "Matiere non precise";
-      if (!byLevel.has(level)) byLevel.set(level, new Map());
-      const bySubject = byLevel.get(level)!;
-      if (!bySubject.has(subject)) bySubject.set(subject, []);
-      bySubject.get(subject)!.push(quiz);
+    let base = rows;
+    if (subject !== "all") base = base.filter((q) => q.subject === subject);
+    const needle = query.trim().toLowerCase();
+    if (needle) {
+      base = base.filter(
+        (q) =>
+          q.title?.toLowerCase().includes(needle) ||
+          q.subject?.toLowerCase().includes(needle) ||
+          q.courseTitle?.toLowerCase().includes(needle)
+      );
     }
+    return base;
+  }, [rows, subject, query]);
 
-    const levels: LevelGroup[] = Array.from(byLevel.entries()).map(([level, bySubject]) => {
-      const subjects: SubjectGroup[] = Array.from(bySubject.entries()).map(([subject, quizzes]) => {
-        const sorted = [...quizzes].sort((a, b) => {
-          if ((b.updatedAtMs || 0) !== (a.updatedAtMs || 0)) return (b.updatedAtMs || 0) - (a.updatedAtMs || 0);
-          return (a.title || "").localeCompare(b.title || "", "fr", { sensitivity: "base" });
-        });
-        return { subject, quizzes: sorted };
-      });
-
-      subjects.sort((a, b) => {
-        const ra = subjectRank.has(a.subject) ? (subjectRank.get(a.subject) as number) : 999;
-        const rb = subjectRank.has(b.subject) ? (subjectRank.get(b.subject) as number) : 999;
-        if (ra !== rb) return ra - rb;
-        return a.subject.localeCompare(b.subject, "fr", { sensitivity: "base" });
-      });
-
-      return {
-        level,
-        subjects,
-        quizzes: subjects.reduce((acc, s) => acc + s.quizzes.length, 0),
-      };
-    });
-
-    levels.sort((a, b) => {
-      const ra = levelRank.has(a.level) ? (levelRank.get(a.level) as number) : 999;
-      const rb = levelRank.has(b.level) ? (levelRank.get(b.level) as number) : 999;
-      if (ra !== rb) return ra - rb;
-      return a.level.localeCompare(b.level, "fr", { sensitivity: "base" });
-    });
-
-    return levels;
-  }, [filtered, levelRank, subjectRank]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load();
-  }, [load]);
-
-  const openQuiz = (quiz: Quiz) => {
-    router.push(`/(app)/course/quiz?quizId=${encodeURIComponent(quiz.id)}`);
-  };
+  const hasFilters = !!query.trim() || subject !== "all";
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: (isTeacher ? 168 : 120) + insets.bottom }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.color.text}
-            colors={[theme.color.text]}
-            progressBackgroundColor={theme.color.surface}
-          />
-        }
-        keyboardShouldPersistTaps="handled"
-      >
-        <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
-          <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Quiz</Text>
-              <Text style={styles.subtitle}>
-                {isTeacher
-                  ? "Creer et publier des quiz classes par classe et matiere."
-                  : "Quiz disponibles par classe et matiere."}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.searchWrap}>
-            <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Rechercher un quiz"
-              placeholderTextColor={theme.color.textMuted}
-              style={styles.searchInput}
-              returnKeyType="search"
-            />
-            {query ? (
-              <Pressable onPress={() => setQuery("")} hitSlop={8}>
-                <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
-              </Pressable>
-            ) : null}
-          </View>
-
-          {isTeacher ? (
-            <View style={styles.segmentWrap}>
-              <Segmented
-                value={scopeFilter}
-                items={[
-                  { key: "all", label: "Tous" },
-                  { key: "standalone", label: "Libres" },
-                  { key: "lesson", label: "Chapitres" },
-                ]}
-                onChange={(k) => setScopeFilter(k as ScopeFilter)}
-              />
-            </View>
-          ) : null}
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.levelRow}>
-            {levelOptions.map((opt) => {
-              const active = levelFilter === opt.key;
-              return (
-                <Pressable
-                  key={opt.key}
-                  onPress={() => setLevelFilter(opt.key)}
-                  style={[styles.levelChip, active && styles.levelChipActive]}
-                >
-                  <Text style={[styles.levelChipText, active && styles.levelChipTextActive]}>{opt.label}</Text>
-                  <View style={[styles.levelCount, active && styles.levelCountActive]}>
-                    <Text style={[styles.levelCountText, active && styles.levelCountTextActive]}>{opt.count}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </LinearGradient>
-
-        {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={theme.color.primary} />
-            <Text style={styles.loadingText}>Chargement des quiz...</Text>
-          </View>
-        ) : grouped.length ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-            {grouped.map((levelGroup) => (
-              <View key={levelGroup.level} style={styles.levelCard}>
-                <View style={styles.levelHead}>
-                  <Text style={styles.levelTitle}>Classe {levelGroup.level}</Text>
-                  <Text style={styles.levelSub}>
-                    {levelGroup.quizzes} quiz
-                  </Text>
-                </View>
-
-                {levelGroup.subjects.map((subjectGroup) => (
-                  <View key={`${levelGroup.level}__${subjectGroup.subject}`} style={styles.subjectBlock}>
-                    <View style={styles.subjectHead}>
-                      <Text style={styles.subjectTitle}>{subjectGroup.subject}</Text>
-                      <Text style={styles.subjectCount}>{subjectGroup.quizzes.length}</Text>
-                    </View>
-
-                    {subjectGroup.quizzes.map((quiz) => (
-                      <Pressable key={quiz.id} onPress={() => openQuiz(quiz)} style={styles.quizCard}>
-                        <View style={styles.quizCardTop}>
-                          <Text style={styles.quizTitle} numberOfLines={2}>{quiz.title || "Quiz sans titre"}</Text>
-                          <View style={[styles.scopeBadge, quiz.scope === "standalone" ? styles.scopeStandalone : styles.scopeLesson]}>
-                            <Text style={styles.scopeBadgeText}>{quiz.scope === "standalone" ? "Autonome" : "Chapitre"}</Text>
-                          </View>
-                        </View>
-
-                        {quiz.description ? (
-                          <Text style={styles.quizDesc} numberOfLines={2}>{quiz.description}</Text>
-                        ) : null}
-
-                        <View style={styles.quizMetaRow}>
-                          <Text style={styles.quizMeta}>
-                            {quiz.questions.length} question{quiz.questions.length > 1 ? "s" : ""}
-                          </Text>
-                          {quiz.scope === "lesson" ? (
-                            <Text style={styles.quizMeta} numberOfLines={1}>
-                              {(quiz.courseTitle || "Cours")} - {(quiz.lessonTitle || "Chapitre")}
-                            </Text>
-                          ) : (
-                            <Text style={styles.quizMeta}>Quiz general de matiere</Text>
-                          )}
-                        </View>
-                      </Pressable>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.emptyWrap}>
-            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
-            <Text style={styles.emptyTitle}>Aucun quiz trouve</Text>
-            <Text style={styles.emptySub}>
+    <View style={[styles.root, { backgroundColor: color.bg }]}>
+      <View style={{ paddingTop: insets.top + space.lg, gap: space.md }}>
+        <View style={[styles.headRow, { paddingHorizontal: space.lg, gap: space.md }]}>
+          <View style={styles.flex}>
+            <Text variant="title">Quiz</Text>
+            <Text variant="caption" tone="muted">
               {isTeacher
-                ? "Creer un quiz autonome pour alimenter la section eleve par classe et matiere."
-                : "Aucun quiz publie sur ce filtre pour le moment."}
+                ? "Ceux que vous avez ecrits"
+                : "Verifie ce que tu as vraiment compris"}
             </Text>
           </View>
-        )}
-      </ScrollView>
-      {isTeacher ? (
-        <Pressable
-          onPress={() => router.push("/(app)/course/quiz?mode=standalone")}
-          style={[styles.fabAdd, { bottom: insets.bottom + 16 }]}
-          accessibilityRole="button"
-          accessibilityLabel="Creer un quiz"
+          {isTeacher ? (
+            <Pressable
+              onPress={() => router.push("/(app)/course/quiz?mode=standalone")}
+              accessibilityRole="button"
+              accessibilityLabel="Creer un quiz"
+              style={[styles.iconBtn, { backgroundColor: color.primary, borderRadius: radius.pill }]}
+            >
+              <Ionicons name="add" size={22} color={color.textOnPrimary} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.search,
+            {
+              marginHorizontal: space.lg,
+              borderColor: color.borderInteractive,
+              backgroundColor: color.surfaceSunk,
+              borderRadius: radius.md,
+              paddingHorizontal: space.md,
+              gap: space.sm,
+            },
+          ]}
         >
-          <Ionicons name="add" size={26} color={theme.color.textOnPrimary} />
-        </Pressable>
-      ) : null}
+          <Ionicons name="search-outline" size={17} color={color.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Chercher un quiz"
+            placeholderTextColor={color.textFaint}
+            style={[styles.searchInput, { color: color.text }]}
+            returnKeyType="search"
+            accessibilityLabel="Chercher un quiz"
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Effacer">
+              <Ionicons name="close-circle" size={17} color={color.textFaint} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {subjectOptions.length > 2 ? (
+          <FilterChips
+            options={subjectOptions}
+            value={subject}
+            onChange={setSubject}
+            accessibilityLabel="Matiere"
+          />
+        ) : null}
+      </View>
+
+      {loading ? (
+        <View style={{ padding: space.lg }}>
+          <SkeletonList count={4} />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{
+            padding: space.lg,
+            paddingBottom: insets.bottom + 120,
+            gap: space.sm,
+          }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                void load();
+              }}
+              tintColor={color.primary}
+            />
+          }
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() =>
+                router.push(
+                  item.scope === "lesson" && item.courseId && item.lessonId
+                    ? `/(app)/course/quiz?courseId=${item.courseId}&lessonId=${item.lessonId}`
+                    : `/(app)/course/quiz?quizId=${item.id}`
+                )
+              }
+              accessibilityRole="button"
+              accessibilityLabel={item.title}
+              style={({ pressed }) => [
+                styles.card,
+                {
+                  backgroundColor: color.surface,
+                  borderColor: color.border,
+                  borderRadius: radius.lg,
+                  padding: space.lg,
+                  gap: space.sm,
+                },
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <View style={[styles.cardHead, { gap: space.md }]}>
+                <View
+                  style={[
+                    styles.icon,
+                    { backgroundColor: color.primarySoft, borderRadius: radius.md },
+                  ]}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={19} color={color.primaryInk} />
+                </View>
+                <View style={styles.flex}>
+                  <Text variant="bodyStrong" numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    {[
+                      item.subject,
+                      item.level,
+                      `${item.questions.length} question${item.questions.length > 1 ? "s" : ""}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={color.textFaint} />
+              </View>
+
+              {/* Le professeur a besoin du statut ; l'eleve, du rattachement. */}
+              {isTeacher ? (
+                <Badge
+                  tone={
+                    item.status === "published"
+                      ? "success"
+                      : item.status === "in_review"
+                      ? "warning"
+                      : item.status === "rejected"
+                      ? "danger"
+                      : "neutral"
+                  }
+                >
+                  {item.status === "published"
+                    ? "Publie"
+                    : item.status === "in_review"
+                    ? "En relecture"
+                    : item.status === "rejected"
+                    ? "A corriger"
+                    : "Brouillon"}
+                </Badge>
+              ) : item.courseTitle ? (
+                <Text variant="caption" tone="faint" numberOfLines={1}>
+                  Rattache a {item.courseTitle}
+                </Text>
+              ) : (
+                <Badge tone="primary">Quiz libre</Badge>
+              )}
+            </Pressable>
+          )}
+          ListHeaderComponent={
+            filtered.length ? (
+              <Text variant="caption" tone="muted" style={{ marginBottom: space.xs }}>
+                {filtered.length} quiz
+              </Text>
+            ) : null
+          }
+          ListEmptyComponent={
+            error ? (
+              <EmptyState
+                tone="error"
+                title="Quiz indisponibles"
+                message={error}
+                actionLabel="Reessayer"
+                onAction={() => {
+                  setLoading(true);
+                  void load();
+                }}
+              />
+            ) : hasFilters ? (
+              <EmptyState
+                icon="search-outline"
+                title="Aucun resultat"
+                message="Aucun quiz ne correspond a cette recherche."
+                actionLabel="Effacer les filtres"
+                onAction={() => {
+                  setQuery("");
+                  setSubject("all");
+                }}
+              />
+            ) : isTeacher ? (
+              <EmptyState
+                icon="add-circle-outline"
+                title="Aucun quiz ecrit"
+                message="Un quiz rattache a un chapitre verifie ce que vos eleves ont compris. Un quiz libre sert d'entrainement."
+                actionLabel="Ecrire un quiz"
+                onAction={() => router.push("/(app)/course/quiz?mode=standalone")}
+              />
+            ) : (
+              <EmptyState
+                icon="checkmark-circle-outline"
+                title="Pas encore de quiz"
+                message="Aucun quiz n'est publie pour ta classe. Regarde d'abord un cours : la plupart en proposent un a la fin."
+                actionLabel="Voir les cours"
+                onAction={() => router.push("/(app)/(tabs)/courses")}
+              />
+            )
+          }
+        />
+      )}
     </View>
   );
 }
 
-const makeStyles = (t: Theme) =>
-  StyleSheet.create({
-  container: { flex: 1, backgroundColor: t.color.bg },
-
-  headerBg: { paddingBottom: 10 },
-  headerRow: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: "row", alignItems: "center" },
-  title: { color: t.color.text, fontSize: 24, fontFamily: t.type.title.fontFamily },
-  subtitle: { color: t.color.textMuted, fontSize: 12, fontFamily: t.type.body.fontFamily, marginTop: 3 },
-
-  searchWrap: {
-    marginHorizontal: 16,
-    backgroundColor: t.color.surface,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    flexDirection: "row",
-    alignItems: "center",
-    height: 44,
-  },
-  searchInput: { flex: 1, color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 15 },
-  segmentWrap: { paddingHorizontal: 16, paddingTop: 10 },
-
-  levelRow: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
-  levelChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: t.color.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  levelChipActive: { backgroundColor: t.color.primary, borderColor: t.color.primary },
-  levelChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  levelChipTextActive: { color: t.color.textOnPrimary },
-  levelCount: {
-    minWidth: 20,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-    alignItems: "center",
-    backgroundColor: t.color.surfaceSunk,
-  },
-  levelCountActive: { backgroundColor: "rgba(255,255,255,0.24)" },
-  levelCountText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-  levelCountTextActive: { color: t.color.textOnPrimary },
-
-  loadingBox: { paddingTop: 28, alignItems: "center", gap: 8 },
-  loadingText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13 },
-
-  levelCard: {
-    backgroundColor: t.color.surface,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
-  levelHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: t.color.border,
-    backgroundColor: t.color.surfaceSunk,
-  },
-  levelTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 14 },
-  levelSub: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-
-  subjectBlock: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: t.color.border,
-  },
-  subjectHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  subjectTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
-  subjectCount: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-
-  quizCard: {
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    padding: 10,
-    marginBottom: 8,
-  },
-  quizCardTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
-  quizTitle: { flex: 1, color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
-  scopeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  scopeStandalone: { backgroundColor: t.color.primarySoft, borderColor: t.color.border },
-  scopeLesson: { backgroundColor: t.color.surfaceSunk, borderColor: t.color.border },
-  scopeBadgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
-  quizDesc: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 5, lineHeight: 18 },
-  quizMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 },
-  quizMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, flex: 1 },
-
-  emptyWrap: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: t.color.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    alignItems: "flex-start",
-  },
-  emptyIcon: { borderRadius: 12, height: 28, width: 28, marginBottom: 6 },
-  emptyTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
-  emptySub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13, marginTop: 2 },
-
-  fabAdd: {
-    position: "absolute",
-    right: 16,
-    width: 58,
-    height: 58,
-    borderRadius: 999,
-    backgroundColor: t.color.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: t.color.shadow,
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 7,
-  },
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  headRow: { flexDirection: "row", alignItems: "center" },
+  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  search: { flexDirection: "row", alignItems: "center", borderWidth: 1, minHeight: 46 },
+  searchInput: { flex: 1, paddingVertical: 11 },
+  card: { borderWidth: 1 },
+  cardHead: { flexDirection: "row", alignItems: "center" },
+  icon: { width: 38, height: 38, alignItems: "center", justifyContent: "center" },
 });
-
-
-

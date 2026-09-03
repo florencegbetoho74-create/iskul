@@ -1,433 +1,327 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FlatList, Image, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useThemedStyles } from "@/theme/useStyles";
-import type { Theme } from "@/theme/ThemeProvider";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
-import type { Book } from "@/types/book";
+import Text from "@/components/ui/Text";
+import Badge from "@/components/ui/Badge";
+import EmptyState from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
+import FilterChips, { type FilterOption } from "@/components/catalog/FilterChips";
 import { watchBooksOrdered, watchBooksScoped } from "@/storage/books";
-import BookCard from "@/components/BookCard";
-import Segmented from "@/components/Segmented";
 import { listDocumentTypes, type DocumentType } from "@/storage/documentTypes";
-import { formatExamLabel } from "@/lib/documentTaxonomy";
+import type { Book } from "@/types/book";
 
-/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
-const backgroundGradient = (t: Theme): readonly [string, string, string] =>
-  t.name === "dark"
-    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
-    : [t.color.bg, t.color.primarySoft, t.color.bg];
+type Scope = "class" | "all" | "mine";
 
-const accentGradient = (t: Theme): readonly [string, string] => [
-  t.color.primary,
-  t.color.primaryPressed,
-];
-
-type SegmentKey = "all" | "published" | "mine" | "myclass";
-
-type SegmentItem = { key: SegmentKey; label: string };
-type SortKey = "recent" | "alpha" | "price";
-
+/**
+ * Bibliotheque.
+ *
+ * Les types de documents existent en base depuis le lot taxonomie : ils
+ * deviennent le premier filtre, pour que la banque d'epreuves ne soit plus
+ * melangee aux oeuvres et aux manuels.
+ */
 export default function Library() {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const router = useRouter();
+  const { color, space, radius } = useTheme();
   const { user, canAccessAdmin } = useAuth();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  // Meme regle qu'ailleurs : l'experience suit le role, la permission de
-  // publier suit les droits.
-  const isAdmin = user?.role === "teacher";
-  const canPublish = isAdmin || canAccessAdmin;
 
-  const [all, setAll] = useState<Book[]>([]);
-  const [q, setQ] = useState("");
-  const [segment, setSegment] = useState<SegmentKey>(isAdmin ? "mine" : "myclass");
-  const [sort, setSort] = useState<SortKey>("recent");
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const isTeacher = String(user?.role || "") === "teacher";
+  const canPublish = isTeacher || canAccessAdmin;
+  const gradeLevelId = user?.gradeLevelId ?? null;
+  const countryCode = user?.countryCode ?? null;
+
+  const [scope, setScope] = useState<Scope>(
+    canPublish ? "mine" : gradeLevelId ? "class" : "all"
+  );
+  const [rows, setRows] = useState<Book[]>([]);
+  const [types, setTypes] = useState<DocumentType[]>([]);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     listDocumentTypes()
-      .then((types) => {
-        if (!cancelled) setDocumentTypes(types);
-      })
-      .catch(() => {
-        if (!cancelled) setDocumentTypes([]);
-      });
+      .then((t) => !cancelled && setTypes(t))
+      .catch(() => !cancelled && setTypes([]));
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Un eleve ne telecharge que les documents de sa classe et ceux marques
-  // tous niveaux, au lieu des 200 derniers toutes classes confondues.
-  const gradeLevelId = user?.gradeLevelId ?? null;
-  const countryCode = user?.countryCode ?? null;
-  const scopedToClass = !isAdmin && segment === "myclass" && !!gradeLevelId;
-
   useEffect(() => {
-    if (scopedToClass) {
-      const unsub = watchBooksScoped({ countryCode, gradeLevelId, limit: 60 }, setAll);
-      return () => unsub();
+    setLoading(true);
+    const receive = (next: Book[]) => {
+      setRows(next || []);
+      setLoading(false);
+    };
+    if (scope === "class" && gradeLevelId) {
+      return watchBooksScoped({ countryCode, gradeLevelId, limit: 80 }, receive);
     }
-    const unsub = watchBooksOrdered(setAll, 200);
-    return () => unsub();
-  }, [scopedToClass, countryCode, gradeLevelId]);
+    return watchBooksOrdered(receive, 200);
+  }, [scope, gradeLevelId, countryCode]);
 
-  // Un eleve sans classe renseignee ne doit pas rester sur un segment vide.
-  useEffect(() => {
-    if (isAdmin) return;
-    if (segment === "myclass" && !gradeLevelId) setSegment("all");
-  }, [isAdmin, segment, gradeLevelId]);
-
-  const segments = useMemo<SegmentItem[]>(() => {
-    if (isAdmin) {
+  const scopeOptions = useMemo<FilterOption[]>(() => {
+    if (canPublish) {
       return [
-        { key: "all", label: "Tous" },
-        { key: "published", label: "Publies" },
         { key: "mine", label: "Mes documents" },
+        { key: "all", label: "Tout" },
       ];
     }
     if (!gradeLevelId) return [{ key: "all", label: "Tous" }];
     return [
-      { key: "myclass", label: "Ma classe" },
-      { key: "all", label: "Tous les documents" },
+      { key: "class", label: "Ma classe" },
+      { key: "all", label: "Tout" },
     ];
-  }, [isAdmin, gradeLevelId]);
+  }, [canPublish, gradeLevelId]);
 
-  const filtered = useMemo(() => {
-    const base = all.filter((b) => b.published !== false);
+  const scoped = useMemo(() => {
+    if (scope === "mine") return rows.filter((b) => b.ownerId === user?.id);
+    return rows.filter((b) => b.published !== false);
+  }, [rows, scope, user?.id]);
 
-    let scoped: Book[];
-    switch (segment) {
-      case "mine":
-        scoped = base.filter((b) => b.ownerId === user?.id);
-        break;
-      case "published":
-        scoped = base.filter((b) => b.published === true);
-        break;
-      default:
-        scoped = base;
-    }
-
-    const byType =
-      typeFilter === "all"
-        ? scoped
-        : scoped.filter((b) => b.documentTypeId === typeFilter);
-
-    if (!q.trim()) return byType;
-    const s = q.trim().toLowerCase();
-    return byType.filter(
-      (b) =>
-        b.title?.toLowerCase().includes(s) ||
-        b.subject?.toLowerCase().includes(s) ||
-        b.level?.toLowerCase().includes(s) ||
-        b.author?.toLowerCase().includes(s) ||
-        b.examName?.toLowerCase().includes(s) ||
-        b.ownerName?.toLowerCase().includes(s)
-    );
-  }, [all, q, segment, typeFilter, user?.id]);
-
-  // Un type sans document ne merite pas d'onglet : il n'apprend rien.
-  const typeChips = useMemo(() => {
+  // Le type de document est le premier tri utile : on ne cherche pas une
+  // epreuve du BEPC comme on cherche une oeuvre au programme.
+  const typeOptions = useMemo<FilterOption[]>(() => {
     const counts = new Map<string, number>();
-    all.forEach((b) => {
-      const key = String(b.documentTypeId ?? "");
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    const chips = documentTypes
-      .filter((t) => (counts.get(t.id) || 0) > 0)
-      .map((t) => ({ key: t.id, label: t.pluralLabel, count: counts.get(t.id) || 0 }));
-    return [{ key: "all", label: "Tous", count: all.length }, ...chips];
-  }, [all, documentTypes]);
+    for (const b of scoped) {
+      if (!b.documentTypeId) continue;
+      counts.set(b.documentTypeId, (counts.get(b.documentTypeId) || 0) + 1);
+    }
+    const list = types
+      .filter((t) => counts.has(t.id))
+      .map((t) => ({ key: t.id, label: t.pluralLabel, count: counts.get(t.id) }));
+    return [{ key: "all", label: "Tout", count: scoped.length }, ...list];
+  }, [scoped, types]);
 
   useEffect(() => {
-    if (typeChips.some((c) => c.key === typeFilter)) return;
+    if (typeOptions.some((o) => o.key === typeFilter)) return;
     setTypeFilter("all");
-  }, [typeChips, typeFilter]);
+  }, [typeOptions, typeFilter]);
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    switch (sort) {
-      case "alpha":
-        return arr.sort((a, b) => a.title.localeCompare(b.title, "fr", { sensitivity: "base" }));
-      case "price":
-        return arr.sort((a, b) => (a.price ?? 0) - (b.price ?? 0) || ((b.updatedAtMs ?? 0) - (a.updatedAtMs ?? 0)));
-      default:
-        return arr.sort((a, b) => (b.updatedAtMs ?? 0) - (a.updatedAtMs ?? 0));
+  const filtered = useMemo(() => {
+    let base = scoped;
+    if (typeFilter !== "all") base = base.filter((b) => b.documentTypeId === typeFilter);
+    const needle = query.trim().toLowerCase();
+    if (needle) {
+      base = base.filter(
+        (b) =>
+          b.title?.toLowerCase().includes(needle) ||
+          b.subject?.toLowerCase().includes(needle) ||
+          b.level?.toLowerCase().includes(needle) ||
+          b.author?.toLowerCase().includes(needle) ||
+          b.examName?.toLowerCase().includes(needle)
+      );
     }
-  }, [filtered, sort]);
+    return [...base].sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
+  }, [scoped, typeFilter, query]);
 
-  const sortItems: { key: SortKey; label: string }[] = [
-    { key: "recent", label: "Recent" },
-    { key: "alpha", label: "Titre" },
-    { key: "price", label: "Prix" },
-  ];
-  const sortLabel = sortItems.find((i) => i.key === sort)?.label || "Recent";
-  const cycleSort = () => {
-    setSort((prev) => {
-      const idx = sortItems.findIndex((i) => i.key === prev);
-      const next = sortItems[(idx + 1) % sortItems.length];
-      return next.key;
-    });
-  };
+  const typeLabel = useCallback(
+    (id?: string | null) => types.find((t) => t.id === id)?.label ?? null,
+    [types]
+  );
 
-  const Header = (
-    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.title}>Bibliotheque</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {isAdmin ? "Espace admin" : "Catalogue"} - {filtered.length} resultat{filtered.length > 1 ? "s" : ""}
-          </Text>
-        </View>
-        {canPublish ? (
-          <Pressable onPress={() => router.push("/(app)/library/new")} style={styles.addBtn}>
-            <Ionicons name="add" size={16} color={theme.color.textOnPrimary} />
-            <Text style={styles.addBtnText}>Nouveau</Text>
-          </Pressable>
-        ) : null}
-      </View>
+  const hasFilters = !!query.trim() || typeFilter !== "all";
 
-      <View style={styles.searchWrap} accessible accessibilityRole="search">
-        <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
-        <TextInput
-          value={q}
-          onChangeText={setQ}
-          placeholder="Rechercher un document"
-          placeholderTextColor={theme.color.textMuted}
-          style={styles.searchInput}
-          returnKeyType="search"
-        />
-        {q ? (
-          <Pressable onPress={() => setQ("")} hitSlop={8}>
-            <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      <View style={styles.filterRow}>
-        {segments.length > 1 ? (
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Segmented value={segment} items={segments} onChange={(k) => setSegment(k as SegmentKey)} />
+  return (
+    <View style={[styles.root, { backgroundColor: color.bg }]}>
+      <View style={{ paddingTop: insets.top + space.lg, gap: space.md }}>
+        <View style={[styles.headRow, { paddingHorizontal: space.lg, gap: space.md }]}>
+          <View style={styles.flex}>
+            <Text variant="title">Bibliothèque</Text>
+            <Text variant="caption" tone="muted">
+              Épreuves, œuvres, résumés et manuels
+            </Text>
           </View>
-        ) : (
-          <View style={{ flex: 1 }} />
-        )}
-        <Pressable onPress={cycleSort} style={styles.sortChip}>
-          <Ionicons name="swap-vertical" size={16} color={theme.color.textMuted} />
-          <Text style={styles.sortChipText}>{sortLabel}</Text>
-        </Pressable>
+          {canPublish ? (
+            <Pressable
+              onPress={() => router.push("/(app)/library/new")}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter un document"
+              style={[styles.iconBtn, { backgroundColor: color.primary, borderRadius: radius.pill }]}
+            >
+              <Ionicons name="add" size={22} color={color.textOnPrimary} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.search,
+            {
+              marginHorizontal: space.lg,
+              borderColor: color.borderInteractive,
+              backgroundColor: color.surfaceSunk,
+              borderRadius: radius.md,
+              paddingHorizontal: space.md,
+              gap: space.sm,
+            },
+          ]}
+        >
+          <Ionicons name="search-outline" size={17} color={color.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Titre, matiere, auteur, examen"
+            placeholderTextColor={color.textFaint}
+            style={[styles.searchInput, { color: color.text }]}
+            returnKeyType="search"
+            accessibilityLabel="Chercher un document"
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Effacer">
+              <Ionicons name="close-circle" size={17} color={color.textFaint} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {scopeOptions.length > 1 ? (
+          <FilterChips
+            options={scopeOptions}
+            value={scope}
+            onChange={(k) => setScope(k as Scope)}
+            accessibilityLabel="Perimetre"
+          />
+        ) : null}
+
+        {typeOptions.length > 2 ? (
+          <FilterChips
+            options={typeOptions}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            accessibilityLabel="Type de document"
+          />
+        ) : null}
       </View>
 
-      {typeChips.length > 1 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.typeRow}
+      {loading ? (
+        <View style={{ padding: space.lg }}>
+          <SkeletonList count={4} />
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{
+            padding: space.lg,
+            paddingBottom: insets.bottom + 120,
+            gap: space.sm,
+          }}
           keyboardShouldPersistTaps="handled"
-        >
-          {typeChips.map((chip) => {
-            const active = chip.key === typeFilter;
+          renderItem={({ item }) => {
+            const label = typeLabel(item.documentTypeId);
+            const exam = [item.examName, item.examYear].filter(Boolean).join(" ");
             return (
               <Pressable
-                key={chip.key}
-                onPress={() => setTypeFilter(chip.key)}
-                style={[styles.typeChip, active && styles.typeChipActive]}
+                onPress={() => router.push(`/(app)/library/${item.id}`)}
                 accessibilityRole="button"
-                accessibilityState={{ selected: active }}
+                accessibilityLabel={item.title}
+                style={({ pressed }) => [
+                  styles.card,
+                  {
+                    backgroundColor: color.surface,
+                    borderColor: color.border,
+                    borderRadius: radius.lg,
+                    padding: space.md,
+                    gap: space.md,
+                  },
+                  pressed && { opacity: 0.9 },
+                ]}
               >
-                <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>
-                  {chip.label}
-                </Text>
-                <Text style={[styles.typeChipCount, active && styles.typeChipTextActive]}>
-                  {chip.count}
-                </Text>
+                <View
+                  style={[styles.cover, { backgroundColor: color.surfaceSunk, borderRadius: radius.md }]}
+                >
+                  {item.coverUrl ? (
+                    <Image source={{ uri: item.coverUrl }} style={styles.coverImg} resizeMode="cover" />
+                  ) : (
+                    <Ionicons name="document-text-outline" size={20} color={color.textMuted} />
+                  )}
+                </View>
+
+                <View style={styles.flex}>
+                  {label ? (
+                    <Text variant="overline" tone="primary">
+                      {label.toUpperCase()}
+                    </Text>
+                  ) : null}
+                  <Text variant="bodyStrong" numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    {[item.subject, item.level, exam || item.author].filter(Boolean).join(" · ") ||
+                      "Document"}
+                  </Text>
+                  {scope === "mine" && item.published === false ? (
+                    <Badge tone="warning" style={{ marginTop: space.xs }}>
+                      Non publie
+                    </Badge>
+                  ) : null}
+                </View>
+
+                <Ionicons name="chevron-forward" size={16} color={color.textFaint} />
               </Pressable>
             );
-          })}
-        </ScrollView>
-      ) : null}
-    </LinearGradient>
-  );
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <FlatList
-          data={sorted}
-          ListHeaderComponent={Header}
-          keyExtractor={(i) => i.id}
-          numColumns={2}
-          columnWrapperStyle={{ paddingHorizontal: 16, justifyContent: "space-between" }}
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 + insets.bottom }}
-          renderItem={({ item }) => (
-            <View style={styles.gridItem}>
-              <BookCard item={item} onPress={() => router.push(`/(app)/library/${item.id}`)} />
-              {formatExamLabel(item) ? (
-                <Text style={styles.examLabel} numberOfLines={1}>
-                  {formatExamLabel(item)}
-                </Text>
-              ) : null}
-            </View>
-          )}
-          ListEmptyComponent={<EmptyState isAdmin={isAdmin} segment={segment} />}
+          }}
+          ListHeaderComponent={
+            filtered.length ? (
+              <Text variant="caption" tone="muted" style={{ marginBottom: space.xs }}>
+                {filtered.length} document{filtered.length > 1 ? "s" : ""}
+              </Text>
+            ) : null
+          }
+          ListEmptyComponent={
+            hasFilters ? (
+              <EmptyState
+                icon="search-outline"
+                title="Aucun resultat"
+                message="Aucun document ne correspond a cette recherche."
+                actionLabel="Effacer les filtres"
+                onAction={() => {
+                  setQuery("");
+                  setTypeFilter("all");
+                }}
+              />
+            ) : canPublish && scope === "mine" ? (
+              <EmptyState
+                icon="cloud-upload-outline"
+                title="Aucun document publie"
+                message="Ajoutez une epreuve corrigee, une oeuvre au programme ou une fiche de revision."
+                actionLabel="Ajouter un document"
+                onAction={() => router.push("/(app)/library/new")}
+              />
+            ) : (
+              <EmptyState
+                icon="library-outline"
+                title={scope === "class" ? "Rien pour ta classe" : "Bibliotheque vide"}
+                message={
+                  scope === "class"
+                    ? "Aucun document n'est encore publie pour ta classe. Regarde le reste de la bibliotheque."
+                    : "Aucun document publie pour le moment."
+                }
+                actionLabel={scope === "class" ? "Voir toute la bibliotheque" : undefined}
+                onAction={scope === "class" ? () => setScope("all") : undefined}
+              />
+            )
+          }
         />
-
-        {isAdmin ? (
-          <Pressable onPress={() => router.push("/(app)/library/new")} style={[styles.fabWrap, { bottom: 16 + insets.bottom }]}>
-            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
-              <Ionicons name="add" size={18} color={theme.color.textOnPrimary} />
-              <Text style={styles.fabText}>Ajouter un document</Text>
-            </LinearGradient>
-          </Pressable>
-        ) : null}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
-function EmptyState({ isAdmin, segment }: { isAdmin: boolean; segment: SegmentKey }) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const title = isAdmin && segment === "mine"
-    ? "Ajoutez votre premier document."
-    : "Aucun document trouve pour l'instant.";
-
-  const subtitle = isAdmin && segment === "mine"
-    ? "Importez un PDF ou un EPUB pour votre classe."
-    : "Essayez un autre filtre ou revenez plus tard.";
-
-  return (
-    <View style={styles.emptyWrap}>
-      <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptySub}>{subtitle}</Text>
+      )}
     </View>
   );
 }
 
-const makeStyles = (t: Theme) =>
-  StyleSheet.create({
-  typeRow: { gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
-  typeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: t.radius.pill,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-  },
-  typeChipActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
-  typeChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  typeChipTextActive: { color: t.color.primary },
-  typeChipCount: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11 },
-  examLabel: {
-    color: t.color.textMuted,
-    fontFamily: t.type.body.fontFamily,
-    fontSize: 11,
-    marginTop: 4,
-    paddingHorizontal: 2,
-  },
-  headerBg: { paddingBottom: 10 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
-  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
-  subtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
-
-  addBtn: {
-    backgroundColor: t.color.primary,
-    borderRadius: t.radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    minHeight: 40,
-  },
-  addBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-
-  searchWrap: {
-    marginTop: 12,
-    marginHorizontal: 16,
-    backgroundColor: t.color.surface,
-    borderRadius: t.radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    flexDirection: "row",
-    alignItems: "center",
-    height: 48,
-    ...t.elevation(2),
-  },
-  searchInput: { flex: 1, color: t.color.text, fontSize: 15, fontFamily: t.type.body.fontFamily },
-
-  filterRow: {
-    marginTop: 10,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  sortChip: {
-    backgroundColor: t.color.surface,
-    borderRadius: t.radius.md,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    minHeight: 40,
-    ...t.elevation(2),
-  },
-  sortChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-
-  gridItem: { flexBasis: "48%", minWidth: 160, marginTop: 12 },
-
-  emptyWrap: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: t.color.surface,
-    borderRadius: t.radius.lg,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    ...t.elevation(2),
-  },
-  emptyIcon: { borderRadius: 12, padding: 8, marginBottom: 6, height: 28, width: 28 },
-  emptyTitle: { color: t.color.text, fontSize: 16, fontFamily: t.type.heading.fontFamily },
-  emptySub: { color: t.color.textMuted, fontSize: 13, fontFamily: t.type.body.fontFamily },
-
-  fabWrap: {
-    position: "absolute",
-    right: 16,
-    bottom: 24,
-    borderRadius: 999,
-    shadowColor: t.color.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  fab: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  fabText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  headRow: { flexDirection: "row", alignItems: "center" },
+  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  search: { flexDirection: "row", alignItems: "center", borderWidth: 1, minHeight: 46 },
+  searchInput: { flex: 1, paddingVertical: 11 },
+  card: { flexDirection: "row", alignItems: "center", borderWidth: 1 },
+  cover: { width: 48, height: 60, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  coverImg: { width: "100%", height: "100%" },
 });
-
-
-
-
-
