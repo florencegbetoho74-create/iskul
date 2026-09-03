@@ -5,10 +5,8 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Pressable,
   Alert,
-  ScrollView,
   FlatList,
   Linking,
   ActivityIndicator,
@@ -16,8 +14,6 @@ import {
   BackHandler,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -29,6 +25,9 @@ import { useAuth } from "@/providers/AuthProvider";
 import { getLessonProgress, updateLessonProgress } from "@/storage/progress";
 import { createVideoPlayer, VideoView } from "expo-video";
 import ChapterRow from "@/components/ChapterRow";
+import PlayerControls, { PlayerProgressBar } from "@/components/player/PlayerControls";
+import LessonNotes from "@/components/player/LessonNotes";
+import { Button as UiButton } from "@/components/ui";
 import TopBar from "@/components/TopBar";
 import { fmtTime } from "@/utils/time";
 import { addCourseView, addLessonView } from "@/storage/usage";
@@ -552,445 +551,330 @@ export default function Play() {
   const prev = chapterIndex > 0 ? chapters[chapterIndex - 1] : null;
   const next = chapterIndex < chapterCount - 1 ? chapters[chapterIndex + 1] : null;
 
-  return (
-    <View style={styles.root}>
-      <TopBar
-        title={course.title || "Cours"}
-        right={canContact ? (
-          <TouchableOpacity onPress={onContact} style={styles.chatBtn}>
-            <Ionicons name="chatbubbles-outline" size={18} color={theme.color.textOnPrimary} />
-            <Text style={styles.chatBtnText}>Message</Text>
-          </TouchableOpacity>
-        ) : null}
-      />
+  const availableLangs = LANG_ORDER.filter((k) => !!getLangUrl(lesson, k));
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.playerCard}>
-          <Pressable onPress={toggleControls} style={styles.videoTap}>
-            {canPlay ? (
-              <VideoView
-                ref={videoRef}
-                style={styles.video}
-                player={player}
-                  nativeControls={isFullscreen}
-                  fullscreenOptions={{ enable: true, orientation: "landscape", autoExitOnRotate: true }}
-                  allowsPictureInPicture={false}
-                  surfaceType={Platform.OS === "android" ? "textureView" : undefined}
-                  onFullscreenEnter={onFullscreenEnter}
-                  onFullscreenExit={onFullscreenExit}
-                />
-            ) : (
-              <View style={[styles.video, styles.videoFallback]}>
-                <Ionicons name="play-circle" size={42} color={theme.color.textOnPrimary} />
-                <Text style={styles.fallbackTitle}>
-                  {playError
-                    ? "Lecteur indisponible"
-                    : isYouTube
-                    ? "Source non supportee"
-                    : !selectedUrl
-                    ? "Aucune video pour ce chapitre"
-                    : "Lecture externe requise"}
-                </Text>
-                <Text style={styles.fallbackText}>
-                  {playError
-                    ? "La lecture ne peut pas demarrer. Essayez un autre chapitre."
-                    : isYouTube
-                    ? "Les liens YouTube ne sont pas acceptes."
-                    : isExternal
-                    ? "Ce lien ne peut pas etre lu ici. Ouvrez-le dans le navigateur."
-                    : "Ajoutez une video pour demarrer la lecture."}
-                </Text>
-                {isExternal ? (
-                  <TouchableOpacity onPress={openExternal} style={styles.fallbackBtn}>
-                    <Ionicons name="open-outline" size={16} color={theme.color.textOnPrimary} />
-                    <Text style={styles.fallbackBtnText}>Ouvrir le lien</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            )}
-          </Pressable>
-
-          <LinearGradient
-            colors={["rgba(0,0,0,0.65)", "transparent"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.topGrad}
-            pointerEvents="none"
+  const Stage = (
+    <View style={styles.stage}>
+      <Pressable onPress={toggleControls} style={styles.stageTap} accessibilityRole="button">
+        {canPlay ? (
+          <VideoView
+            ref={videoRef}
+            style={styles.video}
+            player={player}
+            nativeControls={isFullscreen}
+            fullscreenOptions={{ enable: true, orientation: "landscape", autoExitOnRotate: true }}
+            allowsPictureInPicture={false}
+            surfaceType={Platform.OS === "android" ? "textureView" : undefined}
+            onFullscreenEnter={onFullscreenEnter}
+            onFullscreenExit={onFullscreenExit}
           />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.8)"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.botGrad}
-            pointerEvents="none"
-          />
-
-          <View style={styles.playerTop} pointerEvents="none">
-            <View style={styles.playerTopRow}>
-              <Text style={styles.playerTitle} numberOfLines={1}>{lesson.title}</Text>
-              <View style={styles.playerBadge}>
-                <Text style={styles.playerBadgeText}>
-                  Chapitre {chapterIndex + 1}/{Math.max(1, chapterCount)}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.playerSub} numberOfLines={1}>
-              {course.subject || "Matiere"} - {course.level || "Niveau"}
+        ) : (
+          <View style={[styles.video, styles.stageFallback]}>
+            <Ionicons name="videocam-off-outline" size={30} color={theme.color.onMedia} />
+            <Text style={styles.fallbackTitle}>
+              {playError
+                ? "Lecture impossible"
+                : isYouTube
+                ? "Source non prise en charge"
+                : !selectedUrl
+                ? "Pas encore de video"
+                : "Lecture externe requise"}
             </Text>
-          </View>
-
-          {canPlay && showControls ? (
-            <View style={styles.playerBottom} pointerEvents="box-none">
-              <View style={styles.seekRow}>
-                <Text style={styles.time}>{fmtTime(curTime)}</Text>
-              <Slider
-                style={{ flex: 1 }}
-                value={curTime}
-                minimumValue={0}
-                maximumValue={Math.max(1, duration || curTime + 1)}
-                onSlidingStart={() => {
-                  setDragging(true);
-                  bumpControls();
-                }}
-                onSlidingComplete={(v) => {
-                  (player as any).currentTime = v;
-                  curTimeRef.current = Math.floor(v);
-                  setDragging(false);
-                  bumpControls();
-                }}
-                onValueChange={(v) => {
-                  curTimeRef.current = Math.floor(v);
-                  setCurTime(v);
-                }}
-                  minimumTrackTintColor={theme.color.textOnPrimary}
-                  maximumTrackTintColor="rgba(148,163,184,0.45)"
-                  thumbTintColor={theme.color.textOnPrimary}
-                />
-                <Text style={styles.time}>{fmtTime(duration || curTime)}</Text>
-              </View>
-
-              <View style={styles.ctrlRow}>
-                <View style={styles.ctrlGroup}>
-                  <TouchableOpacity onPress={back10} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name="play-back" size={16} color={theme.color.textOnPrimary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={togglePlay} style={[styles.ctrlBtn, styles.ctrlBtnPrimary]} hitSlop={8}>
-                    <Ionicons name={isPlaying ? "pause" : "play"} size={18} color={theme.color.textOnPrimary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={fwd10} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name="play-forward" size={16} color={theme.color.textOnPrimary} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.ctrlGroup}>
-                  <TouchableOpacity onPress={toggleMute} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name={muted ? "volume-mute" : "volume-high"} size={16} color={theme.color.textOnPrimary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={cycleRate} style={styles.rateBtn} hitSlop={8}>
-                    <Text style={styles.rateText}>{rate.toString()}x</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={isFullscreen ? exitFullscreen : enterFullscreen} style={styles.ctrlBtn} hitSlop={8}>
-                    <Ionicons name={isFullscreen ? "contract" : "expand"} size={16} color={theme.color.textOnPrimary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.metaCard}>
-          <Text style={styles.lessonTitle} numberOfLines={2}>{lesson.title}</Text>
-          <Text style={styles.courseMeta}>{course.subject || "Matiere"} - {course.level || "Niveau"}</Text>
-          <View style={styles.metaRow}>
-            <View style={styles.metaPill}>
-              <Ionicons name="albums-outline" size={14} color={theme.color.text} />
-              <Text style={styles.metaPillText}>Chapitres {chapterCount}</Text>
-            </View>
-            <View style={styles.metaPill}>
-              <Ionicons name="person-outline" size={14} color={theme.color.text} />
-              <Text style={styles.metaPillText}>{course.ownerName || "Enseignant"}</Text>
-            </View>
+            <Text style={styles.fallbackText}>
+              {playError
+                ? "Essayez un autre chapitre ou une autre langue."
+                : isYouTube
+                ? "Les liens YouTube ne sont pas acceptes."
+                : isExternal
+                ? "Ce lien s'ouvre dans le navigateur."
+                : "Ce chapitre n'a pas encore de video dans cette langue."}
+            </Text>
             {isExternal ? (
-              <View style={styles.metaPill}>
-                <Ionicons name="link-outline" size={14} color={theme.color.text} />
-                <Text style={styles.metaPillText}>Lecture externe</Text>
-              </View>
+              <UiButton onPress={openExternal} icon="open-outline" size="sm" variant="secondary">
+                Ouvrir le lien
+              </UiButton>
             ) : null}
           </View>
-          <TouchableOpacity onPress={openQuiz} style={styles.quizBtn}>
-            <Ionicons name="help-circle-outline" size={16} color={theme.color.textOnPrimary} />
-            <Text style={styles.quizBtnText}>Quiz</Text>
-          </TouchableOpacity>
-        </View>
+        )}
+      </Pressable>
 
-        <View style={styles.langCard}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Langues</Text>
-            <Text style={styles.sectionMeta}>Choisir la version</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.langBar}>
-            {LANG_ORDER.map((k) => {
-              const available = !!getLangUrl(lesson, k);
+      {canPlay ? (
+        <PlayerControls
+          visible={showControls}
+          playing={isPlaying}
+          muted={muted}
+          rate={rate}
+          currentSec={curTime}
+          durationSec={duration}
+          onTogglePlay={togglePlay}
+          onSeek={(v) => {
+            curTimeRef.current = Math.floor(v);
+            setCurTime(v);
+          }}
+          onSeekStart={() => {
+            setDragging(true);
+            bumpControls();
+          }}
+          onSeekEnd={(v) => {
+            (player as any).currentTime = v;
+            curTimeRef.current = Math.floor(v);
+            setDragging(false);
+            bumpControls();
+          }}
+          onBack={back10}
+          onForward={fwd10}
+          onToggleMute={toggleMute}
+          onCycleRate={cycleRate}
+          onFullscreen={isFullscreen ? exitFullscreen : enterFullscreen}
+          isFullscreen={isFullscreen}
+        />
+      ) : null}
+
+      {canPlay && !showControls ? (
+        <PlayerProgressBar currentSec={curTime} durationSec={duration} />
+      ) : null}
+    </View>
+  );
+
+  const Header = (
+    <View style={styles.body}>
+      {/* Titre du chapitre : l'information la plus utile vient en premier. */}
+      <View style={styles.titleBlock}>
+        <Text style={styles.eyebrow}>
+          Chapitre {chapterIndex + 1} sur {Math.max(1, chapterCount)}
+        </Text>
+        <Text style={styles.lessonTitle} numberOfLines={3}>
+          {lesson.title}
+        </Text>
+        <Text style={styles.courseMeta}>
+          {[course.subject, course.level, course.ownerName].filter(Boolean).join(" \u00b7 ")}
+        </Text>
+      </View>
+
+      {/*
+        Le choix de la langue etait enfoui sous les metadonnees. C'est la
+        promesse centrale d'iSkul : elle remonte juste sous la video.
+      */}
+      {availableLangs.length > 1 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Langue de la lecon</Text>
+          <View style={styles.langRow}>
+            {availableLangs.map((k) => {
+              const active = lang === k;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={k}
                   onPress={() => onLangPress(k)}
                   onLongPress={() => onLangLongPress(k)}
                   delayLongPress={300}
-                  style={[
-                    styles.langBtn,
-                    lang === k && styles.langBtnActive,
-                    !available && styles.langBtnDisabled,
-                  ]}
-                  disabled={!available}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.langChip, active && styles.langChipActive]}
                 >
-                  <Text style={[styles.langText, lang === k && styles.langTextActive]}>{LANG_LABELS[k]}</Text>
-                </TouchableOpacity>
+                  <Text style={[styles.langChipText, active && styles.langChipTextActive]}>
+                    {LANG_LABELS[k]}
+                  </Text>
+                </Pressable>
               );
             })}
-          </ScrollView>
-        </View>
-
-        <View style={styles.chapterCard}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Chapitres</Text>
-            <Text style={styles.sectionMeta}>{chapterCount} lecons</Text>
           </View>
-          <FlatList
-            data={chapters}
-            keyExtractor={(i) => i.id}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-            contentContainerStyle={{ paddingBottom: 6 }}
-            scrollEnabled={false}
-            renderItem={({ item, index }) => (
-              <ChapterRow
-                title={item.title}
-                index={index + 1}
-                hasVideo={!!item.videoUrl || !!item.videoByLang || !!item.langUrls}
-                active={item.id === lesson.id}
-                onPress={() => setCurrentId(item.id)}
-              />
-            )}
-            ListEmptyComponent={<Text style={{ color: theme.color.textMuted, marginTop: 6 }}>Aucun chapitre pour le moment.</Text>}
-          />
         </View>
+      ) : null}
 
-        <View style={styles.navRow}>
-          <TouchableOpacity
-            disabled={!prev}
-            onPress={() => (prev ? setCurrentId(prev.id) : null)}
-            style={[styles.navBtn, !prev && { opacity: 0.5 }]}
-          >
-            <Ionicons name="arrow-back" size={18} color={theme.color.textOnPrimary} />
-            <Text style={styles.navText}>Precedent</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            disabled={!next}
-            onPress={() => (next ? setCurrentId(next.id) : null)}
-            style={[styles.navBtn, !next && { opacity: 0.5 }]}
-          >
-            <Text style={styles.navText}>Suivant</Text>
-            <Ionicons name="arrow-forward" size={18} color={theme.color.textOnPrimary} />
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      {/* La boucle regarder puis se tester devient l'action principale. */}
+      <View style={styles.actionRow}>
+        <UiButton onPress={openQuiz} icon="checkmark-circle-outline" block>
+          Passer le quiz
+        </UiButton>
+        {canContact ? (
+          <UiButton onPress={onContact} icon="chatbubble-outline" variant="ghost" size="sm">
+            Poser une question
+          </UiButton>
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Mes notes</Text>
+        <LessonNotes
+          userId={user?.id}
+          courseId={course.id}
+          lessonId={lesson.id}
+          currentSec={curTime}
+          onSeek={seekTo}
+        />
+      </View>
+
+      <View style={styles.sectionHead}>
+        <Text style={styles.sectionTitle}>Chapitres</Text>
+        <Text style={styles.sectionMeta}>{chapterCount} lecons</Text>
+      </View>
+    </View>
+  );
+
+  const Footer = (
+    <View style={styles.footer}>
+      <UiButton
+        onPress={() => prev && setCurrentId(prev.id)}
+        icon="arrow-back"
+        variant="ghost"
+        size="sm"
+        disabled={!prev}
+      >
+        Precedent
+      </UiButton>
+      <UiButton
+        onPress={() => next && setCurrentId(next.id)}
+        icon="arrow-forward"
+        size="sm"
+        disabled={!next}
+      >
+        {next ? "Chapitre suivant" : "Dernier chapitre"}
+      </UiButton>
+    </View>
+  );
+
+  return (
+    <View style={styles.root}>
+      <TopBar title={course.title || "Cours"} right={null} />
+
+      {/*
+        La video reste epinglee : elle etait dans le ScrollView, donc defiler
+        la page la faisait disparaitre.
+      */}
+      {Stage}
+
+      {/*
+        Un seul conteneur de defilement. La liste des chapitres etait une
+        FlatList imbriquee dans un ScrollView, ce qui annule la virtualisation.
+      */}
+      <FlatList
+        data={chapters}
+        keyExtractor={(i: any) => i.id}
+        ListHeaderComponent={Header}
+        ListFooterComponent={Footer}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        renderItem={({ item, index }: any) => (
+          <View style={styles.chapterWrap}>
+            <ChapterRow
+              title={item.title}
+              index={index + 1}
+              hasVideo={!!item.videoUrl || !!item.videoByLang || !!item.langUrls}
+              active={item.id === lesson.id}
+              onPress={() => setCurrentId(item.id)}
+            />
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={styles.body}>
+            <Text style={styles.sectionMeta}>Aucun chapitre pour le moment.</Text>
+          </View>
+        }
+      />
     </View>
   );
 }
 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
-  root: { flex: 1, backgroundColor: t.color.bg },
-  content: { paddingBottom: 24 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+    root: { flex: 1, backgroundColor: t.color.bg },
+    center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  playerCard: {
-    backgroundColor: t.color.surface,
-    borderColor: t.color.border,
-    borderWidth: 1,
-    borderRadius: 20,
-    overflow: "hidden",
-    margin: 16,
-    shadowColor: t.color.shadow,
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 2,
-  },
-  video: { width: "100%", height: 230, backgroundColor: t.color.media },
-  videoTap: { width: "100%", height: 230 },
-  videoFallback: { alignItems: "center", justifyContent: "center", padding: 16, gap: 8 },
-  fallbackTitle: { color: t.color.textOnPrimary, fontFamily: t.type.heading.fontFamily, fontSize: 16, textAlign: "center" },
-  fallbackText: { color: "rgba(255,255,255,0.8)", fontFamily: t.type.body.fontFamily, textAlign: "center" },
-  fallbackBtn: {
-    marginTop: 8,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  fallbackBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+    /* --- Scene video, epinglee sous la barre de titre --- */
+    stage: { width: "100%", backgroundColor: t.color.media },
+    stageTap: { width: "100%", aspectRatio: 16 / 9 },
+    video: { width: "100%", height: "100%", backgroundColor: t.color.media },
+    stageFallback: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: t.space.sm,
+      paddingHorizontal: t.space.xl,
+    },
+    fallbackTitle: {
+      color: t.color.onMedia,
+      fontFamily: t.type.heading.fontFamily,
+      fontSize: t.type.subheading.fontSize,
+      textAlign: "center",
+    },
+    fallbackText: {
+      color: "rgba(255,255,255,0.75)",
+      fontFamily: t.type.body.fontFamily,
+      fontSize: t.type.caption.fontSize,
+      lineHeight: t.type.caption.lineHeight,
+      textAlign: "center",
+    },
 
-  topGrad: { position: "absolute", left: 0, right: 0, top: 0, height: 90 },
-  botGrad: { position: "absolute", left: 0, right: 0, bottom: 0, height: 130 },
+    /* --- Corps en sections a plat, sans empilement de cartes --- */
+    listContent: { paddingBottom: t.space.xxxl },
+    body: { paddingHorizontal: t.space.lg },
+    titleBlock: { paddingTop: t.space.lg, gap: t.space.xs },
+    eyebrow: {
+      color: t.color.primaryInk,
+      fontFamily: t.type.overline.fontFamily,
+      fontSize: t.type.overline.fontSize,
+      letterSpacing: t.type.overline.letterSpacing,
+      textTransform: "uppercase",
+    },
+    lessonTitle: {
+      color: t.color.text,
+      fontFamily: t.type.title.fontFamily,
+      fontSize: t.type.title.fontSize,
+      lineHeight: t.type.title.lineHeight,
+    },
+    courseMeta: {
+      color: t.color.textMuted,
+      fontFamily: t.type.body.fontFamily,
+      fontSize: t.type.caption.fontSize,
+    },
 
-  playerTop: { position: "absolute", left: 12, right: 12, top: 10 },
-  playerTopRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  playerTitle: { flex: 1, color: t.color.textOnPrimary, fontFamily: t.type.heading.fontFamily, fontSize: 16 },
-  playerSub: { color: "rgba(255,255,255,0.8)", fontFamily: t.type.body.fontFamily, marginTop: 4 },
-  playerBadge: {
-    backgroundColor: "rgba(15,23,42,0.6)",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  playerBadgeText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-  playerBottom: { position: "absolute", left: 0, right: 0, bottom: 0, paddingBottom: 8 },
+    section: { marginTop: t.space.xl, gap: t.space.sm },
+    sectionHead: {
+      marginTop: t.space.xxl,
+      marginBottom: t.space.sm,
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+    },
+    sectionTitle: {
+      color: t.color.text,
+      fontFamily: t.type.heading.fontFamily,
+      fontSize: t.type.subheading.fontSize,
+    },
+    sectionMeta: {
+      color: t.color.textMuted,
+      fontFamily: t.type.body.fontFamily,
+      fontSize: t.type.caption.fontSize,
+    },
 
-  seekRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  time: {
-    color: "rgba(255,255,255,0.85)",
-    width: 46,
-    textAlign: "center",
-    fontVariant: ["tabular-nums"],
-    fontFamily: t.type.body.fontFamily,
-    fontSize: 11,
-  },
+    langRow: { flexDirection: "row", flexWrap: "wrap", gap: t.space.sm },
+    langChip: {
+      minHeight: t.hit.compact,
+      justifyContent: "center",
+      paddingHorizontal: t.space.lg,
+      borderRadius: t.radius.pill,
+      borderWidth: 1,
+      borderColor: t.color.border,
+      backgroundColor: t.color.surfaceSunk,
+    },
+    langChipActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
+    langChipText: {
+      color: t.color.textMuted,
+      fontFamily: t.type.bodyStrong.fontFamily,
+      fontSize: t.type.caption.fontSize,
+    },
+    langChipTextActive: { color: t.color.primaryInk },
 
-  ctrlRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-  },
-  ctrlGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
-  ctrlBtn: {
-    backgroundColor: "rgba(15,23,42,0.45)",
-    height: 32,
-    minWidth: 32,
-    paddingHorizontal: 8,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.25)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctrlBtnPrimary: {
-    backgroundColor: "rgba(59,130,246,0.85)",
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  rateBtn: {
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.25)",
-    backgroundColor: "rgba(15,23,42,0.45)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rateText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
+    actionRow: { marginTop: t.space.xl, gap: t.space.sm },
 
-  metaCard: {
-    marginHorizontal: 16,
-    marginTop: 2,
-    backgroundColor: t.color.surface,
-    borderColor: t.color.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-    gap: 6,
-  },
-  lessonTitle: { color: t.color.text, fontSize: 20, fontFamily: t.type.heading.fontFamily },
-  courseMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
-  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
-  metaPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surfaceSunk,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  metaPillText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  quizBtn: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    backgroundColor: t.color.primary,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  quizBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+    chapterWrap: { paddingHorizontal: t.space.lg },
+    separator: { height: t.space.sm },
 
-  langCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: t.color.surface,
-    borderColor: t.color.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingVertical: 10,
-  },
-  chapterCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: t.color.surface,
-    borderColor: t.color.border,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-  },
-  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, marginBottom: 6 },
-  sectionTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
-  sectionMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
-
-  langBar: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
-  langBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    marginRight: 8,
-  },
-  langBtnActive: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
-  langBtnDisabled: { opacity: 0.5 },
-  langText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily },
-  langTextActive: { color: t.color.text },
-
-  navRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingHorizontal: 16 },
-  navBtn: {
-    backgroundColor: t.color.primary,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  navText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
-
-  chatBtn: { backgroundColor: t.color.primary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 6, marginRight: 8 },
-  chatBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
-});
+    footer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: t.space.sm,
+      paddingHorizontal: t.space.lg,
+      paddingTop: t.space.xxl,
+    },
+  });

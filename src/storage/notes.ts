@@ -93,12 +93,12 @@ export function watchNotes(
   };
 }
 
-export async function deleteNote(
-  _userId: string,
-  _courseId: string,
-  _lessonId: string,
-  noteId: string
-): Promise<void> {
+/**
+ * Supprime une note.
+ * La politique RLS restreint deja la suppression a son auteur : les trois
+ * parametres de contexte que portait cette fonction ne servaient a rien.
+ */
+export async function deleteNote(noteId: string): Promise<void> {
   const { error } = await supabase.from("lesson_notes").delete().eq("id", noteId);
   if (error) throw error;
 }
