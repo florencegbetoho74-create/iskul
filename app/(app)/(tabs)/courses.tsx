@@ -15,7 +15,9 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { COLOR, ELEVATION, FONT, RADIUS } from "@/theme/colors";
+import { useThemedStyles } from "@/theme/useStyles";
+import { EmptyState as UiEmptyState } from "@/components/ui";
+import type { Theme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import type { Course } from "@/types/course";
 import { watchCoursesOrdered, watchCoursesScoped } from "@/storage/courses";
@@ -24,8 +26,16 @@ import Segmented from "@/components/Segmented";
 import { GRADE_LEVELS, normalizeCourseLevel } from "@/constants/gradeLevels";
 import { COURSE_SUBJECTS, canonicalizeCourseSubject } from "@/constants/courseSubjects";
 
-const BG = ["#F4F7FC", "#EAF0FF", "#F1F7FF"] as const;
-const ACCENT = ["#2F5BFF", "#5B85FF"] as const;
+/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
+const backgroundGradient = (t: Theme): readonly [string, string, string] =>
+  t.name === "dark"
+    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
+    : [t.color.bg, t.color.primarySoft, t.color.bg];
+
+const accentGradient = (t: Theme): readonly [string, string] => [
+  t.color.primary,
+  t.color.primaryPressed,
+];
 
 type SegmentKey = "all" | "published" | "mine" | "myclass";
 
@@ -35,6 +45,7 @@ type SubjectGroup = { subject: string; courses: Course[]; chapters: number };
 type LevelGroup = { level: string; subjects: SubjectGroup[]; courses: number; chapters: number };
 
 export default function Courses() {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -220,7 +231,7 @@ export default function Courses() {
   };
 
   const Header = (
-    <LinearGradient colors={BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
+    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
       <View style={styles.headerRow}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.title}>Cours</Text>
@@ -236,11 +247,11 @@ export default function Courses() {
         ) : (
           <View style={styles.headerActions}>
             <Pressable onPress={() => setMenuVisible(true)} style={styles.menuBtn}>
-              <Ionicons name="list-outline" size={16} color={COLOR.text} />
+              <Ionicons name="list-outline" size={16} color={theme.color.text} />
               <Text style={styles.menuBtnText}>Menu</Text>
             </Pressable>
             <Pressable onPress={() => router.push("/(app)/(tabs)/quizzes")} style={[styles.menuBtn, styles.quizNavBtn]}>
-              <MaterialCommunityIcons name="brain" size={16} color={COLOR.primary} />
+              <MaterialCommunityIcons name="brain" size={16} color={theme.color.primary} />
               <Text style={[styles.menuBtnText, styles.quizNavBtnText]}>Quiz</Text>
             </Pressable>
           </View>
@@ -248,18 +259,18 @@ export default function Courses() {
       </View>
 
       <View style={styles.searchWrap} accessible accessibilityRole="search">
-        <Ionicons name="search" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+        <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
         <TextInput
           value={q}
           onChangeText={setQ}
           placeholder="Rechercher un cours"
-          placeholderTextColor={COLOR.sub}
+          placeholderTextColor={theme.color.textMuted}
           style={styles.searchInput}
           returnKeyType="search"
         />
         {q ? (
           <Pressable onPress={() => setQ("")} hitSlop={8}>
-            <Ionicons name="close" size={18} color={COLOR.sub} style={{ marginHorizontal: 10 }} />
+            <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
           </Pressable>
         ) : null}
       </View>
@@ -274,7 +285,7 @@ export default function Courses() {
         <Text style={styles.classRowTitle}>{isTeacher ? "Filtrer par classe" : "Classe"}</Text>
         {levelFilter !== "all" ? (
           <Pressable onPress={() => setLevelFilter("all")} style={styles.clearChip}>
-            <Ionicons name="close" size={14} color={COLOR.sub} />
+            <Ionicons name="close" size={14} color={theme.color.textMuted} />
             <Text style={styles.clearChipText}>Reinitialiser</Text>
           </Pressable>
         ) : null}
@@ -308,7 +319,7 @@ export default function Courses() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLOR.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <FlatList
           data={filtered}
@@ -334,7 +345,7 @@ export default function Courses() {
 
         {isTeacher ? (
           <Pressable onPress={() => router.push("/(app)/course/new")} style={[styles.fabWrap, { bottom: 16 + insets.bottom }]}>
-            <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
+            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
               <Ionicons name="add" size={18} color="#fff" />
               <Text style={styles.fabText}>Creer un cours</Text>
             </LinearGradient>
@@ -351,7 +362,7 @@ export default function Courses() {
               <View style={styles.menuHeader}>
                 <Text style={styles.menuTitle}>Menu Classe - Matiere - Cours - Chapitre</Text>
                 <Pressable onPress={() => setMenuVisible(false)} style={styles.menuCloseBtn}>
-                  <Ionicons name="close" size={18} color={COLOR.text} />
+                  <Ionicons name="close" size={18} color={theme.color.text} />
                 </Pressable>
               </View>
               <ScrollView contentContainerStyle={styles.menuTreeContent}>
@@ -373,7 +384,7 @@ export default function Courses() {
                               {item.subjects.length} matiere{item.subjects.length > 1 ? "s" : ""} - {item.courses} cours - {item.chapters} chapitres
                             </Text>
                           </View>
-                          <Ionicons name={levelOpen ? "chevron-up" : "chevron-down"} size={18} color={COLOR.sub} />
+                          <Ionicons name={levelOpen ? "chevron-up" : "chevron-down"} size={18} color={theme.color.textMuted} />
                         </Pressable>
 
                         {levelOpen ? (
@@ -393,7 +404,7 @@ export default function Courses() {
                                     <Text style={styles.subjectTitle}>{subject.subject}</Text>
                                     <View style={styles.subjectRight}>
                                       <Text style={styles.subjectCount}>{subject.courses.length}</Text>
-                                      <Ionicons name={subjectOpen ? "chevron-up" : "chevron-down"} size={16} color={COLOR.sub} />
+                                      <Ionicons name={subjectOpen ? "chevron-up" : "chevron-down"} size={16} color={theme.color.textMuted} />
                                     </View>
                                   </Pressable>
 
@@ -419,7 +430,7 @@ export default function Courses() {
                                                 <Text style={styles.courseTitle} numberOfLines={2}>{course.title || "Sans titre"}</Text>
                                                 <Text style={styles.courseMeta}>{chapters.length} chapitre{chapters.length > 1 ? "s" : ""}</Text>
                                               </View>
-                                              <Ionicons name={courseOpen ? "chevron-up" : "chevron-down"} size={16} color={COLOR.sub} />
+                                              <Ionicons name={courseOpen ? "chevron-up" : "chevron-down"} size={16} color={theme.color.textMuted} />
                                             </Pressable>
 
                                             <View style={styles.courseActions}>
@@ -430,7 +441,7 @@ export default function Courses() {
                                                   router.push(`/(app)/course/${course.id}`);
                                                 }}
                                               >
-                                                <Ionicons name="eye-outline" size={14} color={COLOR.text} />
+                                                <Ionicons name="eye-outline" size={14} color={theme.color.text} />
                                                 <Text style={styles.courseActionTxt}>Cours</Text>
                                               </Pressable>
                                               {chapters.length > 0 ? (
@@ -441,7 +452,7 @@ export default function Courses() {
                                                     router.push(`/(app)/course/play?courseId=${course.id}`);
                                                   }}
                                                 >
-                                                  <Ionicons name="play-outline" size={14} color={COLOR.text} />
+                                                  <Ionicons name="play-outline" size={14} color={theme.color.text} />
                                                   <Text style={styles.courseActionTxt}>Lire</Text>
                                                 </Pressable>
                                               ) : null}
@@ -459,7 +470,7 @@ export default function Courses() {
                                                         router.push(`/(app)/course/play?courseId=${course.id}&lessonId=${ch.id}`);
                                                       }}
                                                     >
-                                                      <Ionicons name="play-circle-outline" size={15} color={COLOR.primary} />
+                                                      <Ionicons name="play-circle-outline" size={15} color={theme.color.primary} />
                                                       <Text style={styles.chapterText} numberOfLines={1}>{idx + 1}. {ch.title || "Chapitre"}</Text>
                                                     </Pressable>
                                                   ))}
@@ -504,6 +515,7 @@ function EmptyState({
   levelFilter: string;
   hasSearch: boolean;
 }) {
+  const { styles, theme } = useThemedStyles(makeStyles);
   const hasScopedFilter = levelFilter !== "all" || hasSearch;
   const title = isTeacher
     ? segment === "mine"
@@ -528,23 +540,24 @@ function EmptyState({
     : "Revenez plus tard ou ajustez vos filtres.";
 
   return (
-    <View style={styles.emptyWrap}>
-      <LinearGradient colors={ACCENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyIcon} />
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptySub}>{subtitle}</Text>
-    </View>
+    <UiEmptyState
+      icon={isTeacher ? "add-circle-outline" : "book-outline"}
+      title={title}
+      message={subtitle}
+    />
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
   headerBg: { paddingBottom: 10 },
   headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
-  title: { color: COLOR.text, fontSize: 22, fontFamily: FONT.heading },
-  subtitle: { color: COLOR.sub, fontSize: 12, marginTop: 2, fontFamily: FONT.body },
+  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
+  subtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
 
   addBtn: {
-    backgroundColor: COLOR.primary,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.primary,
+    borderRadius: t.radius.md,
     paddingHorizontal: 12,
     paddingVertical: 9,
     flexDirection: "row",
@@ -552,41 +565,41 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 40,
   },
-  addBtnText: { color: "#fff", fontFamily: FONT.bodyBold, fontSize: 12 },
+  addBtnText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   menuBtn: {
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     paddingHorizontal: 12,
     paddingVertical: 9,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     minHeight: 40,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  menuBtnText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  menuBtnText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   quizNavBtn: {
-    backgroundColor: COLOR.tint,
+    backgroundColor: t.color.primarySoft,
     borderColor: "rgba(29,78,216,0.28)",
   },
-  quizNavBtnText: { color: COLOR.primary },
+  quizNavBtnText: { color: t.color.primary },
 
   searchWrap: {
     marginTop: 12,
     marginHorizontal: 16,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     flexDirection: "row",
     alignItems: "center",
     height: 48,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
-  searchInput: { flex: 1, color: COLOR.text, fontSize: 15, fontFamily: FONT.body },
+  searchInput: { flex: 1, color: t.color.text, fontSize: 15, fontFamily: t.type.body.fontFamily },
 
   segmentWrap: { marginTop: 10, paddingHorizontal: 16 },
   classRowHead: {
@@ -597,19 +610,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
-  classRowTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
+  classRowTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
   clearChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     borderRadius: 999,
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  clearChipText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  clearChipText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   levelRow: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2, gap: 8 },
   levelChip: {
     flexDirection: "row",
@@ -617,22 +630,22 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     paddingLeft: 12,
     paddingRight: 8,
     paddingVertical: 8,
   },
   levelChipActive: {
     borderColor: "transparent",
-    backgroundColor: COLOR.primary,
-    shadowColor: "#1D4ED8",
+    backgroundColor: t.color.primary,
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  levelChipText: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  levelChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
   levelChipTextActive: { color: "#fff" },
   levelCount: {
     minWidth: 22,
@@ -641,65 +654,65 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 6,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
   levelCountActive: { backgroundColor: "rgba(255,255,255,0.2)" },
-  levelCountText: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 11 },
+  levelCountText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
   levelCountTextActive: { color: "#fff" },
 
   levelCard: {
     marginHorizontal: 16,
     marginTop: 12,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.lg,
+    backgroundColor: t.color.surface,
+    borderRadius: t.radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
     overflow: "hidden",
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
   levelHead: { paddingHorizontal: 12, paddingVertical: 11, flexDirection: "row", alignItems: "center", gap: 10 },
-  levelTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 15 },
-  levelSub: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, marginTop: 2 },
-  levelBody: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLOR.border, padding: 10, gap: 8 },
+  levelTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
+  levelSub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 2 },
+  levelBody: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, padding: 10, gap: 8 },
 
   subjectCard: {
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    borderRadius: RADIUS.md,
+    borderColor: t.color.border,
+    borderRadius: t.radius.md,
     overflow: "hidden",
   },
   subjectHead: { paddingHorizontal: 10, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  subjectTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13, flex: 1, paddingRight: 10 },
+  subjectTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13, flex: 1, paddingRight: 10 },
   subjectRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   subjectCount: {
     minWidth: 22,
     textAlign: "center",
-    color: COLOR.sub,
-    fontFamily: FONT.bodyBold,
+    color: t.color.textMuted,
+    fontFamily: t.type.bodyStrong.fontFamily,
     fontSize: 11,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.surface,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surface,
     overflow: "hidden",
   },
-  subjectBody: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLOR.border, padding: 8, gap: 8 },
+  subjectBody: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, padding: 8, gap: 8 },
 
   courseCard: {
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    borderRadius: RADIUS.md,
+    borderColor: t.color.border,
+    borderRadius: t.radius.md,
     padding: 10,
     gap: 8,
-    ...ELEVATION.card,
+    ...t.elevation(2),
   },
   courseHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  courseTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
-  courseMeta: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 11, marginTop: 2 },
+  courseTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
+  courseMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, marginTop: 2 },
   courseActions: { flexDirection: "row", gap: 8 },
   courseActionBtn: {
     flexDirection: "row",
@@ -709,12 +722,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    backgroundColor: COLOR.muted,
+    borderColor: t.color.border,
+    backgroundColor: t.color.surfaceSunk,
   },
-  courseActionTxt: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 12 },
+  courseActionTxt: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
-  chapterList: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLOR.border, paddingTop: 8, gap: 6 },
+  chapterList: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, paddingTop: 8, gap: 6 },
   chapterRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -722,58 +735,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: COLOR.muted,
+    backgroundColor: t.color.surfaceSunk,
   },
-  chapterText: { flex: 1, color: COLOR.text, fontFamily: FONT.body, fontSize: 12 },
-  chapterEmpty: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  chapterText: { flex: 1, color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  chapterEmpty: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
 
   gridItem: { flexBasis: "48%", minWidth: 160, marginTop: 12 },
-
-  emptyWrap: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: COLOR.surface,
-    borderRadius: RADIUS.lg,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
-    ...ELEVATION.card,
-  },
-  emptyIcon: { borderRadius: 12, padding: 8, marginBottom: 6, height: 28, width: 28 },
-  emptyTitle: { color: COLOR.text, fontSize: 16, fontFamily: FONT.headingAlt },
-  emptySub: { color: COLOR.sub, fontSize: 13, fontFamily: FONT.body },
 
   fabWrap: {
     position: "absolute",
     right: 16,
     bottom: 24,
     borderRadius: 999,
-    shadowColor: "#1D4ED8",
+    shadowColor: t.color.shadow,
     shadowOpacity: 0.22,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
   fab: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  fabText: { color: "#fff", fontFamily: FONT.bodyBold },
+  fabText: { color: "#fff", fontFamily: t.type.bodyStrong.fontFamily },
 
   menuRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(11, 17, 32, 0.28)" },
   menuBackdrop: { ...StyleSheet.absoluteFillObject },
   menuSheet: {
     maxHeight: "88%",
-    backgroundColor: COLOR.bg,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
+    backgroundColor: t.color.bg,
+    borderTopLeftRadius: t.radius.xl,
+    borderTopRightRadius: t.radius.xl,
     overflow: "hidden",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLOR.border,
+    borderTopColor: t.color.border,
   },
   menuGrabber: {
     alignSelf: "center",
     width: 46,
     height: 5,
     borderRadius: 999,
-    backgroundColor: COLOR.border,
+    backgroundColor: t.color.border,
     marginTop: 10,
     marginBottom: 8,
   },
@@ -784,25 +783,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLOR.border,
+    borderBottomColor: t.color.border,
     gap: 8,
   },
-  menuTitle: { color: COLOR.text, fontFamily: FONT.headingAlt, fontSize: 14, flex: 1 },
+  menuTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 14, flex: 1 },
   menuCloseBtn: {
     width: 32,
     height: 32,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLOR.surface,
+    backgroundColor: t.color.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLOR.border,
+    borderColor: t.color.border,
   },
   menuTreeContent: { paddingBottom: 8 },
-  menuEmpty: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 13, paddingHorizontal: 16, paddingTop: 12 },
+  menuEmpty: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13, paddingHorizontal: 16, paddingTop: 12 },
 });
-
-
-
-
-

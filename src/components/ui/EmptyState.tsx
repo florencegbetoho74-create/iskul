@@ -13,6 +13,8 @@ export type EmptyStateProps = {
   message: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Action secondaire, quand l'ecran en propose reellement deux. */
+  secondary?: React.ReactNode;
   /** Vrai vide contre echec de chargement : ce ne sont pas les memes mots. */
   tone?: "empty" | "error";
 };
@@ -29,6 +31,7 @@ export default function EmptyState({
   message,
   actionLabel,
   onAction,
+  secondary,
   tone = "empty",
 }: EmptyStateProps) {
   const { color, space } = useTheme();
@@ -52,6 +55,7 @@ export default function EmptyState({
           {actionLabel}
         </Button>
       ) : null}
+      {secondary}
     </View>
   );
 }
