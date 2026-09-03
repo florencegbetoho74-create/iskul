@@ -76,6 +76,27 @@ export async function upsertProfile(userId: string, patch: Partial<Profile>) {
   return next;
 }
 
+/** Preference de notifications de l'utilisateur connecte. */
+export async function getNotificationsEnabled(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("notifications_enabled")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return true;
+  return (data as any).notifications_enabled !== false;
+}
+
+/**
+ * Coupe ou retablit les notifications.
+ * La preference est lue par la file d'envoi : rien n'est mis en file pour un
+ * compte qui les a coupees.
+ */
+export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
+  const { error } = await supabase.rpc("set_notifications_enabled", { p_enabled: enabled });
+  if (error) throw new Error(error.message || "Preference non enregistree.");
+}
+
 export function watchProfile(userId: string, cb: (p: Profile | null) => void) {
   let active = true;
   const fetchOnce = async () => {

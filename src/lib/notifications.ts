@@ -120,66 +120,6 @@ export async function saveUserPushToken(uid: string, token: string) {
   await supabase.from("profiles").upsert({ id: uid, expo_push_tokens: next }, { onConflict: "id" });
 }
 
-export async function notifyNewPublishedCourses(userId: string, courses: CourseNotifInput[]) {
-  const key = userKey(KEY_LAST_PUBLISHED_TS, userId);
-  const published = (courses || []).filter((c) => !!c?.published);
-  if (!published.length) return;
-
-  const newest = published.reduce((max, c) => {
-    const ts = Math.max(toNumber(c.updatedAtMs), toNumber(c.createdAtMs));
-    return ts > max ? ts : max;
-  }, 0);
-  if (!newest) return;
-
-  const previous = toNumber(await AsyncStorage.getItem(key));
-  if (!previous) {
-    await AsyncStorage.setItem(key, String(newest));
-    return;
-  }
-
-  const count = published.filter((c) => Math.max(toNumber(c.updatedAtMs), toNumber(c.createdAtMs)) > previous).length;
-  if (count > 0) {
-    const top = published
-      .filter((c) => Math.max(toNumber(c.updatedAtMs), toNumber(c.createdAtMs)) > previous)
-      .sort((a, b) => Math.max(toNumber(b.updatedAtMs), toNumber(b.createdAtMs)) - Math.max(toNumber(a.updatedAtMs), toNumber(a.createdAtMs)))[0];
-    const body = count === 1 && top?.title
-      ? `Nouveau cours: ${top.title}`
-      : `${count} nouveaux cours sont disponibles.`;
-    await scheduleImmediate("Nouveaux cours disponibles", body, { type: "new_course" });
-  }
-  await AsyncStorage.setItem(key, String(newest));
-}
-
-export async function scheduleLiveReminders(userId: string, lives: LiveNotifInput[]) {
-  const key = userKey(KEY_LIVE_SCHEDULED, userId);
-  const now = Date.now();
-  const scheduled = await readJson<Record<string, number>>(key, {});
-  const nextMap: Record<string, number> = { ...scheduled };
-
-  for (const live of lives || []) {
-    if (!live?.id) continue;
-    if (live.status === "ended") continue;
-    const startAt = toNumber(live.startAt);
-    if (!startAt) continue;
-    if (startAt <= now) continue;
-    if (startAt - now > 48 * 3600_000) continue;
-
-    if (toNumber(nextMap[live.id]) >= startAt) continue;
-
-    const reminderAt = Math.max(now + 20_000, startAt - 10 * 60_000);
-    const title = live.title?.trim() ? live.title.trim() : "Votre live";
-    await scheduleAt(
-      "Live bientot",
-      `${title} commence bientot. Rejoins la session a l'heure.`,
-      reminderAt,
-      { type: "live_reminder", liveId: live.id }
-    );
-    nextMap[live.id] = startAt;
-  }
-
-  await writeJson(key, nextMap);
-}
-
 export async function scheduleHomeworkReminder(userId: string, hasPendingWork: boolean) {
   if (!hasPendingWork) return;
   const key = userKey(KEY_HOMEWORK_DAY, userId);
@@ -203,15 +143,18 @@ export async function scheduleHomeworkReminder(userId: string, hasPendingWork: b
   await AsyncStorage.setItem(key, today);
 }
 
+/**
+ * Rappels programmes sur l'appareil.
+ *
+ * Les nouveaux cours et le demarrage des lives sont desormais notifies par le
+ * serveur : les reprogrammer ici ferait doublon. Ne reste que le rappel de
+ * travail en cours, qui depend de l'appareil et non d'un evenement serveur.
+ */
 export async function primeSmartStudentNotifications(input: {
   userId: string;
-  courses: CourseNotifInput[];
-  lives: LiveNotifInput[];
   hasPendingWork: boolean;
 }) {
   const ok = await ensureNotificationPermission();
   if (!ok) return;
-  await notifyNewPublishedCourses(input.userId, input.courses);
-  await scheduleLiveReminders(input.userId, input.lives);
   await scheduleHomeworkReminder(input.userId, input.hasPendingWork);
 }

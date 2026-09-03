@@ -187,6 +187,34 @@ export async function setAdminUserReviewer(userId: string, isReviewer: boolean) 
   assertNoError(error, "Impossible de mettre a jour le role relecteur.");
 }
 
+export type PushHealth = {
+  pending: number;
+  failed: number;
+  sent: number;
+  oldestPendingMs?: number | null;
+  lastSentMs?: number | null;
+  devicesRegistered: number;
+};
+
+/**
+ * Etat de la file de notifications.
+ * Sans fonction de drainage planifiee, la file grossit en silence : cet
+ * indicateur rend la panne visible depuis la console.
+ */
+export async function getPushHealth(): Promise<PushHealth> {
+  const { data, error } = await supabase.rpc("admin_push_health");
+  assertNoError(error, "Etat des notifications indisponible.");
+  const row = (data || {}) as any;
+  return {
+    pending: Number(row.pending || 0),
+    failed: Number(row.failed || 0),
+    sent: Number(row.sent || 0),
+    oldestPendingMs: row.oldestPendingMs ?? null,
+    lastSentMs: row.lastSentMs ?? null,
+    devicesRegistered: Number(row.devicesRegistered || 0),
+  };
+}
+
 export async function listAdminCourses(params?: {
   limit?: number;
   offset?: number;

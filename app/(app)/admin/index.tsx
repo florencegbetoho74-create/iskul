@@ -9,6 +9,8 @@ import {
   getAdminPortalSettings,
   type AdminDashboardSnapshot,
   updateAdminPortalSettings,
+  getPushHealth,
+  type PushHealth,
 } from "@/storage/admin";
 
 type Kpi = { key: string; label: string; value: string; hint?: string; tint: string; icon: keyof typeof Ionicons.glyphMap };
@@ -16,6 +18,7 @@ type Kpi = { key: string; label: string; value: string; hint?: string; tint: str
 export default function AdminDashboard() {
   const router = useRouter();
   const [snapshot, setSnapshot] = useState<AdminDashboardSnapshot | null>(null);
+  const [push, setPush] = useState<PushHealth | null>(null);
   const [portalOpen, setPortalOpen] = useState(true);
   const [portalMessage, setPortalMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -27,8 +30,13 @@ export default function AdminDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [dash, settings] = await Promise.all([getAdminDashboard(), getAdminPortalSettings()]);
+      const [dash, settings, pushHealth] = await Promise.all([
+        getAdminDashboard(),
+        getAdminPortalSettings(),
+        getPushHealth().catch(() => null),
+      ]);
       setSnapshot(dash);
+      setPush(pushHealth);
       setPortalOpen(settings.teacherPortalOpen);
       setPortalMessage(settings.teacherPortalMessage || "");
     } catch (e: any) {
@@ -55,6 +63,14 @@ export default function AdminDashboard() {
       { key: "admins", label: "Admins", value: String(snapshot.admins), tint: "#ECECEC", icon: "shield-checkmark-outline" },
     ];
   }, [snapshot]);
+
+  // Une file dont la plus vieille ligne a plus d'une heure signale une
+  // fonction de drainage non planifiee ou en echec.
+  const pushStalled =
+    !!push &&
+    push.pending > 0 &&
+    !!push.oldestPendingMs &&
+    Date.now() - push.oldestPendingMs > 3600_000;
 
   const savePortal = async () => {
     setSaving(true);
@@ -98,6 +114,25 @@ export default function AdminDashboard() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+
+      {push ? (
+        <View style={[styles.pushCard, pushStalled && styles.pushCardAlert]}>
+          <Text style={styles.pushTitle}>
+            {pushStalled ? "Notifications bloquees" : "Notifications"}
+          </Text>
+          <Text style={styles.pushBody}>
+            {push.pending} en attente · {push.failed} en echec · {push.devicesRegistered} appareil
+            {push.devicesRegistered > 1 ? "s" : ""} enregistre
+            {push.devicesRegistered > 1 ? "s" : ""}
+          </Text>
+          {pushStalled ? (
+            <Text style={styles.pushHint}>
+              La plus ancienne attend depuis plus d'une heure. Verifiez que la fonction
+              push-dispatch est bien planifiee et que son secret est configure.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.kpiGrid}>
         {kpis.map((kpi) => (
@@ -158,6 +193,19 @@ export default function AdminDashboard() {
 }
 
 const styles = StyleSheet.create({
+  pushCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.surface,
+    padding: 12,
+    gap: 4,
+    marginBottom: 12,
+  },
+  pushCardAlert: { borderColor: COLOR.danger, backgroundColor: "#FFF4F4" },
+  pushTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
+  pushBody: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12 },
+  pushHint: { color: COLOR.danger, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
   container: { padding: 18, paddingBottom: 30, gap: 14 },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   title: { color: COLOR.text, fontFamily: FONT.heading, fontSize: 26 },

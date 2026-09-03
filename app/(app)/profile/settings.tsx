@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +17,10 @@ import { COLOR, FONT, RADIUS } from "@/theme/colors";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { invalidateReferentials } from "@/storage/referentials";
+import {
+  getNotificationsEnabled,
+  setNotificationsEnabled,
+} from "@/storage/profile";
 import CountryField from "@/components/CountryField";
 import {
   createPairingCode,
@@ -28,6 +41,8 @@ export default function Settings() {
   const [parentLinks, setParentLinks] = useState<ParentLink[]>([]);
   const [pairingCode, setPairingCode] = useState<PairingCode | null>(null);
   const [parentBusy, setParentBusy] = useState(false);
+  const [notifsEnabled, setNotifsEnabled] = useState(true);
+  const [notifsBusy, setNotifsBusy] = useState(false);
 
   const {
     countries,
@@ -55,6 +70,34 @@ export default function Settings() {
   useEffect(() => {
     void refreshParentLinks();
   }, [refreshParentLinks]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    getNotificationsEnabled(user.id)
+      .then((value) => {
+        if (!cancelled) setNotifsEnabled(value);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const toggleNotifications = async (next: boolean) => {
+    // On affiche le nouvel etat tout de suite, puis on revient en arriere si
+    // le serveur refuse : un interrupteur qui ne bouge pas passe pour casse.
+    setNotifsEnabled(next);
+    setNotifsBusy(true);
+    try {
+      await setNotificationsEnabled(next);
+    } catch (e: any) {
+      setNotifsEnabled(!next);
+      Alert.alert("Erreur", e?.message ?? "Preference non enregistree.");
+    } finally {
+      setNotifsBusy(false);
+    }
+  };
 
   // Un changement de pays peut changer le programme : on ne conserve pas une
   // classe qui n'existe pas dans le nouveau referentiel.
@@ -209,6 +252,23 @@ export default function Settings() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Application</Text>
+
+        <View style={styles.row}>
+          <Ionicons name="notifications-outline" size={18} color={COLOR.text} />
+          <View style={styles.rowBody}>
+            <Text style={styles.rowTitle}>Notifications</Text>
+            <Text style={styles.rowSub}>
+              Nouveaux cours de votre classe, demarrage des lives et reponses de vos professeurs.
+            </Text>
+          </View>
+          <Switch
+            value={notifsEnabled}
+            onValueChange={toggleNotifications}
+            disabled={notifsBusy}
+            trackColor={{ false: COLOR.border, true: COLOR.primary }}
+            thumbColor="#fff"
+          />
+        </View>
 
         <Pressable
           onPress={clearContentCache}

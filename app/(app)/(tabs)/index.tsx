@@ -210,33 +210,16 @@ export default function Home() {
     if (now - notifLastRunRef.current < 45_000) return;
     notifLastRunRef.current = now;
     (async () => {
-      const [upcomingLives, progressRows] = await Promise.all([
-        listUpcoming({ countryCode, gradeLevelId }),
-        listRecentProgress(user.id, 12),
-      ]);
+      // Nouveaux cours et demarrage de live sont notifies par le serveur : il
+      // ne reste ici que le rappel de travail en cours, propre a l'appareil.
+      const progressRows = await listRecentProgress(user.id, 12);
       const hasPendingWork = progressRows.some((r) => {
         const watched = Number(r.watchedSec || 0);
         const duration = Number(r.durationSec || 0);
         if (duration > 0) return watched > 60 && watched < duration * 0.9;
         return watched > 300;
       });
-      await primeSmartStudentNotifications({
-        userId: user.id,
-        courses: all.map((c) => ({
-          id: c.id,
-          title: c.title,
-          published: c.published,
-          updatedAtMs: (c as any).updatedAtMs,
-          createdAtMs: (c as any).createdAtMs,
-        })),
-        lives: (upcomingLives || []).map((l: any) => ({
-          id: l.id,
-          title: l.title,
-          startAt: l.startAt,
-          status: l.status,
-        })),
-        hasPendingWork,
-      });
+      await primeSmartStudentNotifications({ userId: user.id, hasPendingWork });
     })().catch(() => {});
   }, [user?.id, isTeacher, all]);
 
