@@ -4,11 +4,18 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/ThemeProvider";
+import { useAuth } from "@/providers/AuthProvider";
 import { FONT_FAMILY } from "@/theme/tokens";
+
+/** Onglet masque : expo-router exige que l'ecran reste declare. */
+const HIDDEN = { href: null } as const;
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { color, radius, elevation } = useTheme();
+  const { user } = useAuth();
+
+  const isTeacher = String(user?.role || "") === "teacher";
 
   const safeBottom = Math.max(0, insets.bottom);
   const barBottom = Math.max(8, safeBottom > 0 ? safeBottom - 2 : 10);
@@ -41,57 +48,94 @@ export default function TabsLayout() {
         tabBarIconStyle: { marginTop: -2 },
       }}
     >
+      {/*
+        Eleve et professeur n'ont pas les memes besoins quotidiens. Chacun voit
+        cinq onglets qui le concernent, plutot que six generiques dont certains
+        ne lui servent jamais.
+      */}
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
-          tabBarIcon: ({ color: c, size }) => <Ionicons name="home-outline" size={size} color={c} />,
+          title: isTeacher ? "Tableau" : "Accueil",
+          tabBarIcon: ({ color: c, size }) => (
+            <Ionicons name={isTeacher ? "stats-chart-outline" : "home-outline"} size={size} color={c} />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="courses"
         options={{
-          title: "Cours",
+          title: isTeacher ? "Mes cours" : "Cours",
           tabBarIcon: ({ color: c, size }) => <Ionicons name="book-outline" size={size} color={c} />,
         }}
       />
-      {/*
-        Quiz etait masque de la barre (href: null) et n'etait atteignable que
-        par un bouton de l'accueil : l'auto-evaluation, promesse centrale du
-        produit, restait introuvable.
 
-        Messages garde son entree dans l'en-tete de l'accueil, badge de non-lus
-        compris. Un septieme onglet aurait tronque tous les libelles et reduit
-        les cibles sous le seuil confortable.
-      */}
+      {/* L'auto-evaluation est une promesse centrale : elle a sa place dans la barre. */}
       <Tabs.Screen
         name="quizzes"
-        options={{
-          title: "Quiz",
-          tabBarIcon: ({ color: c, size }) => (
-            <MaterialCommunityIcons name="brain" size={size} color={c} />
-          ),
-        }}
+        options={
+          isTeacher
+            ? HIDDEN
+            : {
+                title: "Quiz",
+                tabBarIcon: ({ color: c, size }) => (
+                  <MaterialCommunityIcons name="brain" size={size} color={c} />
+                ),
+              }
+        }
       />
+
+      {/*
+        Le professeur anime ses seances depuis la barre ; l'eleve, lui, y est
+        amene par la notification et par la section Aujourd'hui de son accueil.
+        Un live est un rendez-vous, pas quelque chose qu'on parcourt.
+      */}
       <Tabs.Screen
         name="live"
-        options={{
-          title: "Live",
-          tabBarIcon: ({ color: c, size }) => (
-            <MaterialCommunityIcons name="broadcast" size={size} color={c} />
-          ),
-        }}
+        options={
+          isTeacher
+            ? {
+                title: "Live",
+                tabBarIcon: ({ color: c, size }) => (
+                  <MaterialCommunityIcons name="broadcast" size={size} color={c} />
+                ),
+              }
+            : HIDDEN
+        }
       />
+
       <Tabs.Screen
         name="library"
-        options={{
-          title: "Bibliothèque",
-          tabBarIcon: ({ color: c, size }) => (
-            <Ionicons name="library-outline" size={size} color={c} />
-          ),
-        }}
+        options={
+          isTeacher
+            ? HIDDEN
+            : {
+                title: "Bibliothèque",
+                tabBarIcon: ({ color: c, size }) => (
+                  <Ionicons name="library-outline" size={size} color={c} />
+                ),
+              }
+        }
       />
-      <Tabs.Screen name="messages" options={{ href: null }} />
+
+      <Tabs.Screen
+        name="learners"
+        options={
+          isTeacher
+            ? {
+                title: "Élèves",
+                tabBarIcon: ({ color: c, size }) => (
+                  <Ionicons name="people-outline" size={size} color={c} />
+                ),
+              }
+            : HIDDEN
+        }
+      />
+
+      {/* Messages reste dans l'en-tete de l'accueil, badge de non-lus compris. */}
+      <Tabs.Screen name="messages" options={HIDDEN} />
+
       <Tabs.Screen
         name="profile"
         options={{
