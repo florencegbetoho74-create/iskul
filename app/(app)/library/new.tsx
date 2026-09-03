@@ -229,12 +229,13 @@ export default function NewBook() {
         fileUrl: finalUrl,
         ownerId: user.id,
         ownerName: user.name || user.email,
-        published: true,
       } as any);
 
-      Alert.alert("Ajoute", "Document ajoute.", [
-        { text: "OK", onPress: () => router.replace(`/(app)/library/${created.id}`) },
-      ]);
+      Alert.alert(
+        "Document enregistre",
+        "Il part en relecture avant d'etre visible par les eleves.",
+        [{ text: "OK", onPress: () => router.replace(`/(app)/library/${created.id}`) }]
+      );
     } catch (e: any) {
       Alert.alert("Erreur", e?.message ?? "Creation impossible.");
     } finally {

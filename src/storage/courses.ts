@@ -8,6 +8,7 @@ import {
   safeUuid,
   searchFilter,
 } from "@/lib/contentFilter";
+import { parseContentStatus } from "@/lib/contentStatus";
 import type { Course, Chapter, LangKey } from "@/types/course";
 
 type CourseRow = {
@@ -21,6 +22,8 @@ type CourseRow = {
   subject_id?: string | null;
   cover_url?: string | null;
   published: boolean;
+  status?: string | null;
+  review_note?: string | null;
   owner_id: string;
   owner_name?: string | null;
   created_at_ms?: number | null;
@@ -57,6 +60,8 @@ const mapCourse = (row: CourseRow): Course => ({
   coverUrl: row.cover_url ?? null,
   chapters: Array.isArray(row.chapters) ? row.chapters.map(mapChapter) : [],
   published: !!row.published,
+  status: parseContentStatus(row.status),
+  reviewNote: row.review_note ?? null,
   ownerId: row.owner_id ?? "",
   ownerName: row.owner_name ?? undefined,
   createdAtMs: row.created_at_ms ?? Date.now(),
@@ -65,7 +70,7 @@ const mapCourse = (row: CourseRow): Course => ({
 
 const courseSelect =
   "id,title,description,level,subject,country_code,grade_level_id,subject_id," +
-  "cover_url,published,owner_id,owner_name,created_at_ms,updated_at_ms," +
+  "cover_url,published,status,review_note,owner_id,owner_name,created_at_ms,updated_at_ms," +
   "chapters ( id, course_id, title, order_index, video_url, video_by_lang )";
 
 export async function createCourse(input: Partial<Course>): Promise<Course> {
@@ -79,7 +84,6 @@ export async function createCourse(input: Partial<Course>): Promise<Course> {
     grade_level_id: input.gradeLevelId ?? null,
     subject_id: input.subjectId ?? null,
     cover_url: input.coverUrl ?? null,
-    published: !!input.published,
     owner_id: input.ownerId!,
     owner_name: input.ownerName ?? null,
     created_at_ms: now,
@@ -102,7 +106,6 @@ export async function updateCourse(id: string, patch: Partial<Course>) {
   if (patch.gradeLevelId !== undefined) payload.grade_level_id = patch.gradeLevelId ?? null;
   if (patch.subjectId !== undefined) payload.subject_id = patch.subjectId ?? null;
   if (patch.coverUrl !== undefined) payload.cover_url = patch.coverUrl ?? null;
-  if (patch.published !== undefined) payload.published = patch.published;
   if (patch.ownerName !== undefined) payload.owner_name = patch.ownerName ?? null;
 
   const { data, error } = await supabase

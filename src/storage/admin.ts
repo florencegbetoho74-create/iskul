@@ -24,6 +24,7 @@ export type AdminUserRow = {
   email: string;
   role: "student" | "teacher";
   isAdmin: boolean;
+  isReviewer: boolean;
   school?: string | null;
   grade?: string | null;
   lastSeenMs?: number | null;
@@ -149,6 +150,7 @@ export async function listAdminUsers(params?: {
     email: String(r.email || ""),
     role: r.role === "teacher" ? "teacher" : "student",
     isAdmin: !!r.is_admin,
+    isReviewer: !!r.is_reviewer,
     school: r.school ?? null,
     grade: r.grade ?? null,
     lastSeenMs: r.last_seen_ms ?? null,
@@ -175,6 +177,14 @@ export async function setAdminUserAdmin(userId: string, isAdmin: boolean) {
     p_is_admin: isAdmin,
   });
   assertNoError(error, "Impossible de mettre a jour les droits admin.");
+}
+
+export async function setAdminUserReviewer(userId: string, isReviewer: boolean) {
+  const { error } = await supabase.rpc("admin_set_user_reviewer", {
+    p_user_id: userId,
+    p_is_reviewer: isReviewer,
+  });
+  assertNoError(error, "Impossible de mettre a jour le role relecteur.");
 }
 
 export async function listAdminCourses(params?: {

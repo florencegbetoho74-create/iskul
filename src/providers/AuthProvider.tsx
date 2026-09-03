@@ -13,6 +13,7 @@ export type User = {
   email: string;
   role: Role;
   isAdmin?: boolean;
+  isReviewer?: boolean;
   countryCode?: string;
   grade?: string;
   gradeLevelId?: string;
@@ -51,6 +52,7 @@ type ProfileRow = {
   name?: string | null;
   role?: Role | null;
   is_admin?: boolean | null;
+  is_reviewer?: boolean | null;
   email?: string | null;
   school?: string | null;
   grade?: string | null;
@@ -70,7 +72,7 @@ function isMissingIsAdminColumnError(error: any) {
 async function fetchProfile(userId: string): Promise<ProfileRow | null> {
   const selectWithIsAdmin = profilesSupportsIsAdminColumn !== false;
   const base = "id, name, role, email, country_code, grade, grade_level_id";
-  const columns = selectWithIsAdmin ? `${base}, is_admin` : base;
+  const columns = selectWithIsAdmin ? `${base}, is_admin, is_reviewer` : base;
   const { data, error } = await supabase.from("profiles").select(columns).eq("id", userId).maybeSingle();
 
   if (error && selectWithIsAdmin && isMissingIsAdminColumnError(error)) {
@@ -133,6 +135,8 @@ function mapUser(u: { id: string; email?: string | null; user_metadata?: any }, 
     name: profile?.name || u.user_metadata?.name || u.user_metadata?.full_name || undefined,
     role: profile?.role || "student",
     isAdmin: !!profile?.is_admin,
+    // Un administrateur relit forcement : la base applique la meme regle.
+    isReviewer: !!profile?.is_reviewer || !!profile?.is_admin,
     countryCode: profile?.country_code || undefined,
     grade: profile?.grade || undefined,
     gradeLevelId: profile?.grade_level_id || undefined,

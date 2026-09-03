@@ -35,6 +35,15 @@ import {
   QuizQuestion,
 } from "@/storage/quizzes";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
+import {
+  authorActionLabel,
+  canSubmit,
+  canWithdraw,
+  presentStatus,
+  rejectionNote,
+  type ContentStatus,
+} from "@/lib/contentStatus";
+import { submitForReview, withdrawFromReview } from "@/storage/review";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
 const SOUND_CORRECT = require("../../../assets/sounds/quiz-correct.wav");
@@ -77,7 +86,9 @@ export default function QuizPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [questions, setQuestions] = useState<QuizQuestion[]>([makeQuestion()]);
-  const [published, setPublished] = useState(false);
+  const [status, setStatus] = useState<ContentStatus>("draft");
+  const [reviewNote, setReviewNote] = useState<string | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [standaloneLevel, setStandaloneLevel] = useState("");
   const [standaloneSubject, setStandaloneSubject] = useState("");
   const [standaloneGradeLevelId, setStandaloneGradeLevelId] = useState("");
@@ -236,7 +247,8 @@ export default function QuizPage() {
       setTitle("");
       setDescription("");
       setQuestions([makeQuestion()]);
-      setPublished(false);
+      setStatus("draft");
+      setReviewNote(null);
       setStandaloneLevel("");
       setStandaloneSubject("");
       return;
@@ -256,7 +268,8 @@ export default function QuizPage() {
           })
         : [makeQuestion()]
     );
-    setPublished(!!quiz.published);
+    setStatus(quiz.status);
+    setReviewNote(quiz.reviewNote ?? null);
     setStandaloneLevel(quiz.level || "");
     setStandaloneSubject(quiz.subject || "");
   }, [quiz?.id]);
@@ -363,6 +376,26 @@ export default function QuizPage() {
     return null;
   };
 
+  // Publier n'appartient plus a l'auteur : il soumet, un relecteur decide.
+  const onReviewAction = async () => {
+    if (!quiz?.id || reviewBusy) return;
+    setReviewBusy(true);
+    try {
+      if (canSubmit(status)) {
+        setStatus(await submitForReview("quiz", quiz.id));
+        setReviewNote(null);
+        Alert.alert("Envoye en relecture", "Un relecteur validera ce quiz avant sa mise en ligne.");
+      } else if (canWithdraw(status)) {
+        setStatus(await withdrawFromReview("quiz", quiz.id));
+        Alert.alert("Retire de la file", "Le quiz est repasse en brouillon.");
+      }
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Action impossible.");
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
   const onSaveQuiz = async () => {
     if (!canEdit || !user?.id) return;
     const targetCourseId = isStandaloneQuiz ? null : course?.id || null;
@@ -405,7 +438,6 @@ export default function QuizPage() {
         title: title.trim(),
         description: description.trim() || null,
         questions: cleaned,
-        published,
         ownerId: user.id,
       });
       setQuiz(saved);
@@ -652,15 +684,25 @@ export default function QuizPage() {
               editable={canEdit}
             />
 
-            <View style={styles.toggleRow}>
-              <Text style={styles.toggleLabel}>Publier</Text>
-              <Switch
-                value={published}
-                onValueChange={setPublished}
-                disabled={!canEdit}
-                trackColor={{ false: COLOR.border, true: COLOR.primary }}
-                thumbColor="#fff"
-              />
+            <View style={styles.reviewBox}>
+              <Text style={styles.reviewStatus}>{presentStatus(status).label}</Text>
+              <Text style={styles.reviewHint}>{presentStatus(status).hint}</Text>
+              {rejectionNote(status, reviewNote) ? (
+                <Text style={styles.reviewNote}>{rejectionNote(status, reviewNote)}</Text>
+              ) : null}
+              {canEdit && authorActionLabel(status) ? (
+                <TouchableOpacity
+                  onPress={onReviewAction}
+                  disabled={reviewBusy}
+                  style={[styles.reviewBtn, reviewBusy && { opacity: 0.6 }]}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="send-outline" size={16} color={COLOR.primary} />
+                  <Text style={styles.reviewBtnText}>
+                    {reviewBusy ? "Envoi..." : authorActionLabel(status)}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         ) : null}
@@ -938,6 +980,32 @@ export default function QuizPage() {
 }
 
 const styles = StyleSheet.create({
+  reviewBox: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.muted,
+    padding: 12,
+    gap: 6,
+  },
+  reviewStatus: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 13 },
+  reviewHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  reviewNote: { color: COLOR.danger, fontFamily: FONT.bodyBold, fontSize: 12, lineHeight: 17 },
+  reviewBtn: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    backgroundColor: COLOR.tint,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  reviewBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
   root: { flex: 1, backgroundColor: COLOR.bg },
   content: { padding: 16, paddingBottom: 32 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },

@@ -6,6 +6,7 @@ import { COLOR, FONT } from "@/theme/colors";
 import {
   listAdminUsers,
   setAdminUserAdmin,
+  setAdminUserReviewer,
   setAdminUserRole,
   type AdminUserRow,
 } from "@/storage/admin";
@@ -84,6 +85,20 @@ export default function AdminUsers() {
     }
   };
 
+  const toggleReviewer = async (row: AdminUserRow) => {
+    const next = !row.isReviewer;
+    setBusyId(row.id);
+    setError(null);
+    try {
+      await setAdminUserReviewer(row.id, next);
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, isReviewer: next } : r)));
+    } catch (e: any) {
+      setError(e?.message || "Impossible de changer le role relecteur.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
@@ -120,6 +135,7 @@ export default function AdminUsers() {
           <Text style={[styles.th, { flex: 2 }]}>Utilisateur</Text>
           <Text style={[styles.th, { flex: 1 }]}>Role</Text>
           <Text style={[styles.th, { flex: 1 }]}>Admin</Text>
+              <Text style={[styles.th, { flex: 1 }]}>Relecteur</Text>
           <Text style={[styles.th, { flex: 2 }]}>Activite</Text>
           <Text style={[styles.th, { flex: 2 }]}>Actions</Text>
         </View>
@@ -137,6 +153,7 @@ export default function AdminUsers() {
               </View>
               <Text style={[styles.td, { flex: 1 }]}>{row.role === "teacher" ? "Prof" : "Eleve"}</Text>
               <Text style={[styles.td, { flex: 1 }]}>{row.isAdmin ? "Oui" : "Non"}</Text>
+              <Text style={[styles.td, { flex: 1 }]}>{row.isReviewer ? "Oui" : "Non"}</Text>
               <View style={{ flex: 2 }}>
                 <Text style={styles.td}>{row.coursesCount} cours, {row.booksCount} docs</Text>
                 <Text style={styles.meta}>{row.livesCount} lives, {row.quizzesCount} quiz</Text>
@@ -148,6 +165,11 @@ export default function AdminUsers() {
                 </Pressable>
                 <Pressable style={[styles.actionBtn, isBusy && { opacity: 0.6 }]} disabled={isBusy} onPress={() => toggleAdmin(row)}>
                   <Text style={styles.actionText}>{row.isAdmin ? "Retirer admin" : "Rendre admin"}</Text>
+                </Pressable>
+                <Pressable style={styles.actionBtn} onPress={() => toggleReviewer(row)}>
+                  <Text style={styles.actionText}>
+                    {row.isReviewer ? "Retirer relecteur" : "Rendre relecteur"}
+                  </Text>
                 </Pressable>
               </View>
             </View>

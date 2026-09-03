@@ -1,3 +1,5 @@
+import type { ContentStatus } from "@/lib/contentStatus";
+
 export type Book = {
   id: string;
   title: string;
@@ -17,6 +19,8 @@ export type Book = {
   ownerId: string;
   ownerName?: string;
   published?: boolean;
+  status?: ContentStatus;
+  reviewNote?: string | null;
 
   createdAtMs?: number;
   updatedAtMs?: number;

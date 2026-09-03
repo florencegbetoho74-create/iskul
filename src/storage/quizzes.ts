@@ -1,6 +1,7 @@
 import { supabase, SUPABASE_READY } from "@/lib/supabase";
 import { canonicalizeGradeLabel } from "@/constants/gradeLevels";
 import { canonicalizeCourseSubject } from "@/constants/courseSubjects";
+import { parseContentStatus, type ContentStatus } from "@/lib/contentStatus";
 import {
   parseCorrection as mapCorrection,
   type QuizCorrectionEntry,
@@ -27,6 +28,8 @@ export type Quiz = {
   description?: string;
   questions: QuizQuestion[];
   published: boolean;
+  status: ContentStatus;
+  reviewNote?: string | null;
   ownerId: string;
   courseTitle?: string;
   lessonTitle?: string;
@@ -106,6 +109,8 @@ function mapQuiz(row: any): Quiz {
     description: row.description ?? undefined,
     questions: normalizeQuestions(row.questions),
     published: !!row.published,
+    status: parseContentStatus(row.status),
+    reviewNote: row.review_note ?? null,
     ownerId: row.owner_id,
     courseTitle: row.course_title ?? undefined,
     lessonTitle: row.chapter_title ?? undefined,
@@ -231,7 +236,6 @@ export async function saveQuiz(input: {
     title: input.title,
     description: input.description ?? null,
     questions: cleanedQuestions,
-    published: !!input.published,
     owner_id: input.ownerId,
   };
   if (isStandaloneTarget) {

@@ -492,6 +492,14 @@ export default function Home() {
           contentContainerStyle={styles.actionsRow}
           keyboardShouldPersistTaps="handled"
         >
+          {user?.isReviewer ? (
+            <QuickAction
+              label="File de relecture"
+              style={styles.actionPill}
+              left={<Ionicons name="shield-checkmark-outline" size={18} color={COLOR.primary} />}
+              onPress={() => router.push("/(app)/review")}
+            />
+          ) : null}
           <QuickAction
             label="Creer un cours"
             style={styles.actionPill}

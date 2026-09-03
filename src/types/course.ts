@@ -1,3 +1,5 @@
+import type { ContentStatus } from "@/lib/contentStatus";
+
 export type LangKey = "fon" | "adja" | "yoruba" | "dendi";
 
 export type Chapter = {
@@ -20,6 +22,8 @@ export type Course = {
   coverUrl?: string | null;
   chapters: Chapter[];
   published: boolean;
+  status: ContentStatus;
+  reviewNote?: string | null;
   ownerId: string;
   ownerName?: string;
   createdAtMs: number;

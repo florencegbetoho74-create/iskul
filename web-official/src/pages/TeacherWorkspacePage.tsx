@@ -918,7 +918,6 @@ export default function TeacherWorkspacePage() {
       subject: courseForm.subject.trim(),
       description: courseForm.description.trim() || null,
       cover_url: courseForm.coverUrl.trim() || null,
-      published: courseForm.published,
       owner_id: userId,
       owner_name: profile?.name || session?.user?.email || null,
       updated_at_ms: Date.now(),
@@ -999,7 +998,6 @@ export default function TeacherWorkspacePage() {
       price: Math.max(0, safeNumber(bookForm.price)),
       cover_url: bookForm.coverUrl.trim() || null,
       file_url: bookForm.fileUrl.trim(),
-      published: bookForm.published,
       owner_id: userId,
       owner_name: profile?.name || session?.user?.email || null,
       updated_at_ms: Date.now(),
@@ -1119,7 +1117,6 @@ export default function TeacherWorkspacePage() {
       level: quizForm.scope === "standalone" ? quizForm.level.trim() : null,
       subject: quizForm.scope === "standalone" ? quizForm.subject.trim() : null,
       questions: preparedQuestions.value,
-      published: quizForm.published,
       owner_id: userId,
       updated_at_ms: Date.now(),
     };
@@ -1641,10 +1638,6 @@ export default function TeacherWorkspacePage() {
                 <label className="teacher-field teacher-field-wide">URL image de couverture (optionnel)
                   <input value={courseForm.coverUrl} onChange={(event) => setCourseForm((prev) => ({ ...prev, coverUrl: event.target.value }))} placeholder="https://..." />
                 </label>
-                <label className="teacher-inline-actions">
-                  <input type="checkbox" checked={courseForm.published} onChange={(event) => setCourseForm((prev) => ({ ...prev, published: event.target.checked }))} />
-                  <span>Publier maintenant</span>
-                </label>
                 <button className="btn primary" type="submit" disabled={busy}>{courseForm.id ? "Mettre a jour" : "Ajouter le cours"}</button>
               </form>
             </article>
@@ -1671,7 +1664,17 @@ export default function TeacherWorkspacePage() {
                         <button className="btn ghost" type="button" onClick={() => editCourse(course)} disabled={busy}>Modifier</button>
                         <button className="btn ghost" type="button" onClick={() =>
                           void runAction(async () => {
-                            const { error } = await supabase.from("courses").update({ published: !course.published, updated_at_ms: Date.now() }).eq("id", course.id);
+                            const { error } = course.published
+                              ? await supabase.rpc("review_content", {
+                                  p_kind: "course",
+                                  p_content_id: course.id,
+                                  p_decision: "rejected",
+                                  p_note: "Depublie depuis l'espace professeur.",
+                                })
+                              : await supabase.rpc("submit_content_for_review", {
+                                  p_kind: "course",
+                                  p_content_id: course.id,
+                                });
                             if (error) throw error;
                           }, "Publication du cours mise a jour.")
                         } disabled={busy}>{course.published ? "Depublier" : "Publier"}</button>
@@ -1783,10 +1786,6 @@ export default function TeacherWorkspacePage() {
               <label className="teacher-field teacher-field-wide">URL du fichier
                 <input value={bookForm.fileUrl} onChange={(event) => setBookForm((prev) => ({ ...prev, fileUrl: event.target.value }))} placeholder="https://..." />
               </label>
-              <label className="teacher-inline-actions">
-                <input type="checkbox" checked={bookForm.published} onChange={(event) => setBookForm((prev) => ({ ...prev, published: event.target.checked }))} />
-                <span>Publier maintenant</span>
-              </label>
               <button className="btn primary" type="submit" disabled={busy}>{bookForm.id ? "Mettre a jour" : "Ajouter le document"}</button>
             </form>
           </article>
@@ -1814,7 +1813,17 @@ export default function TeacherWorkspacePage() {
                       <button className="btn ghost" type="button" onClick={() => editBook(book)} disabled={busy}>Modifier</button>
                       <button className="btn ghost" type="button" onClick={() =>
                         void runAction(async () => {
-                          const { error } = await supabase.from("books").update({ published: !book.published, updated_at_ms: Date.now() }).eq("id", book.id);
+                          const { error } = book.published
+                              ? await supabase.rpc("review_content", {
+                                  p_kind: "book",
+                                  p_content_id: book.id,
+                                  p_decision: "rejected",
+                                  p_note: "Depublie depuis l'espace professeur.",
+                                })
+                              : await supabase.rpc("submit_content_for_review", {
+                                  p_kind: "book",
+                                  p_content_id: book.id,
+                                });
                           if (error) throw error;
                         }, "Publication du document mise a jour.")
                       } disabled={busy}>{book.published ? "Depublier" : "Publier"}</button>
@@ -1967,10 +1976,6 @@ export default function TeacherWorkspacePage() {
               <label className="teacher-field teacher-field-wide">Description (optionnel)
                 <textarea rows={2} value={quizForm.description} onChange={(event) => setQuizForm((previous) => ({ ...previous, description: event.target.value }))} />
               </label>
-              <label className="teacher-inline-actions">
-                <input type="checkbox" checked={quizForm.published} onChange={(event) => setQuizForm((previous) => ({ ...previous, published: event.target.checked }))} />
-                <span>Publier maintenant</span>
-              </label>
 
               <div className="teacher-question-list teacher-field-wide">
                 {quizForm.questions.map((question, questionIndex) => (
@@ -2049,7 +2054,17 @@ export default function TeacherWorkspacePage() {
                         <button className="btn ghost" type="button" onClick={() => editQuiz(quiz)} disabled={busy}>Modifier</button>
                         <button className="btn ghost" type="button" onClick={() =>
                           void runAction(async () => {
-                            const { error } = await supabase.from("quizzes").update({ published: !quiz.published, updated_at_ms: Date.now() }).eq("id", quiz.id);
+                            const { error } = quiz.published
+                              ? await supabase.rpc("review_content", {
+                                  p_kind: "quiz",
+                                  p_content_id: quiz.id,
+                                  p_decision: "rejected",
+                                  p_note: "Depublie depuis l'espace professeur.",
+                                })
+                              : await supabase.rpc("submit_content_for_review", {
+                                  p_kind: "quiz",
+                                  p_content_id: quiz.id,
+                                });
                             if (error) throw error;
                           }, "Publication du quiz mise a jour.")
                         } disabled={busy}>{quiz.published ? "Depublier" : "Publier"}</button>

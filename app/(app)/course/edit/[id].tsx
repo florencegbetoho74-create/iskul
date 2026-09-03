@@ -25,6 +25,15 @@ import SelectionSheetField from "@/components/SelectionSheetField";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 import { useAuth } from "@/providers/AuthProvider";
+import {
+  authorActionLabel,
+  canSubmit,
+  canWithdraw,
+  presentStatus,
+  rejectionNote,
+  type ContentStatus,
+} from "@/lib/contentStatus";
+import { submitForReview, withdrawFromReview } from "@/storage/review";
 
 /* --------------------- Palette / Constantes spacing --------------------- */
 const BLUE_START = "#1D4ED8";
@@ -66,7 +75,9 @@ export default function EditCourse() {
   const [subject, setSubject] = useState("");
   const [gradeLevelId, setGradeLevelId] = useState("");
   const [subjectId, setSubjectId] = useState("");
-  const [published, setPublished] = useState(false);
+  const [status, setStatus] = useState<ContentStatus>("draft");
+  const [reviewNote, setReviewNote] = useState<string | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
 
   const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
   const { gradeLevels, subjects, loadingGrades, scope } = useSchoolingOptions(countryCode);
@@ -104,7 +115,8 @@ export default function EditCourse() {
       setSubject(c.subject || "");
       setGradeLevelId(c.gradeLevelId || "");
       setSubjectId(c.subjectId || "");
-      setPublished(!!c.published);
+      setStatus(c.status);
+      setReviewNote(c.reviewNote ?? null);
       setChapters(c.chapters ?? []);
       setLoading(false);
     })();
@@ -139,11 +151,27 @@ export default function EditCourse() {
     Alert.alert("Enregistré", "Modifications sauvegardées.");
   };
 
-  const togglePublish = async () => {
-    if (!id) return;
-    const next = !published;
-    await updateCourse(id, { published: next });
-    setPublished(next);
+  // L'auteur ne publie plus lui-meme : il soumet, un relecteur decide.
+  const onReviewAction = async () => {
+    if (!id || reviewBusy) return;
+    setReviewBusy(true);
+    try {
+      if (canSubmit(status)) {
+        setStatus(await submitForReview("course", id));
+        setReviewNote(null);
+        Alert.alert(
+          "Envoye en relecture",
+          "Un relecteur validera ce cours avant sa mise en ligne."
+        );
+      } else if (canWithdraw(status)) {
+        setStatus(await withdrawFromReview("course", id));
+        Alert.alert("Retire de la file", "Le cours est repasse en brouillon.");
+      }
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Action impossible.");
+    } finally {
+      setReviewBusy(false);
+    }
   };
 
   const onDelete = async () => {
@@ -343,7 +371,7 @@ export default function EditCourse() {
             </Text>
           </View>
 
-          <PublishPill published={published} onPress={togglePublish} />
+          <StatusPill status={status} />
         </View>
 
         <ScrollView
@@ -399,26 +427,31 @@ export default function EditCourse() {
               warningText={hasLegacySubject ? `Matiere non reconnue a reclasser : "${subject}"` : undefined}
             />
 
+            <View style={styles.reviewBox}>
+              <Text style={styles.reviewHint}>{presentStatus(status).hint}</Text>
+              {rejectionNote(status, reviewNote) ? (
+                <Text style={styles.reviewNote}>{rejectionNote(status, reviewNote)}</Text>
+              ) : null}
+              {authorActionLabel(status) ? (
+                <TouchableOpacity
+                  onPress={onReviewAction}
+                  disabled={reviewBusy}
+                  style={[styles.reviewBtn, reviewBusy && { opacity: 0.6 }]}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="send-outline" size={16} color={COLOR.primary} />
+                  <Text style={styles.reviewBtnText}>
+                    {reviewBusy ? "Envoi..." : authorActionLabel(status)}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
             <View style={styles.row}>
               <View style={styles.rowItem}>
                 <GradientButton onPress={save} leftIcon={<Ionicons name="save-outline" size={18} color="#fff" />}>
                   Sauvegarder
                 </GradientButton>
-              </View>
-              <View style={[styles.rowItem, { marginLeft: SP }]}>
-                <OutlineButton
-                  onPress={togglePublish}
-                  active={published}
-                  leftIcon={
-                    <MaterialCommunityIcons
-                      name={published ? "check-decagram" : "decagram-outline"}
-                      size={18}
-                      color={published ? SUCCESS : COLOR.sub}
-                    />
-                  }
-                >
-                  {published ? "Publié" : "Mettre en ligne"}
-                </OutlineButton>
               </View>
             </View>
             <View style={{ marginTop: SP }}>
@@ -726,14 +759,27 @@ function DangerButton({
   );
 }
 
-function PublishPill({ published, onPress }: { published: boolean; onPress: () => void }) {
+const STATUS_TONE: Record<string, string> = {
+  neutral: COLOR.sub,
+  pending: COLOR.warn,
+  success: SUCCESS,
+  danger: COLOR.danger,
+};
+
+function StatusPill({ status }: { status: ContentStatus }) {
+  const view = presentStatus(status);
+  const tone = STATUS_TONE[view.tone] || COLOR.sub;
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.publishPill, published && { borderColor: SUCCESS }]} activeOpacity={0.85}>
-      <MaterialCommunityIcons name={published ? "check-decagram" : "decagram-outline"} size={16} color={published ? SUCCESS : COLOR.sub} />
-      <Text style={[styles.publishPillText, published && { color: SUCCESS }]} numberOfLines={1}>
-        {published ? "Publié" : "Brouillon"}
+    <View style={[styles.publishPill, { borderColor: tone }]}>
+      <MaterialCommunityIcons
+        name={status === "published" ? "check-decagram" : "decagram-outline"}
+        size={16}
+        color={tone}
+      />
+      <Text style={[styles.publishPillText, { color: tone }]} numberOfLines={1}>
+        {view.label}
       </Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -803,6 +849,35 @@ function ProgressLine({ label, value }: { label: string; value: number }) {
 /* --------------------------------- Styles -------------------------------- */
 
 const styles = StyleSheet.create({
+  reviewBox: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.muted,
+    padding: 12,
+    gap: 8,
+  },
+  reviewHint: { color: COLOR.sub, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+  reviewNote: {
+    color: COLOR.danger,
+    fontFamily: FONT.bodyBold,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  reviewBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLOR.ring,
+    backgroundColor: COLOR.tint,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  reviewBtnText: { color: COLOR.primary, fontFamily: FONT.bodyBold, fontSize: 12 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   header: {

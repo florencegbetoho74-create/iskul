@@ -7,6 +7,7 @@ import {
   safeUuid,
   searchFilter,
 } from "@/lib/contentFilter";
+import { parseContentStatus } from "@/lib/contentStatus";
 import type { Book } from "@/types/book";
 
 type BookRow = {
@@ -28,6 +29,8 @@ type BookRow = {
   owner_id: string;
   owner_name?: string | null;
   published?: boolean | null;
+  status?: string | null;
+  review_note?: string | null;
   created_at_ms?: number | null;
   updated_at_ms?: number | null;
 };
@@ -64,7 +67,9 @@ function mapBook(row: BookRow): Book {
     fileUrl: toPublicUrl(row.file_url) || "",
     ownerId: row.owner_id,
     ownerName: row.owner_name ?? undefined,
-    published: row.published ?? true,
+    published: row.published ?? false,
+    status: parseContentStatus(row.status),
+    reviewNote: row.review_note ?? null,
     createdAtMs: row.created_at_ms ?? row.updated_at_ms ?? Date.now(),
     updatedAtMs: row.updated_at_ms ?? row.created_at_ms ?? Date.now(),
   };
@@ -91,7 +96,6 @@ export async function addBook(payload: Omit<Book, "id" | "createdAt" | "updatedA
       file_url: payload.fileUrl,
       owner_id: payload.ownerId,
       owner_name: payload.ownerName ?? null,
-      published: payload.published ?? true,
       created_at_ms: now,
       updated_at_ms: now,
     })
@@ -118,7 +122,6 @@ export async function updateBook(id: string, patch: Partial<Book>) {
   if (patch.price !== undefined) payload.price = patch.price ?? 0;
   if (patch.coverUrl !== undefined) payload.cover_url = patch.coverUrl ?? null;
   if (patch.fileUrl !== undefined) payload.file_url = patch.fileUrl;
-  if (patch.published !== undefined) payload.published = patch.published;
   const { error } = await supabase.from("books").update(payload).eq("id", id);
   if (error) throw error;
 }
