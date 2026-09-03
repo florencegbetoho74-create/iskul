@@ -15,17 +15,16 @@ export type FieldProps = TextInputProps & {
   required?: boolean;
 };
 
-export default function Field({
-  label,
-  hint,
-  error,
-  icon,
-  required,
-  style,
-  onFocus,
-  onBlur,
-  ...rest
-}: FieldProps) {
+/**
+ * Champ de saisie.
+ *
+ * La ref est transmise a l'entree elle-meme : un formulaire enchaine ses champs
+ * au clavier plutot que d'obliger a viser le suivant.
+ */
+const Field = React.forwardRef<TextInput, FieldProps>(function FieldBase(
+  { label, hint, error, icon, required, style, onFocus, onBlur, ...rest },
+  ref
+) {
   const { color, radius, space, hit, type } = useTheme();
   const [focused, setFocused] = useState(false);
 
@@ -62,6 +61,7 @@ export default function Field({
       >
         {icon ? <Ionicons name={icon} size={17} color={color.textMuted} /> : null}
         <TextInput
+          ref={ref}
           placeholderTextColor={color.textFaint}
           onFocus={(e) => {
             setFocused(true);
@@ -87,7 +87,9 @@ export default function Field({
       ) : null}
     </View>
   );
-}
+});
+
+export default Field;
 
 const styles = StyleSheet.create({
   shell: { flexDirection: "row", alignItems: "center" },

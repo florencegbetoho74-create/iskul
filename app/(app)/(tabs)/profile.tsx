@@ -78,7 +78,7 @@ export default function Profile() {
   const entries: Entry[] = isTeacher
     ? [
         { icon: "person-outline", label: "Modifier mon profil", href: "/(app)/profile/edit" },
-        { icon: "book-outline", label: "Mes cours", href: "/(app)/course/mine" },
+        { icon: "book-outline", label: "Mes cours", href: "/(app)/(tabs)/courses" },
         { icon: "radio-outline", label: "Mes seances live", href: "/(app)/live/mine" },
         {
           icon: "settings-outline",

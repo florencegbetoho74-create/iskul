@@ -10,7 +10,14 @@ export default function Segmented({ value, items, onChange }: Props) {
   return (
     <View style={styles.wrap}>
       {items.map((it) => (
-        <TouchableOpacity key={it.key} onPress={() => onChange(it.key)} style={[styles.item, value === it.key && styles.active]}>
+        <TouchableOpacity
+          key={it.key}
+          onPress={() => onChange(it.key)}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: value === it.key }}
+          accessibilityLabel={it.label}
+          style={[styles.item, value === it.key && styles.active]}
+        >
           <Text style={[styles.txt, value === it.key && styles.txtActive]}>{it.label}</Text>
         </TouchableOpacity>
       ))}

@@ -1,31 +1,34 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Pressable,
+  ActivityIndicator,
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
+  TextInput,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { useThemedStyles } from "@/theme/useStyles";
-import type { Theme } from "@/theme/ThemeProvider";
-import { getCourse, updateCourse, deleteCourse, addChapter, deleteChapter } from "@/storage/courses";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
-import { uploadOne } from "@/lib/upload";
+
+import { useTheme } from "@/theme/ThemeProvider";
+import { useAuth } from "@/providers/AuthProvider";
+import Text from "@/components/ui/Text";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Field from "@/components/ui/Field";
+import EmptyState from "@/components/ui/EmptyState";
+import Segmented from "@/components/Segmented";
 import SelectionSheetField from "@/components/SelectionSheetField";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
-import { useAuth } from "@/providers/AuthProvider";
+import { uploadOne } from "@/lib/upload";
+import { getCourse, updateCourse, deleteCourse, addChapter, deleteChapter } from "@/storage/courses";
+import { submitForReview, withdrawFromReview } from "@/storage/review";
 import {
   authorActionLabel,
   canSubmit,
@@ -34,36 +37,12 @@ import {
   rejectionNote,
   type ContentStatus,
 } from "@/lib/contentStatus";
-import { submitForReview, withdrawFromReview } from "@/storage/review";
-
-/* ------------------------- Constantes de mise en page ------------------------ */
-/**
- * Le degrade de l'editeur suit le theme. Les constantes de couleur posees au
- * niveau du module figeaient l'ecran sur une seule palette.
- */
-const brandGradient = (t: Theme): readonly [string, string] => [
-  t.color.primary,
-  t.color.primaryPressed,
-];
-
-/** Teinte d'un chapitre selon son etat de completion. */
-const chapterTone = (t: Theme, hasLang: boolean, hasVideo: boolean): string =>
-  hasLang ? t.color.primary : hasVideo ? t.color.textFaint : t.color.warning;
-
-/** Couleur de la pastille de statut editorial. */
-const statusTone = (t: Theme, tone: string): string =>
-  ({
-    neutral: t.color.textMuted,
-    pending: t.color.warning,
-    success: t.color.success,
-    danger: t.color.danger,
-  })[tone] ?? t.color.textMuted;
-
-const SP = 12;              // spacing de base
-const RADIUS = 14;          // rayon standard
-const BTN_H = 46;           // hauteur minimale des boutons
 
 type LangKey = "fon" | "adja" | "yoruba" | "dendi";
+type VideoByLang = Partial<Record<LangKey, string>>;
+type UploadTarget = "generic" | LangKey;
+type Mode = "chapters" | "meta";
+
 const LANGS: { key: LangKey; label: string }[] = [
   { key: "fon", label: "Fon" },
   { key: "adja", label: "Adja" },
@@ -71,21 +50,34 @@ const LANGS: { key: LangKey; label: string }[] = [
   { key: "dendi", label: "Dendi" },
 ];
 
-type VideoByLang = Partial<Record<LangKey, string>>;
-
-const isForbiddenVideoUrl = (u: string) => /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test((u || '').trim());
+const isForbiddenVideoUrl = (u: string) =>
+  /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test((u || "").trim());
 const isDirectMediaUrl = (u: string) =>
   /\.(mp4|m4v|mov|webm)(\?|$)/i.test(u) || /\.m3u8(\?|$)/i.test(u) || /\.mpd(\?|$)/i.test(u);
 
+const badgeTone = (tone: string): "neutral" | "primary" | "success" | "warning" | "danger" =>
+  ({ neutral: "neutral", pending: "warning", success: "success", danger: "danger" } as const)[tone] ??
+  "neutral";
 
+/**
+ * Editeur de cours.
+ *
+ * Un professeur qui ouvre un cours vient presque toujours travailler ses
+ * chapitres ; il ne revient a la fiche que pour la corriger ou l'envoyer en
+ * relecture. Les deux taches sont separees plutot qu'empilees, et le formulaire
+ * d'ajout ne s'ouvre que lorsqu'on ajoute.
+ */
 export default function EditCourse() {
-  const { styles, theme } = useThemedStyles(makeStyles);
+  const { color, space, radius } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-
-  // meta cours
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const [mode, setMode] = useState<Mode>("chapters");
+  const [loading, setLoading] = useState(true);
+  const [missing, setMissing] = useState(false);
+
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState("");
   const [subject, setSubject] = useState("");
@@ -95,35 +87,37 @@ export default function EditCourse() {
   const [reviewNote, setReviewNote] = useState<string | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
 
+  const [metaError, setMetaError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState(0);
+
+  const [chapters, setChapters] = useState<any[]>([]);
+
+  const [composing, setComposing] = useState(false);
+  const [chTitle, setChTitle] = useState("");
+  const [chVideoUrl, setChVideoUrl] = useState("");
+  const [chVideoByLang, setChVideoByLang] = useState<VideoByLang>({});
+  const [showLangs, setShowLangs] = useState(false);
+  const [chapterError, setChapterError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [uploadingKey, setUploadingKey] = useState<UploadTarget | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  const linkRef = useRef<TextInput>(null);
+
   const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
   const { gradeLevels, subjects, loadingGrades, scope } = useSchoolingOptions(countryCode);
 
-  // chapitres
-  const [chapters, setChapters] = useState<any[]>([]);
-
-  // création de chapitre
-  const [chTitle, setChTitle] = useState("");
-  const [chVideoUrl, setChVideoUrl] = useState(""); // fallback
-  const [chVideoByLang, setChVideoByLang] = useState<VideoByLang>({});
-  const [uploadingKey, setUploadingKey] = useState<"generic" | LangKey | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-
-  // refs
-  const scrollRef = useRef<ScrollView>(null);
-  const chVideoRef = useRef<TextInput>(null);
-
-  // UI state
-  const [openMeta, setOpenMeta] = useState(true);
-  const [openChapters, setOpenChapters] = useState(true);
-  const [openAddChapter, setOpenAddChapter] = useState(true);
-  const [openDanger, setOpenDanger] = useState(false);
-
   useEffect(() => {
+    let active = true;
     (async () => {
       if (!id) return;
       const c = await getCourse(id);
+      if (!active) return;
       if (!c) {
-        Alert.alert("Introuvable", "Ce cours n'existe pas.", [{ text: "OK", onPress: () => router.back() }]);
+        setMissing(true);
+        setLoading(false);
         return;
       }
       setTitle(c.title || "");
@@ -136,190 +130,24 @@ export default function EditCourse() {
       setChapters(c.chapters ?? []);
       setLoading(false);
     })();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
-  const refresh = async () => {
+  // La confirmation d'enregistrement s'efface d'elle-meme : une alerte a
+  // fermer pour un succes attendu n'apporte rien.
+  useEffect(() => {
+    if (!savedAt) return;
+    const timer = setTimeout(() => setSavedAt(0), 2600);
+    return () => clearTimeout(timer);
+  }, [savedAt]);
+
+  const refresh = useCallback(async () => {
     if (!id) return;
     const c = await getCourse(id);
     setChapters(c?.chapters ?? []);
-  };
-
-  const save = async () => {
-    if (!id) return;
-    if (!title.trim() || !subject.trim()) {
-      Alert.alert("Champs requis", "Merci de compléter tous les champs.");
-      return;
-    }
-    if (!gradeLevelId) {
-      Alert.alert("Classe requise", "Veuillez selectionner une classe.");
-      return;
-    }
-    if (!subjectId) {
-      Alert.alert("Matiere requise", "Veuillez selectionner une matiere.");
-      return;
-    }
-    await updateCourse(id, {
-      title: title.trim(),
-      countryCode: scope?.countryCode ?? countryCode,
-      gradeLevelId,
-      subjectId,
-    });
-    Alert.alert("Enregistré", "Modifications sauvegardées.");
-  };
-
-  // L'auteur ne publie plus lui-meme : il soumet, un relecteur decide.
-  const onReviewAction = async () => {
-    if (!id || reviewBusy) return;
-    setReviewBusy(true);
-    try {
-      if (canSubmit(status)) {
-        setStatus(await submitForReview("course", id));
-        setReviewNote(null);
-        Alert.alert(
-          "Envoye en relecture",
-          "Un relecteur validera ce cours avant sa mise en ligne."
-        );
-      } else if (canWithdraw(status)) {
-        setStatus(await withdrawFromReview("course", id));
-        Alert.alert("Retire de la file", "Le cours est repasse en brouillon.");
-      }
-    } catch (e: any) {
-      Alert.alert("Erreur", e?.message || "Action impossible.");
-    } finally {
-      setReviewBusy(false);
-    }
-  };
-
-  const onDelete = async () => {
-    if (!id) return;
-    Alert.alert("Supprimer", "Voulez-vous vraiment supprimer ce cours ?", [
-      { text: "Annuler" },
-      {
-        text: "Supprimer",
-        style: "destructive",
-        onPress: async () => {
-          await deleteCourse(id);
-          router.replace("/(app)/course/mine");
-        },
-      },
-    ]);
-  };
-
-  type PickTarget = "generic" | LangKey;
-
-  const pickVideoAndUpload = async (target: PickTarget = "generic") => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: ["video/*", "public.movie", "application/octet-stream"],
-        multiple: false,
-        copyToCacheDirectory: true,
-      } as any);
-
-      // @ts-ignore
-      if (res?.canceled || res?.type === "cancel") return;
-      // @ts-ignore
-      const doc = res?.assets?.[0] ?? res;
-
-      const uri: string | undefined = doc?.uri;
-      if (!uri) return;
-
-      setUploadingKey(target);
-      setUploadProgress(0);
-
-      const name: string = doc?.name ?? "video.mp4";
-      const mimeFromPicker: string | undefined = doc?.mimeType;
-      const guessFromName =
-        name.toLowerCase().endsWith(".m3u8")
-          ? "application/vnd.apple.mpegurl"
-          : name.toLowerCase().endsWith(".mpd")
-          ? "application/dash+xml"
-          : name.toLowerCase().endsWith(".mov")
-          ? "video/quicktime"
-          : name.toLowerCase().endsWith(".webm")
-          ? "video/webm"
-          : name.toLowerCase().endsWith(".mkv")
-          ? "video/x-matroska"
-          : "video/mp4";
-
-      const contentType = mimeFromPicker || guessFromName;
-      const up = await uploadOne(
-        { uri, name, contentType },
-        `courses/${id}/videos`,
-        {
-          onProgress: (pct) => {
-            if (pct == null) return;
-            const clamped = Math.max(0, Math.min(100, Math.round(pct)));
-            setUploadProgress(clamped);
-          },
-        }
-      );
-      if (!up?.url) throw new Error("L'upload n'a pas renvoyé d'URL");
-
-      if (target === "generic") setChVideoUrl(up.url);
-      else setChVideoByLang((prev) => ({ ...prev, [target]: up.url }));
-
-      Alert.alert("Vidéo importée", "Le fichier a été uploadé et lié.");
-
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert("Upload échoué", e?.message || "Impossible d'uploader la vidéo.");
-    } finally {
-      setUploadingKey(null);
-      setUploadProgress(null);
-    }
-  };
-
-  const add = async () => {
-    if (!id) return;
-    if (!chTitle.trim()) {
-      Alert.alert("Champs requis", "Titre du chapitre requis.");
-      return;
-    }
-
-    const anySource = !!(chVideoUrl.trim() || Object.values(chVideoByLang).some((v) => !!(v && String(v).trim())));
-    if (!anySource) {
-      Alert.alert("Source requise", "Ajoutez au moins une vidéo (upload recommandé) ou un lien cloud direct (mp4/m3u8/mpd).");
-      return;
-    }
-
-    const allUrls = [chVideoUrl, ...Object.values(chVideoByLang)].filter(Boolean).map((v) => String(v).trim());
-    const bad = allUrls.find((u) => isForbiddenVideoUrl(u));
-    if (bad) {
-      Alert.alert("Lien non autorisé", "Les liens YouTube ne sont pas acceptés. Uploadez un fichier ou utilisez un lien cloud direct.");
-      return;
-    }
-
-    const nonDirect = allUrls.find((u) => /^https?:\/\//i.test(u) && !isDirectMediaUrl(u));
-    if (nonDirect) {
-      Alert.alert("Lien cloud", "Ce lien ne ressemble pas à un flux direct (mp4/m3u8/mpd). Il pourra s’ouvrir en externe mais ne sera pas lu dans le lecteur intégré.");
-    }
-    const cleanByLang: VideoByLang = Object.fromEntries(
-      Object.entries(chVideoByLang).filter(([, v]) => !!(v && String(v).trim()))
-    ) as VideoByLang;
-
-    await addChapter(id, {
-      title: chTitle.trim(),
-      videoUrl: chVideoUrl.trim() || undefined,
-      videoByLang: Object.keys(cleanByLang).length ? cleanByLang : undefined,
-    });
-
-    setChTitle("");
-    setChVideoUrl("");
-    setChVideoByLang({});
-    await refresh();
-  };
-
-  const remove = async (chapterId: string) => {
-    if (!id) return;
-    await deleteChapter(id, chapterId);
-    await refresh();
-  };
-
-  const openPreview = (lessonId?: string) => {
-    if (!id) return;
-    const qs = lessonId ? `?courseId=${id}&lessonId=${lessonId}` : `?courseId=${id}`;
-    router.push(`/(app)/course/play${qs}`);
-  };
+  }, [id]);
 
   const gradeOptions = useMemo(() => gradeLevels.map((l) => l.label), [gradeLevels]);
   const subjectOptions = useMemo(() => subjects.map((x) => x.label), [subjects]);
@@ -331,92 +159,459 @@ export default function EditCourse() {
     () => subjects.find((x) => x.id === subjectId)?.label ?? "",
     [subjects, subjectId]
   );
+
   // Un cours anterieur au referentiel garde un libelle texte sans equivalent :
   // on le signale au professeur plutot que de le remplacer en silence.
-  const hasLegacyLevel = useMemo(
-    () => !loadingGrades && !gradeLevelId && !!level,
-    [loadingGrades, gradeLevelId, level]
-  );
-  const hasLegacySubject = useMemo(
-    () => !loadingGrades && !subjectId && !!subject,
-    [loadingGrades, subjectId, subject]
-  );
-  const chapterCount = chapters.length;
-  const chapterWithVideoCount = useMemo(
-    () =>
-      chapters.filter((item) => {
-        const base = !!(item?.videoUrl && String(item.videoUrl).trim());
-        const byLang = Object.values(item?.videoByLang || {}).some((v) => !!(v && String(v).trim()));
-        return base || byLang;
-      }).length,
+  const legacyLevel = !loadingGrades && !gradeLevelId && !!level;
+  const legacySubject = !loadingGrades && !subjectId && !!subject;
+
+  const withVideo = useMemo(
+    () => chapters.filter((c) => hasAnySource(c)).length,
     [chapters]
   );
-  const chapterWithLangCount = useMemo(
-    () =>
-      chapters.filter((item) => Object.values(item?.videoByLang || {}).some((v) => !!(v && String(v).trim()))).length,
-    [chapters]
-  );
-  const completion = chapterCount ? Math.round((chapterWithVideoCount / chapterCount) * 100) : 0;
+
+  const save = async () => {
+    if (!id || saving) return;
+    if (!title.trim()) {
+      setMetaError("Le titre ne peut pas rester vide.");
+      return;
+    }
+    if (!gradeLevelId || !subjectId) {
+      setMetaError("Choisissez la classe et la matiere avant d'enregistrer.");
+      return;
+    }
+    setMetaError(null);
+    setSaving(true);
+    try {
+      await updateCourse(id, {
+        title: title.trim(),
+        countryCode: scope?.countryCode ?? countryCode,
+        gradeLevelId,
+        subjectId,
+      });
+      setSavedAt(Date.now());
+    } catch (e: any) {
+      setMetaError(e?.message || "Enregistrement impossible.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // L'auteur ne publie plus lui-meme : il soumet, un relecteur decide.
+  const onReviewAction = async () => {
+    if (!id || reviewBusy) return;
+    setReviewBusy(true);
+    setMetaError(null);
+    try {
+      if (canSubmit(status)) {
+        setStatus(await submitForReview("course", id));
+        setReviewNote(null);
+      } else if (canWithdraw(status)) {
+        setStatus(await withdrawFromReview("course", id));
+      }
+    } catch (e: any) {
+      setMetaError(e?.message || "Action impossible.");
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
+  const onDelete = () => {
+    if (!id) return;
+    Alert.alert(
+      "Supprimer ce cours",
+      "Les chapitres et les videos liees seront perdus. Cette action est definitive.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            await deleteCourse(id);
+            router.replace("/(app)/(tabs)/courses");
+          },
+        },
+      ]
+    );
+  };
+
+  const pickVideoAndUpload = async (target: UploadTarget) => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ["video/*", "public.movie", "application/octet-stream"],
+        multiple: false,
+        copyToCacheDirectory: true,
+      } as any);
+
+      // @ts-ignore
+      if (res?.canceled || res?.type === "cancel") return;
+      // @ts-ignore
+      const doc = res?.assets?.[0] ?? res;
+      const uri: string | undefined = doc?.uri;
+      if (!uri) return;
+
+      setUploadingKey(target);
+      setUploadProgress(0);
+      setChapterError(null);
+
+      const name: string = doc?.name ?? "video.mp4";
+      const contentType = doc?.mimeType || guessContentType(name);
+      const up = await uploadOne({ uri, name, contentType }, `courses/${id}/videos`, {
+        onProgress: (pct) => {
+          if (pct == null) return;
+          setUploadProgress(Math.max(0, Math.min(100, Math.round(pct))));
+        },
+      });
+      if (!up?.url) throw new Error("L'upload n'a pas renvoye d'adresse.");
+
+      if (target === "generic") setChVideoUrl(up.url);
+      else setChVideoByLang((prev) => ({ ...prev, [target]: up.url }));
+    } catch (e: any) {
+      setChapterError(e?.message || "Impossible d'importer cette video.");
+    } finally {
+      setUploadingKey(null);
+      setUploadProgress(null);
+    }
+  };
+
+  const add = async () => {
+    if (!id || adding) return;
+
+    if (!chTitle.trim()) {
+      setTitleError("Donnez un titre au chapitre.");
+      return;
+    }
+    setTitleError(null);
+
+    const byLang = Object.fromEntries(
+      Object.entries(chVideoByLang).filter(([, v]) => !!(v && String(v).trim()))
+    ) as VideoByLang;
+    const urls = [chVideoUrl, ...Object.values(byLang)]
+      .filter(Boolean)
+      .map((v) => String(v).trim());
+
+    if (!urls.length) {
+      setChapterError("Importez une video ou collez un lien direct avant d'ajouter le chapitre.");
+      return;
+    }
+    if (urls.some(isForbiddenVideoUrl)) {
+      setChapterError(
+        "Les liens YouTube ne sont pas lisibles dans l'application. Importez le fichier ou utilisez un lien direct."
+      );
+      return;
+    }
+    setChapterError(null);
+
+    setAdding(true);
+    try {
+      await addChapter(id, {
+        title: chTitle.trim(),
+        videoUrl: chVideoUrl.trim() || undefined,
+        videoByLang: Object.keys(byLang).length ? byLang : undefined,
+      });
+      setChTitle("");
+      setChVideoUrl("");
+      setChVideoByLang({});
+      setShowLangs(false);
+      await refresh();
+    } catch (e: any) {
+      setChapterError(e?.message || "Ajout impossible.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const openPreview = (lessonId?: string) => {
+    if (!id) return;
+    const qs = lessonId ? `?courseId=${id}&lessonId=${lessonId}` : `?courseId=${id}`;
+    router.push(`/(app)/course/play${qs}`);
+  };
+
+  const removeChapter = (chapterId: string, chapterTitle: string) => {
+    if (!id) return;
+    Alert.alert("Supprimer le chapitre", `« ${chapterTitle} » sera retire du cours.`, [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          await deleteChapter(id, chapterId);
+          await refresh();
+        },
+      },
+    ]);
+  };
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
-        <View style={styles.center}>
-          <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.loadingBadge}>
-            <ActivityIndicator size="small" color={theme.color.textOnPrimary} />
-            <Text style={styles.loadingText}>Chargement…</Text>
-          </LinearGradient>
-        </View>
-      </SafeAreaView>
+      <View style={[styles.center, { backgroundColor: color.bg }]}>
+        <ActivityIndicator color={color.primary} />
+      </View>
     );
   }
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        {/* Header stable */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerIcon} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={20} color={theme.color.text} />
-          </TouchableOpacity>
+  if (missing) {
+    return (
+      <View style={[styles.center, { backgroundColor: color.bg, padding: space.lg }]}>
+        <EmptyState
+          tone="error"
+          title="Cours introuvable"
+          message="Ce cours a peut-etre ete supprime."
+          actionLabel="Revenir a mes cours"
+          onAction={() => router.replace("/(app)/(tabs)/courses")}
+        />
+      </View>
+    );
+  }
 
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.headerTitle} numberOfLines={1}>Éditer le cours</Text>
-            <Text style={styles.headerSub} numberOfLines={1}>
-              {(title?.trim() || "Sans titre")} • {(level?.trim() || "Niveau ?")} • {(subject?.trim() || "Matière ?")}
+  const view = presentStatus(status);
+  const note = rejectionNote(status, reviewNote);
+  const reviewAction = authorActionLabel(status);
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: color.bg }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View style={{ paddingTop: insets.top + space.md, gap: space.md }}>
+        <View style={[styles.head, { paddingHorizontal: space.lg, gap: space.md }]}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Revenir"
+          >
+            <Ionicons name="chevron-back" size={22} color={color.text} />
+          </Pressable>
+          <View style={styles.flex}>
+            <Text variant="bodyStrong" numberOfLines={1}>
+              {title.trim() || "Sans titre"}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {[gradeLabel || level, subjectLabel || subject].filter(Boolean).join(" · ") ||
+                "Fiche a completer"}
             </Text>
           </View>
-
-          <StatusPill status={status} />
+          <Badge tone={badgeTone(view.tone)}>{view.label}</Badge>
         </View>
 
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={{ padding: SP, paddingBottom: SP * 2 }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
-          <View style={styles.kpiRow}>
-            <KpiCard label="Chapitres" value={String(chapterCount)} icon="albums-outline" />
-            <KpiCard label="Complets" value={`${completion}%`} icon="checkmark-done-outline" />
-            <KpiCard label="Par langue" value={String(chapterWithLangCount)} icon="language-outline" />
-          </View>
+        <View style={{ paddingHorizontal: space.lg }}>
+          <Segmented
+            value={mode}
+            onChange={(k) => setMode(k as Mode)}
+            items={[
+              { key: "chapters", label: `Chapitres (${chapters.length})` },
+              { key: "meta", label: "Fiche" },
+            ]}
+          />
+        </View>
+      </View>
 
-          <View style={{ height: SP }} />
-          <CollapsibleGlassCard
-            title="Informations du cours"
-            subtitle="Titre, classe, matiere et publication"
-            icon="book-outline"
-            open={openMeta}
-            onToggle={() => setOpenMeta((v) => !v)}
-          >
-            <SoftInput
-              icon="book-outline"
-              placeholder="Titre du cours"
+      <ScrollView
+        contentContainerStyle={{
+          padding: space.lg,
+          paddingBottom: insets.bottom + space.xxl,
+          gap: space.lg,
+        }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {mode === "chapters" ? (
+          <>
+            {chapters.length ? (
+              <>
+                <Text variant="caption" tone="muted">
+                  {withVideo === chapters.length
+                    ? "Tous les chapitres ont une video."
+                    : `${withVideo} chapitre${withVideo > 1 ? "s" : ""} sur ${chapters.length} avec une video.`}
+                </Text>
+                <View style={{ gap: space.sm }}>
+                  {chapters.map((item, index) => (
+                    <ChapterEditRow
+                      key={item.id}
+                      index={index + 1}
+                      title={item.title || "Sans titre"}
+                      langs={langsOf(item)}
+                      hasVideo={hasAnySource(item)}
+                      onPreview={() => openPreview(item.id)}
+                      onDelete={() => removeChapter(item.id, item.title || "Sans titre")}
+                    />
+                  ))}
+                </View>
+              </>
+            ) : composing ? null : (
+              <EmptyState
+                icon="albums-outline"
+                title="Aucun chapitre"
+                message="Un cours se lit chapitre par chapitre. Ajoutez le premier, avec sa video."
+                actionLabel="Ajouter un chapitre"
+                onAction={() => setComposing(true)}
+              />
+            )}
+
+            {composing ? (
+              <View
+                style={[
+                  styles.composer,
+                  {
+                    backgroundColor: color.surface,
+                    borderColor: color.border,
+                    borderRadius: radius.lg,
+                    padding: space.lg,
+                    gap: space.lg,
+                  },
+                ]}
+              >
+                <View style={[styles.head, { gap: space.sm }]}>
+                  <Text variant="bodyStrong" style={styles.flex}>
+                    Nouveau chapitre
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      setComposing(false);
+                      setChapterError(null);
+                      setTitleError(null);
+                    }}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Fermer le formulaire"
+                  >
+                    <Ionicons name="close" size={20} color={color.textMuted} />
+                  </Pressable>
+                </View>
+
+                <Field
+                  label="Titre du chapitre"
+                  required
+                  placeholder="Additionner deux fractions"
+                  value={chTitle}
+                  onChangeText={(v) => {
+                    setChTitle(v);
+                    if (titleError) setTitleError(null);
+                  }}
+                  error={titleError}
+                  returnKeyType="next"
+                  onSubmitEditing={() => linkRef.current?.focus()}
+                />
+
+                <View style={{ gap: space.sm }}>
+                  <Field
+                    ref={linkRef}
+                    label="Video en francais"
+                    hint="Importez le fichier, ou collez un lien direct terminant par .mp4, .m3u8 ou .mpd."
+                    placeholder="https://..."
+                    value={chVideoUrl}
+                    onChangeText={(v) => {
+                      setChVideoUrl(v);
+                      if (chapterError) setChapterError(null);
+                    }}
+                    keyboardType="url"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    icon="link-outline"
+                  />
+                  {chVideoUrl.trim() &&
+                  /^https?:\/\//i.test(chVideoUrl.trim()) &&
+                  !isDirectMediaUrl(chVideoUrl.trim()) ? (
+                    <Text variant="caption" tone="warning">
+                      Ce lien ne ressemble pas a un flux direct : il s'ouvrira hors de
+                      l'application au lieu d'etre lu dans le lecteur.
+                    </Text>
+                  ) : null}
+                  <UploadRow
+                    label={chVideoUrl ? "Remplacer par un fichier" : "Importer un fichier"}
+                    busy={uploadingKey === "generic"}
+                    progress={uploadingKey === "generic" ? uploadProgress : null}
+                    onPress={() => pickVideoAndUpload("generic")}
+                  />
+                </View>
+
+                <Pressable
+                  onPress={() => setShowLangs((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: showLangs }}
+                  style={[styles.head, { gap: space.sm }]}
+                >
+                  <Ionicons
+                    name={showLangs ? "chevron-down" : "chevron-forward"}
+                    size={16}
+                    color={color.textMuted}
+                  />
+                  <Text variant="bodyStrong" style={styles.flex}>
+                    Versions en langue locale
+                  </Text>
+                  {countLangs(chVideoByLang) ? (
+                    <Badge tone="primary">{`${countLangs(chVideoByLang)} ajoutee${
+                      countLangs(chVideoByLang) > 1 ? "s" : ""
+                    }`}</Badge>
+                  ) : (
+                    <Text variant="caption" tone="faint">
+                      Facultatif
+                    </Text>
+                  )}
+                </Pressable>
+
+                {showLangs ? (
+                  <View style={{ gap: space.lg }}>
+                    {LANGS.map(({ key, label }) => (
+                      <View key={key} style={{ gap: space.sm }}>
+                        <Field
+                          label={label}
+                          placeholder="https://..."
+                          value={chVideoByLang[key] || ""}
+                          onChangeText={(v) => setChVideoByLang((p) => ({ ...p, [key]: v }))}
+                          keyboardType="url"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          icon="link-outline"
+                        />
+                        <UploadRow
+                          label={chVideoByLang[key] ? `Remplacer (${label})` : `Importer (${label})`}
+                          busy={uploadingKey === key}
+                          progress={uploadingKey === key ? uploadProgress : null}
+                          onPress={() => pickVideoAndUpload(key)}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {chapterError ? (
+                  <Text variant="caption" tone="danger">
+                    {chapterError}
+                  </Text>
+                ) : null}
+
+                <Button onPress={add} icon="add" loading={adding} disabled={!!uploadingKey} block>
+                  Ajouter le chapitre
+                </Button>
+              </View>
+            ) : chapters.length ? (
+              <Button onPress={() => setComposing(true)} icon="add" variant="secondary" block>
+                Ajouter un chapitre
+              </Button>
+            ) : null}
+
+            {chapters.length ? (
+              <Button onPress={() => openPreview()} icon="play-outline" variant="ghost" block>
+                Previsualiser le cours
+              </Button>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Field
+              label="Titre"
+              required
+              placeholder="Les fractions"
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(v) => {
+                setTitle(v);
+                if (metaError) setMetaError(null);
+              }}
               returnKeyType="done"
             />
+
             <SelectionSheetField
               label="Classe"
               icon="school-outline"
@@ -426,10 +621,12 @@ export default function EditCourse() {
               onChange={(label) => {
                 const match = gradeLevels.find((l) => l.label === label);
                 if (match) setGradeLevelId(match.id);
+                setMetaError(null);
               }}
               helperText="Le cours n'apparaitra qu'aux eleves de cette classe."
-              warningText={hasLegacyLevel ? `Classe non reconnue a reclasser : "${level}"` : undefined}
+              warningText={legacyLevel ? `Classe non reconnue a reclasser : « ${level} »` : undefined}
             />
+
             <SelectionSheetField
               label="Matiere"
               icon="albums-outline"
@@ -439,706 +636,238 @@ export default function EditCourse() {
               onChange={(label) => {
                 const match = subjects.find((x) => x.label === label);
                 if (match) setSubjectId(match.id);
+                setMetaError(null);
               }}
-              warningText={hasLegacySubject ? `Matiere non reconnue a reclasser : "${subject}"` : undefined}
+              warningText={
+                legacySubject ? `Matiere non reconnue a reclasser : « ${subject} »` : undefined
+              }
             />
 
-            <View style={styles.reviewBox}>
-              <Text style={styles.reviewHint}>{presentStatus(status).hint}</Text>
-              {rejectionNote(status, reviewNote) ? (
-                <Text style={styles.reviewNote}>{rejectionNote(status, reviewNote)}</Text>
-              ) : null}
-              {authorActionLabel(status) ? (
-                <TouchableOpacity
-                  onPress={onReviewAction}
-                  disabled={reviewBusy}
-                  style={[styles.reviewBtn, reviewBusy && { opacity: 0.6 }]}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="send-outline" size={16} color={theme.color.primary} />
-                  <Text style={styles.reviewBtnText}>
-                    {reviewBusy ? "Envoi..." : authorActionLabel(status)}
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            <View style={styles.row}>
-              <View style={styles.rowItem}>
-                <GradientButton onPress={save} leftIcon={<Ionicons name="save-outline" size={18} color={theme.color.textOnPrimary} />}>
-                  Sauvegarder
-                </GradientButton>
-              </View>
-            </View>
-            <View style={{ marginTop: SP }}>
-              <OutlineButton
-                onPress={() => openPreview()}
-                leftIcon={<Ionicons name="play-circle-outline" size={18} color={theme.color.textMuted} />}
-              >
-                Previsualiser le cours
-              </OutlineButton>
-            </View>
-          </CollapsibleGlassCard>
-
-          <View style={{ height: SP }} />
-          <CollapsibleGlassCard
-            title="Chapitres"
-            subtitle={`${chapterWithVideoCount}/${chapterCount} avec source video`}
-            icon="list-outline"
-            open={openChapters}
-            onToggle={() => setOpenChapters((v) => !v)}
-          >
-            <FlatList
-              data={chapters}
-              keyExtractor={(i) => i.id}
-              scrollEnabled={false}
-              renderItem={({ item, index }) => (
-                <View style={{ marginTop: index === 0 ? 0 : SP }}>
-                  <ChapterItem
-                    title={item.title}
-                    hasLang={!!(item.videoByLang?.fon || item.videoByLang?.adja || item.videoByLang?.yoruba || item.videoByLang?.dendi)}
-                    hasVideo={!!item.videoUrl}
-                    onPreview={() => openPreview(item.id)}
-                    onDelete={() => remove(item.id)}
-                  />
-                </View>
-              )}
-              ListEmptyComponent={<Text style={{ color: theme.color.textMuted, paddingTop: 2 }}>Aucun chapitre pour l'instant.</Text>}
-            />
-          </CollapsibleGlassCard>
-
-          <View style={{ height: SP }} />
-          <CollapsibleGlassCard
-            title="Ajouter un chapitre"
-            subtitle="Ajoutez une source video simple ou multilingue"
-            icon="add-circle-outline"
-            open={openAddChapter}
-            onToggle={() => setOpenAddChapter((v) => !v)}
-          >
-            <SoftInput
-              icon="create-outline"
-              placeholder="Titre du chapitre"
-              value={chTitle}
-              onChangeText={setChTitle}
-              returnKeyType="next"
-              onSubmitEditing={() => chVideoRef.current?.focus()}
-            />
-
-            <SoftInput
-              forwardRef={chVideoRef}
-              icon="link-outline"
-              placeholder="Lien cloud direct (mp4, m3u8, mpd) - optionnel"
-              value={chVideoUrl}
-              onChangeText={setChVideoUrl}
-              keyboardType="url"
-              textContentType="URL"
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
-            />
-
-            <OutlineButton
-              onPress={() => pickVideoAndUpload("generic")}
-              disabled={uploadingKey === "generic"}
-              leftIcon={<Ionicons name="cloud-upload" size={18} color={theme.color.textMuted} />}
-            >
-              {uploadingKey === "generic" ? "Upload en cours..." : chVideoUrl ? "Remplacer la video (upload)" : "Uploader une video depuis l'appareil"}
-            </OutlineButton>
-            {uploadingKey === "generic" && uploadProgress != null ? (
-              <ProgressLine label="Upload video" value={uploadProgress} />
+            {metaError ? (
+              <Text variant="caption" tone="danger">
+                {metaError}
+              </Text>
             ) : null}
 
-            <Text style={styles.langLegend}>Videos par langue (optionnel)</Text>
-            <View style={styles.langGrid}>
-              {LANGS.map(({ key, label }) => {
-                const val = chVideoByLang[key] || "";
-                const hasValue = !!val;
-                return (
-                  <View key={key} style={styles.langCol}>
-                    <LangChip label={label} active={hasValue} />
-                    <SoftInput
-                      compact
-                      placeholder={`Lien cloud ${label} (optionnel)`}
-                      value={val}
-                      onChangeText={(t) => setChVideoByLang((p) => ({ ...p, [key]: t }))}
-                      keyboardType="url"
-                      textContentType="URL"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      icon="link-outline"
-                    />
-                    <OutlineButton
-                      onPress={() => pickVideoAndUpload(key)}
-                      disabled={uploadingKey === key}
-                      leftIcon={<Ionicons name="cloud-upload" size={18} color={theme.color.textMuted} />}
-                    >
-                      {uploadingKey === key ? `Upload ${label}...` : hasValue ? `Remplacer (${label})` : `Importer (${label})`}
-                    </OutlineButton>
-                    {uploadingKey === key && uploadProgress != null ? (
-                      <ProgressLine label={`Upload ${label}`} value={uploadProgress} />
-                    ) : null}
-                  </View>
-                );
-              })}
+            <View style={styles.saveRow}>
+              <Button onPress={save} icon="save-outline" loading={saving} style={styles.flex}>
+                Enregistrer
+              </Button>
+              {savedAt ? (
+                <Text variant="caption" tone="success" style={{ marginLeft: space.md }}>
+                  Enregistre
+                </Text>
+              ) : null}
             </View>
 
-            <GradientButton onPress={add} disabled={!!uploadingKey} leftIcon={<Ionicons name="add-circle" size={18} color={theme.color.textOnPrimary} />}>
-              Ajouter le chapitre
-            </GradientButton>
-          </CollapsibleGlassCard>
+            {/* Relecture */}
+            <View
+              style={[
+                styles.review,
+                {
+                  backgroundColor: color.surfaceSunk,
+                  borderColor: note ? color.danger : color.border,
+                  borderRadius: radius.lg,
+                  padding: space.lg,
+                  gap: space.sm,
+                },
+              ]}
+            >
+              <Text variant="bodyStrong">Publication</Text>
+              <Text variant="caption" tone="muted">
+                {view.hint}
+              </Text>
+              {note ? (
+                <Text variant="caption" tone="danger">
+                  {note}
+                </Text>
+              ) : null}
+              {reviewAction ? (
+                <Button
+                  onPress={onReviewAction}
+                  icon={canSubmit(status) ? "send-outline" : "arrow-undo-outline"}
+                  variant="secondary"
+                  loading={reviewBusy}
+                  block
+                >
+                  {reviewAction}
+                </Button>
+              ) : null}
+            </View>
 
-          <View style={{ height: SP }} />
-          <CollapsibleGlassCard
-            title="Zone sensible"
-            subtitle="Action irreversible"
-            icon="warning-outline"
-            open={openDanger}
-            onToggle={() => setOpenDanger((v) => !v)}
-            danger
-          >
-            <DangerButton onPress={onDelete} leftIcon={<Ionicons name="trash-outline" size={18} color={theme.color.textOnPrimary} />}>
+            <Button onPress={onDelete} icon="trash-outline" variant="danger" block>
               Supprimer le cours
-            </DangerButton>
-          </CollapsibleGlassCard>
-
-          <View style={{ height: SP }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            </Button>
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-/* -------------------- UI Building Blocks (stables) -------------------- */
+/* --- Fragments propres a cet ecran --- */
 
-function GlassCard({ children }: { children: React.ReactNode }) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.card}>
-      {children}
-    </View>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.kpiCard}>
-      <View style={styles.kpiIcon}>
-        <Ionicons name={icon} size={15} color={theme.color.primary} />
-      </View>
-      <Text style={styles.kpiValue}>{value}</Text>
-      <Text style={styles.kpiLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function CollapsibleGlassCard({
+function ChapterEditRow({
+  index,
   title,
-  subtitle,
-  icon,
-  open,
-  onToggle,
-  danger,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  open: boolean;
-  onToggle: () => void;
-  danger?: boolean;
-  children: React.ReactNode;
-}) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <GlassCard>
-      <Pressable
-        onPress={onToggle}
-        style={styles.sectionHead}
-        accessibilityRole="button"
-        accessibilityLabel={title}
-        accessibilityState={{ expanded: open }}
-      >
-        <View style={[styles.sectionIcon, danger && styles.sectionIconDanger]}>
-          <Ionicons name={icon} size={16} color={danger ? theme.color.danger : theme.color.primary} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.sectionTitle} numberOfLines={1}>{title}</Text>
-          {subtitle ? <Text style={styles.sectionSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
-        </View>
-        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.color.textMuted} />
-      </Pressable>
-
-      {open ? <View style={styles.sectionBody}>{children}</View> : null}
-    </GlassCard>
-  );
-}
-
-type SoftInputProps = React.ComponentProps<typeof TextInput> & {
-  icon?: keyof typeof Ionicons.glyphMap;
-  compact?: boolean;
-  forwardRef?: React.Ref<TextInput>;
-};
-const SoftInput = React.forwardRef<TextInput, SoftInputProps>(function SoftInputBase(
-  { icon = "create-outline", compact, forwardRef, style, ...rest },
-  _ref
-) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <View style={[styles.inputWrap, compact && { paddingVertical: 8 }]}>
-      <View style={styles.inputIcon}>
-        <Ionicons name={icon} size={18} color={theme.color.textFaint} />
-      </View>
-      <TextInput
-        ref={forwardRef as any}
-        placeholderTextColor={theme.color.textFaint}
-        style={[styles.input, compact && { paddingVertical: 8 }, style]}
-        {...rest}
-      />
-    </View>
-  );
-});
-
-function GradientButton({
-  children,
-  leftIcon,
-  onPress,
-  disabled,
-}: {
-  children: React.ReactNode;
-  leftIcon?: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-}) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.85} style={{ opacity: disabled ? 0.6 : 1 }}>
-      <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtn}>
-        {leftIcon ? <View style={{ marginRight: 8 }}>{leftIcon}</View> : null}
-        <Text style={styles.primaryBtnText} numberOfLines={1}> {children} </Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
-function OutlineButton({
-  children,
-  leftIcon,
-  onPress,
-  disabled,
-  active,
-}: {
-  children: React.ReactNode;
-  leftIcon?: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-  active?: boolean;
-}) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.85}
-      style={[styles.secondaryBtn, active && { borderColor: theme.color.success }, disabled && { opacity: 0.6 }]}
-    >
-      {leftIcon ? <View style={{ marginRight: 8 }}>{leftIcon}</View> : null}
-      <Text style={[styles.secondaryBtnText, active && { color: theme.color.success }]} numberOfLines={1}>{children}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function DangerButton({
-  children,
-  leftIcon,
-  onPress,
-}: {
-  children: React.ReactNode;
-  leftIcon?: React.ReactNode;
-  onPress?: () => void;
-}) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.dangerBtn}>
-      {leftIcon ? <View style={{ marginRight: 8 }}>{leftIcon}</View> : null}
-      <Text style={styles.dangerBtnText} numberOfLines={1}>{children}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function StatusPill({ status }: { status: ContentStatus }) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const view = presentStatus(status);
-  const tone = statusTone(theme, view.tone);
-  return (
-    <View style={[styles.publishPill, { borderColor: tone }]}>
-      <Ionicons
-        name={status === "published" ? "checkmark-circle" : "ellipse-outline"}
-        size={16}
-        color={tone}
-      />
-      <Text style={[styles.publishPillText, { color: tone }]} numberOfLines={1}>
-        {view.label}
-      </Text>
-    </View>
-  );
-}
-
-function LangChip({ label, active }: { label: string; active?: boolean }) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  return (
-    <View style={[styles.langChip, active && { borderColor: theme.color.primary }]}>
-      <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.langDot} />
-      <Text style={styles.langChipText} numberOfLines={1}>{label}</Text>
-      {active && <View style={styles.langBadge}><Text style={styles.langBadgeText}>?</Text></View>}
-    </View>
-  );
-}
-
-function ChapterItem({
-  title,
-  hasLang,
+  langs,
   hasVideo,
   onPreview,
   onDelete,
 }: {
+  index: number;
   title: string;
-  hasLang: boolean;
+  langs: string[];
   hasVideo: boolean;
-  onPreview?: () => void;
+  onPreview: () => void;
   onDelete: () => void;
 }) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const statusText = hasLang ? "Sources par langue présentes" : hasVideo ? "Vidéo liée" : "Aucune vidéo";
-  const statusTint = chapterTone(theme, hasLang, hasVideo);
-  const canPreview = hasLang || hasVideo;
-
+  const { color, space, radius } = useTheme();
   return (
-    <View style={styles.chapterItem}>
-      <LinearGradient colors={brandGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.chapterRing} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.chapterTitle} numberOfLines={1}>{title}</Text>
-        <Text style={[styles.chapterSub, { color: statusTint }]} numberOfLines={1}>{statusText}</Text>
+    <View
+      style={[
+        styles.row,
+        {
+          backgroundColor: color.surface,
+          borderColor: color.border,
+          borderRadius: radius.lg,
+          padding: space.md,
+          gap: space.md,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.rank,
+          { backgroundColor: color.surfaceSunk, borderRadius: radius.sm },
+        ]}
+      >
+        <Text variant="captionStrong" tone="muted">
+          {String(index).padStart(2, "0")}
+        </Text>
       </View>
-      <View style={styles.chapterActions}>
-        <TouchableOpacity
-          onPress={onPreview}
-          style={[styles.previewBtn, !canPreview && styles.previewBtnDisabled]}
-          activeOpacity={0.9}
-          disabled={!canPreview}
+
+      <View style={styles.flex}>
+        <Text variant="bodyStrong" numberOfLines={2}>
+          {title}
+        </Text>
+        {hasVideo ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {langs.length ? `Francais + ${langs.join(", ")}` : "Francais"}
+          </Text>
+        ) : (
+          <Text variant="caption" tone="warning">
+            Aucune video
+          </Text>
+        )}
+      </View>
+
+      <Pressable
+        onPress={onPreview}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={`Previsualiser ${title}`}
+        style={{ padding: space.xs }}
+      >
+        <Ionicons name="play-outline" size={19} color={color.textMuted} />
+      </Pressable>
+      <Pressable
+        onPress={onDelete}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={`Supprimer ${title}`}
+        style={{ padding: space.xs }}
+      >
+        <Ionicons name="trash-outline" size={18} color={color.danger} />
+      </Pressable>
+    </View>
+  );
+}
+
+function UploadRow({
+  label,
+  busy,
+  progress,
+  onPress,
+}: {
+  label: string;
+  busy: boolean;
+  progress: number | null;
+  onPress: () => void;
+}) {
+  const { color, space, radius } = useTheme();
+  return (
+    <View style={{ gap: space.xs }}>
+      <Button
+        onPress={onPress}
+        icon="cloud-upload-outline"
+        variant="ghost"
+        size="sm"
+        disabled={busy}
+        block
+      >
+        {busy ? "Import en cours..." : label}
+      </Button>
+      {busy && progress != null ? (
+        <View
+          style={[
+            styles.track,
+            { backgroundColor: color.surfaceSunk, borderRadius: radius.pill },
+          ]}
         >
-          <Ionicons name="play" size={16} color={theme.color.textOnPrimary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onDelete} style={styles.trash} activeOpacity={0.9}>
-          <Ionicons name="trash-outline" size={18} color={theme.color.textOnPrimary} />
-        </TouchableOpacity>
-      </View>
+          <View
+            style={[
+              styles.fill,
+              {
+                width: `${progress}%`,
+                backgroundColor: color.primary,
+                borderRadius: radius.pill,
+              },
+            ]}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-function ProgressLine({ label, value }: { label: string; value: number }) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const pct = Math.max(0, Math.min(100, value || 0));
-  return (
-    <View style={styles.progressWrap} accessibilityRole="progressbar" accessibilityValue={{ now: pct, min: 0, max: 100 }}>
-      <Text style={styles.progressLabel}>{label} ({pct}%)</Text>
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${pct}%` }]} />
-      </View>
-    </View>
-  );
+/* --- Lecture des chapitres --- */
+
+function hasAnySource(chapter: any): boolean {
+  if (chapter?.videoUrl && String(chapter.videoUrl).trim()) return true;
+  return Object.values(chapter?.videoByLang || {}).some((v) => !!(v && String(v).trim()));
 }
 
-/* --------------------------------- Styles -------------------------------- */
+function langsOf(chapter: any): string[] {
+  return LANGS.filter(({ key }) => {
+    const v = chapter?.videoByLang?.[key];
+    return !!(v && String(v).trim());
+  }).map(({ label }) => label);
+}
 
-const makeStyles = (t: Theme) =>
-  StyleSheet.create({
-  reviewBox: {
-    marginTop: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surfaceSunk,
-    padding: 12,
-    gap: 8,
-  },
-  reviewHint: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, lineHeight: 17 },
-  reviewNote: {
-    color: t.color.danger,
-    fontFamily: t.type.bodyStrong.fontFamily,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  reviewBtn: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: t.color.borderStrong,
-    backgroundColor: t.color.primarySoft,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  reviewBtnText: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+function countLangs(byLang: VideoByLang): number {
+  return Object.values(byLang).filter((v) => !!(v && String(v).trim())).length;
+}
+
+function guessContentType(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
+  if (lower.endsWith(".mpd")) return "application/dash+xml";
+  if (lower.endsWith(".mov")) return "video/quicktime";
+  if (lower.endsWith(".webm")) return "video/webm";
+  if (lower.endsWith(".mkv")) return "video/x-matroska";
+  return "video/mp4";
+}
+
+const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-
-  header: {
-    paddingHorizontal: SP,
-    paddingVertical: SP - 2,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: t.color.border,
-    backgroundColor: t.color.bg,
-    minHeight: 56,
-  },
-  headerIcon: {
-    height: 36,
-    width: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: t.color.surface,
-    marginRight: SP,
-  },
-  headerTitle: { color: t.color.text, fontSize: 18, fontFamily: t.type.heading.fontFamily, lineHeight: 22 },
-  headerSub: { color: t.color.textMuted, fontSize: 12, marginTop: 2, lineHeight: 16, fontFamily: t.type.body.fontFamily },
-
-  loadingBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  loadingText: { fontFamily: t.type.bodyStrong.fontFamily, color: t.color.textOnPrimary, marginLeft: 8 },
-
-  card: {
-    backgroundColor: t.color.surface,
-    borderRadius: RADIUS,
-    padding: SP,
-    borderWidth: 1,
-    borderColor: t.color.border,
-  },
-  kpiRow: { flexDirection: "row", gap: 8, marginBottom: 2 },
-  kpiCard: {
-    flex: 1,
-    minHeight: 78,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    justifyContent: "center",
-  },
-  kpiIcon: {
-    alignSelf: "flex-start",
-    width: 24,
-    height: 24,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: t.color.primarySoft,
-    marginBottom: 6,
-  },
-  kpiValue: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 16, lineHeight: 20 },
-  kpiLabel: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, marginTop: 2 },
-
-  sectionHead: { flexDirection: "row", alignItems: "center", gap: 10 },
-  sectionIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionIconDanger: { backgroundColor: t.color.dangerSoft, borderColor: t.color.danger },
-  sectionTitle: { color: t.color.text, fontSize: 15, fontFamily: t.type.heading.fontFamily, lineHeight: 20 },
-  sectionSubtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily, lineHeight: 16 },
-  sectionBody: { marginTop: SP - 2 },
-
-  inputWrap: {
-    backgroundColor: t.color.surfaceSunk,
-    borderRadius: RADIUS,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: SP,
-  },
-  inputIcon: {
-    height: 30,
-    width: 30,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-    backgroundColor: t.color.primarySoft,
-  },
-  input: {
-    flex: 1,
-    color: t.color.text,
-    paddingVertical: 10,
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: t.type.body.fontFamily,
-  },
-
-  row: { flexDirection: "row", alignItems: "stretch", marginTop: SP },
-  rowItem: { flex: 1 },
-
-  primaryBtn: {
-    borderRadius: RADIUS,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    minHeight: BTN_H,
-  },
-  primaryBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
-
-  secondaryBtn: {
-    backgroundColor: t.color.surface,
-    borderRadius: RADIUS,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: t.color.border,
-    minHeight: BTN_H,
-  },
-  secondaryBtnText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
-
-  publishPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: t.color.surface,
-    marginLeft: SP,
-  },
-  publishPillText: { color: t.color.text, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
-
-  langLegend: { color: t.color.textMuted, fontSize: 12, marginTop: SP, marginBottom: 6, fontFamily: t.type.body.fontFamily },
-  langGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 2,
-    marginRight: -SP,
-  },
-  langCol: {
-    flexBasis: "48%",
-    minWidth: 140,
-    marginRight: SP,
-    marginBottom: SP,
-  },
-  langChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    marginBottom: 8,
-  },
-  langDot: { width: 10, height: 10, borderRadius: 99, marginRight: 8 },
-  langChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  langBadge: {
-    marginLeft: 6,
-    height: 14,
-    minWidth: 14,
-    paddingHorizontal: 4,
-    borderRadius: 999,
-    backgroundColor: t.color.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  langBadgeText: { color: t.color.primary, fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily, lineHeight: 12 },
-
-  progressWrap: { marginTop: 6, gap: 4 },
-  progressLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-  progressBar: {
-    height: 8,
-    borderRadius: 8,
-    backgroundColor: t.color.surfaceSunk,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: t.color.border,
-  },
-  progressFill: { height: "100%", backgroundColor: t.color.primary },
-
-  chapterItem: {
-    backgroundColor: t.color.surface,
-    borderColor: t.color.border,
-    borderWidth: 1,
-    borderRadius: RADIUS,
-    padding: SP,
-    flexDirection: "row",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  chapterRing: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-  },
-  chapterTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, lineHeight: 20 },
-  chapterSub: { color: t.color.textMuted, marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: t.type.body.fontFamily },
-  chapterActions: { flexDirection: "row", alignItems: "center", marginLeft: SP },
-  previewBtn: {
-    backgroundColor: t.color.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  previewBtnDisabled: { backgroundColor: t.color.textFaint, opacity: 0.6 },
-  trash: { backgroundColor: t.color.danger, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12 },
-
-  dangerBtn: {
-    backgroundColor: t.color.danger,
-    borderRadius: RADIUS,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: t.color.danger,
-    minHeight: BTN_H,
-  },
-  dangerBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
+  flex: { flex: 1 },
+  head: { flexDirection: "row", alignItems: "center" },
+  composer: { borderWidth: 1 },
+  row: { flexDirection: "row", alignItems: "center", borderWidth: 1 },
+  rank: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
+  review: { borderWidth: 1 },
+  saveRow: { flexDirection: "row", alignItems: "center" },
+  track: { height: 4, overflow: "hidden" },
+  fill: { height: 4 },
 });
-
-
-

@@ -1,33 +1,39 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useThemedStyles } from "@/theme/useStyles";
-import type { Theme } from "@/theme/ThemeProvider";
+import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
+import Text from "@/components/ui/Text";
+import Button from "@/components/ui/Button";
+import Field from "@/components/ui/Field";
 import { createCourse } from "@/storage/courses";
 import SelectionSheetField from "@/components/SelectionSheetField";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { DEFAULT_CONTENT_COUNTRY } from "@/storage/referentials";
 
-/** Degrade d'accent derive du theme. */
-const accentGradient = (t: Theme): readonly [string, string] => [
-  t.color.primary,
-  t.color.primaryPressed,
-];
+type Errors = { title?: string; grade?: string; subject?: string };
 
+/**
+ * Creation d'un cours.
+ *
+ * L'ecran ne demande que ce qui identifie le cours dans le programme. Tout le
+ * reste -- chapitres, videos, relecture -- appartient a l'editeur.
+ */
 export default function NewCourse() {
-  const { styles, theme } = useThemedStyles(makeStyles);
+  const { color, space } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
   const [title, setTitle] = useState("");
   const [gradeLevelId, setGradeLevelId] = useState("");
   const [subjectId, setSubjectId] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
 
   // Un professeur publie dans le programme de son pays.
   const countryCode = user?.countryCode || DEFAULT_CONTENT_COUNTRY;
@@ -51,21 +57,20 @@ export default function NewCourse() {
   }, [gradeLevels, subjects, gradeLevelId, subjectId]);
 
   const save = async () => {
-    if (!user) return;
-    if (!title.trim()) {
-      Alert.alert("Champs requis", "Merci de completer tous les champs.");
-      return;
-    }
-    if (!gradeLevelId) {
-      Alert.alert("Classe requise", "Veuillez selectionner une classe.");
-      return;
-    }
-    if (!subjectId) {
-      Alert.alert("Matiere requise", "Veuillez selectionner une matiere.");
-      return;
-    }
+    if (!user || saving) return;
+
+    // Ce qui manque s'affiche sur le champ concerne : une alerte fait sortir de
+    // l'ecran pour dire ce qui s'y trouve deja.
+    const next: Errors = {};
+    if (!title.trim()) next.title = "Donnez un titre au cours.";
+    if (!gradeLevelId) next.grade = "Choisissez la classe visee.";
+    if (!subjectId) next.subject = "Choisissez la matiere.";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setFailure(null);
+    setSaving(true);
     try {
-      setLoading(true);
       const created = await createCourse({
         title: title.trim(),
         // level et subject sont derives du referentiel par un trigger : on les
@@ -80,36 +85,53 @@ export default function NewCourse() {
         ownerId: user.id,
         ownerName: user.name,
       });
-      Alert.alert("Enregistré avec succès", "Passez en edition pour completer.", [
-        { text: "OK", onPress: () => router.replace(`/(app)/course/edit/${created.id}`) },
-      ]);
+      router.replace(`/(app)/course/edit/${created.id}`);
     } catch (e: any) {
-      Alert.alert("Erreur", e?.message || "Creation impossible.");
-    } finally {
-      setLoading(false);
+      setFailure(e?.message || "Creation impossible.");
+      setSaving(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: color.bg }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View style={[styles.head, { paddingTop: insets.top + space.md, paddingHorizontal: space.lg, gap: space.sm }]}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Revenir"
+        >
+          <Ionicons name="chevron-back" size={22} color={color.text} />
+        </Pressable>
+        <Text variant="heading">Nouveau cours</Text>
+      </View>
+
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          padding: space.lg,
+          paddingBottom: insets.bottom + space.xxl,
+          gap: space.lg,
+        }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <Text style={styles.title}>Creer un cours</Text>
-        <Text style={styles.subtitle}>Les champs ci-dessous definissent la fiche principale.</Text>
+        <Field
+          label="Titre"
+          required
+          placeholder="Les fractions"
+          value={title}
+          onChangeText={(v) => {
+            setTitle(v);
+            if (errors.title) setErrors((e) => ({ ...e, title: undefined }));
+          }}
+          error={errors.title}
+          returnKeyType="done"
+        />
 
-        <View style={styles.card}>
-          <Text style={styles.label}>Titre</Text>
-          <TextInput
-            placeholder="Ex: Fractions pour la 3e"
-            placeholderTextColor={theme.color.textMuted}
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-          />
-
+        <View>
           <SelectionSheetField
             label="Classe"
             icon="school-outline"
@@ -119,10 +141,18 @@ export default function NewCourse() {
             onChange={(label) => {
               const match = gradeLevels.find((l) => l.label === label);
               if (match) setGradeLevelId(match.id);
+              setErrors((e) => ({ ...e, grade: undefined }));
             }}
             helperText="Le cours n'apparaitra qu'aux eleves de cette classe."
           />
+          {errors.grade ? (
+            <Text variant="caption" tone="danger">
+              {errors.grade}
+            </Text>
+          ) : null}
+        </View>
 
+        <View>
           <SelectionSheetField
             label="Matiere"
             icon="albums-outline"
@@ -132,59 +162,34 @@ export default function NewCourse() {
             onChange={(label) => {
               const match = subjects.find((x) => x.label === label);
               if (match) setSubjectId(match.id);
+              setErrors((e) => ({ ...e, subject: undefined }));
             }}
           />
-
-          {optionsError ? <Text style={styles.errorText}>{optionsError}</Text> : null}
+          {errors.subject ? (
+            <Text variant="caption" tone="danger">
+              {errors.subject}
+            </Text>
+          ) : null}
         </View>
 
-        <Pressable style={[styles.primary, loading && { opacity: 0.7 }]} onPress={save} disabled={loading}>
-          <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryGrad}>
-            <Ionicons name="save-outline" size={18} color={theme.color.textOnPrimary} />
-            <Text style={styles.primaryText}>{loading ? "Creation..." : "Enregistrer et continuer"}</Text>
-          </LinearGradient>
-        </Pressable>
+        {optionsError || failure ? (
+          <Text variant="caption" tone="danger">
+            {failure || optionsError}
+          </Text>
+        ) : null}
+
+        <Button onPress={save} icon="arrow-forward" loading={saving} block>
+          {saving ? "Creation..." : "Creer et ajouter les chapitres"}
+        </Button>
+
+        <Text variant="caption" tone="muted">
+          Le cours reste un brouillon tant que vous ne l'envoyez pas en relecture.
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const makeStyles = (t: Theme) =>
-  StyleSheet.create({
-  container: { flex: 1, backgroundColor: t.color.bg },
-  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
-  subtitle: { color: t.color.textMuted, marginTop: 6, fontFamily: t.type.body.fontFamily },
-
-  card: {
-    marginTop: 16,
-    backgroundColor: t.color.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    padding: 14,
-    gap: 10,
-  },
-  label: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  input: {
-    backgroundColor: t.color.surfaceSunk,
-    color: t.color.text,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    fontFamily: t.type.body.fontFamily,
-  },
-
-  primary: { marginTop: 16, borderRadius: 14, overflow: "hidden" },
-  primaryGrad: {
-    padding: 14,
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
-  },
-  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
-  errorText: { color: t.color.danger, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12, marginTop: 4 },
+const styles = StyleSheet.create({
+  head: { flexDirection: "row", alignItems: "center" },
 });
-
-
