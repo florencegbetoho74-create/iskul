@@ -1,802 +1,299 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Modal,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useThemedStyles } from "@/theme/useStyles";
-import { EmptyState as UiEmptyState } from "@/components/ui";
-import type { Theme } from "@/theme/ThemeProvider";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
+import Text from "@/components/ui/Text";
+import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
+import CourseRow from "@/components/catalog/CourseRow";
+import FilterChips, { type FilterOption } from "@/components/catalog/FilterChips";
+import { watchByOwner, watchCoursesScoped, watchCoursesOrdered } from "@/storage/courses";
+import { listRecentProgress } from "@/storage/progress";
 import type { Course } from "@/types/course";
-import { watchCoursesOrdered, watchCoursesScoped } from "@/storage/courses";
-import CourseCard from "@/components/CourseCard";
-import Segmented from "@/components/Segmented";
-import { GRADE_LEVELS, normalizeCourseLevel } from "@/constants/gradeLevels";
-import { COURSE_SUBJECTS, canonicalizeCourseSubject } from "@/constants/courseSubjects";
 
-/** Degrades derives du theme : figes, ils ignoraient le mode sombre. */
-const backgroundGradient = (t: Theme): readonly [string, string, string] =>
-  t.name === "dark"
-    ? [t.color.bg, t.color.surfaceSunk, t.color.bg]
-    : [t.color.bg, t.color.primarySoft, t.color.bg];
+type Scope = "mine" | "class" | "all";
 
-const accentGradient = (t: Theme): readonly [string, string] => [
-  t.color.primary,
-  t.color.primaryPressed,
-];
-
-type SegmentKey = "all" | "published" | "mine" | "myclass";
-
-type SegmentItem = { key: SegmentKey; label: string };
-type LevelOption = { key: string; label: string; count: number };
-type SubjectGroup = { subject: string; courses: Course[]; chapters: number };
-type LevelGroup = { level: string; subjects: SubjectGroup[]; courses: number; chapters: number };
-
+/**
+ * Catalogue des cours.
+ *
+ * L'ecran precedent empilait trois niveaux de repliement -- niveau, puis
+ * matiere, puis cours -- soit trois occasions de se perdre avant d'atteindre
+ * une lecon. Il devient une liste plate, filtree par matiere et cherchable.
+ */
 export default function Courses() {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const router = useRouter();
+  const { color, space, radius } = useTheme();
   const { user } = useAuth();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const isTeacher = String((user as any)?.role) === "teacher";
 
-  const [all, setAll] = useState<Course[]>([]);
-  const [q, setQ] = useState("");
-  const [segment, setSegment] = useState<SegmentKey>(isTeacher ? "mine" : "myclass");
-  const [levelFilter, setLevelFilter] = useState<string>("all");
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [openLevels, setOpenLevels] = useState<Record<string, boolean>>({});
-  const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
-  const [openCourses, setOpenCourses] = useState<Record<string, boolean>>({});
-
-  // Un eleve ne charge que le perimetre de sa classe : le filtrage se fait en
-  // base, pas apres avoir telecharge les cours de toutes les classes.
+  const isTeacher = String(user?.role || "") === "teacher";
   const gradeLevelId = user?.gradeLevelId ?? null;
   const countryCode = user?.countryCode ?? null;
-  const scopedToClass = !isTeacher && segment === "myclass" && !!gradeLevelId;
+
+  const [scope, setScope] = useState<Scope>(isTeacher ? "mine" : gradeLevelId ? "class" : "all");
+  const [subject, setSubject] = useState("all");
+  const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<Course[]>([]);
+  const [progress, setProgress] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (scopedToClass) {
-      const unsub = watchCoursesScoped(
-        { countryCode, gradeLevelId, publishedOnly: true, limit: 60 },
-        setAll
-      );
-      return () => unsub();
-    }
-    const unsub = watchCoursesOrdered(setAll, 120);
-    return () => unsub();
-  }, [scopedToClass, countryCode, gradeLevelId]);
+    setLoading(true);
+    const receive = (next: Course[]) => {
+      setRows(next || []);
+      setLoading(false);
+    };
 
-  const segments = useMemo<SegmentItem[]>(() => {
+    if (isTeacher && scope === "mine" && user?.id) {
+      return watchByOwner(user.id, receive);
+    }
+    if (scope === "class" && gradeLevelId) {
+      return watchCoursesScoped(
+        { countryCode, gradeLevelId, publishedOnly: true, limit: 100 },
+        receive
+      );
+    }
+    return watchCoursesOrdered(receive, 120);
+  }, [isTeacher, scope, user?.id, gradeLevelId, countryCode]);
+
+  // L'avancement transforme une liste de titres en liste de reprises possibles.
+  useEffect(() => {
+    if (isTeacher || !user?.id) return;
+    let active = true;
+    listRecentProgress(user.id, 60)
+      .then((items) => {
+        if (!active) return;
+        const byCourse: Record<string, { sum: number; count: number }> = {};
+        for (const row of items) {
+          const duration = Math.max(0, Number(row.durationSec || 0));
+          const watched = Math.max(0, Number(row.watchedSec || 0));
+          const ratio = duration > 0 ? Math.min(1, watched / duration) : 0;
+          const acc = byCourse[row.courseId] || { sum: 0, count: 0 };
+          byCourse[row.courseId] = { sum: acc.sum + ratio, count: acc.count + 1 };
+        }
+        setProgress(
+          Object.fromEntries(
+            Object.entries(byCourse).map(([id, v]) => [id, v.count ? v.sum / v.count : 0])
+          )
+        );
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [isTeacher, user?.id, rows.length]);
+
+  const scopeOptions = useMemo<FilterOption[]>(() => {
     if (isTeacher) {
       return [
-        { key: "all", label: "Tous" },
-        { key: "published", label: "Publies" },
         { key: "mine", label: "Mes cours" },
+        { key: "all", label: "Tout le catalogue" },
       ];
     }
-    // Sans classe renseignee, proposer "Ma classe" n'aurait aucun sens.
-    if (!gradeLevelId) return [{ key: "all", label: "Tous" }];
+    if (!gradeLevelId) return [{ key: "all", label: "Tous les cours" }];
     return [
-      { key: "myclass", label: "Ma classe" },
+      { key: "class", label: `Ma classe` },
       { key: "all", label: "Toutes les classes" },
     ];
   }, [isTeacher, gradeLevelId]);
 
-  // Un eleve sans classe renseignee ne doit pas rester bloque sur un segment vide.
-  useEffect(() => {
-    if (isTeacher) return;
-    if (segment === "myclass" && !gradeLevelId) setSegment("all");
-  }, [isTeacher, segment, gradeLevelId]);
-
-  const scoped = useMemo(() => {
-    let base: Course[] = [];
-    if (!isTeacher) {
-      base = all.filter((c) => c.published);
-    } else {
-      switch (segment) {
-        case "mine":
-          base = all.filter((c) => c.ownerId === user?.id);
-          break;
-        case "published":
-          base = all.filter((c) => c.published);
-          break;
-        default:
-          base = all;
-      }
+  // Les matieres proposees sont celles reellement presentes dans le resultat :
+  // un filtre qui ne renvoie rien n'a pas a etre offert.
+  const subjectOptions = useMemo<FilterOption[]>(() => {
+    const counts = new Map<string, number>();
+    for (const c of rows) {
+      const key = c.subject?.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + 1);
     }
-    return base;
-  }, [all, isTeacher, segment, user?.id]);
-
-  const levelOptions = useMemo<LevelOption[]>(() => {
-    const map = new Map<string, number>();
-    for (const c of scoped) {
-      const k = normalizeCourseLevel(c.level);
-      map.set(k, (map.get(k) || 0) + 1);
-    }
-    const list = Array.from(map.entries())
+    const list = Array.from(counts.entries())
       .sort((a, b) => a[0].localeCompare(b[0], "fr", { sensitivity: "base" }))
       .map(([label, count]) => ({ key: label, label, count }));
-    return [{ key: "all", label: "Toutes les classes", count: scoped.length }, ...list];
-  }, [scoped]);
+    return [{ key: "all", label: "Toutes", count: rows.length }, ...list];
+  }, [rows]);
 
   useEffect(() => {
-    if (levelOptions.some((it) => it.key === levelFilter)) return;
-    setLevelFilter("all");
-  }, [levelOptions, levelFilter]);
+    if (subjectOptions.some((o) => o.key === subject)) return;
+    setSubject("all");
+  }, [subjectOptions, subject]);
 
   const filtered = useMemo(() => {
-    let base = scoped;
-    if (levelFilter !== "all") {
-      base = base.filter((c) => normalizeCourseLevel(c.level) === levelFilter);
-    }
-    if (!q.trim()) return base;
-    const s = q.trim().toLowerCase();
-    return base.filter(
-      (c) =>
-        c.title?.toLowerCase().includes(s) ||
-        c.subject?.toLowerCase().includes(s) ||
-        c.level?.toLowerCase().includes(s) ||
-        c.ownerName?.toLowerCase().includes(s)
-    );
-  }, [scoped, levelFilter, q]);
+    let base = rows;
+    if (subject !== "all") base = base.filter((c) => c.subject === subject);
 
-  const levelRank = useMemo(() => {
-    const map = new Map<string, number>();
-    GRADE_LEVELS.forEach((lvl, i) => map.set(lvl, i));
-    return map;
-  }, []);
-
-  const subjectRank = useMemo(() => {
-    const map = new Map<string, number>();
-    COURSE_SUBJECTS.forEach((subj, i) => map.set(subj, i));
-    return map;
-  }, []);
-
-  const studentTree = useMemo<LevelGroup[]>(() => {
-    if (isTeacher) return [];
-
-    const byLevel = new Map<string, Map<string, Course[]>>();
-    for (const course of filtered) {
-      const lvl = normalizeCourseLevel(course.level);
-      const subj = canonicalizeCourseSubject(course.subject || "") || "Matiere non precise";
-      if (!byLevel.has(lvl)) byLevel.set(lvl, new Map());
-      const bySubject = byLevel.get(lvl)!;
-      if (!bySubject.has(subj)) bySubject.set(subj, []);
-      bySubject.get(subj)!.push(course);
+    const needle = query.trim().toLowerCase();
+    if (needle) {
+      base = base.filter(
+        (c) =>
+          c.title?.toLowerCase().includes(needle) ||
+          c.subject?.toLowerCase().includes(needle) ||
+          c.level?.toLowerCase().includes(needle) ||
+          c.ownerName?.toLowerCase().includes(needle)
+      );
     }
 
-    const levels: LevelGroup[] = Array.from(byLevel.entries()).map(([lvl, bySubject]) => {
-      const subjects: SubjectGroup[] = Array.from(bySubject.entries()).map(([subject, courses]) => {
-        const sortedCourses = [...courses].sort((a, b) =>
-          (a.title || "").localeCompare(b.title || "", "fr", { sensitivity: "base" })
-        );
-        return {
-          subject,
-          courses: sortedCourses,
-          chapters: sortedCourses.reduce((acc, c) => acc + (c.chapters?.length || 0), 0),
-        };
-      });
-      subjects.sort((a, b) => {
-        const ra = subjectRank.has(a.subject) ? (subjectRank.get(a.subject) as number) : 999;
-        const rb = subjectRank.has(b.subject) ? (subjectRank.get(b.subject) as number) : 999;
-        if (ra !== rb) return ra - rb;
-        return a.subject.localeCompare(b.subject, "fr", { sensitivity: "base" });
-      });
-      return {
-        level: lvl,
-        subjects,
-        courses: subjects.reduce((acc, s) => acc + s.courses.length, 0),
-        chapters: subjects.reduce((acc, s) => acc + s.chapters, 0),
-      };
+    // Ce qui est commence remonte : c'est ce que l'eleve vient chercher.
+    return [...base].sort((a, b) => {
+      const pa = progress[a.id] ?? -1;
+      const pb = progress[b.id] ?? -1;
+      if (pa !== pb) return pb - pa;
+      return (b.updatedAtMs || 0) - (a.updatedAtMs || 0);
     });
+  }, [rows, subject, query, progress]);
 
-    levels.sort((a, b) => {
-      const ra = levelRank.has(a.level) ? (levelRank.get(a.level) as number) : 999;
-      const rb = levelRank.has(b.level) ? (levelRank.get(b.level) as number) : 999;
-      if (ra !== rb) return ra - rb;
-      return a.level.localeCompare(b.level, "fr", { sensitivity: "base" });
-    });
+  const clearFilters = useCallback(() => {
+    setQuery("");
+    setSubject("all");
+  }, []);
 
-    return levels;
-  }, [filtered, isTeacher, levelRank, subjectRank]);
-
-  useEffect(() => {
-    if (isTeacher || !studentTree.length) return;
-    setOpenLevels((prev) => {
-      if (Object.keys(prev).length) return prev;
-      return { [studentTree[0].level]: true };
-    });
-  }, [studentTree, isTeacher]);
-
-  const toggleLevel = (key: string) => {
-    setOpenLevels((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-  const toggleSubject = (key: string) => {
-    setOpenSubjects((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-  const toggleCourse = (key: string) => {
-    setOpenCourses((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const Header = (
-    <LinearGradient colors={backgroundGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerBg}>
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.title}>Cours</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {isTeacher ? "Espace prof" : "Catalogue eleve"} - {filtered.length} resultat{filtered.length > 1 ? "s" : ""}
-          </Text>
-        </View>
-        {isTeacher ? (
-          <Pressable onPress={() => router.push("/(app)/course/new")} style={styles.addBtn}>
-            <Ionicons name="add" size={16} color={theme.color.textOnPrimary} />
-            <Text style={styles.addBtnText}>Nouveau</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.headerActions}>
-            <Pressable onPress={() => setMenuVisible(true)} style={styles.menuBtn}>
-              <Ionicons name="list-outline" size={16} color={theme.color.text} />
-              <Text style={styles.menuBtnText}>Menu</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/(app)/(tabs)/quizzes")} style={[styles.menuBtn, styles.quizNavBtn]}>
-              <MaterialCommunityIcons name="brain" size={16} color={theme.color.primary} />
-              <Text style={[styles.menuBtnText, styles.quizNavBtnText]}>Quiz</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.searchWrap} accessible accessibilityRole="search">
-        <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
-        <TextInput
-          value={q}
-          onChangeText={setQ}
-          placeholder="Rechercher un cours"
-          placeholderTextColor={theme.color.textMuted}
-          style={styles.searchInput}
-          returnKeyType="search"
-        />
-        {q ? (
-          <Pressable onPress={() => setQ("")} hitSlop={8}>
-            <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      {segments.length > 1 ? (
-        <View style={styles.segmentWrap}>
-          <Segmented value={segment} items={segments} onChange={(k) => setSegment(k as SegmentKey)} />
-        </View>
-      ) : null}
-
-      <View style={styles.classRowHead}>
-        <Text style={styles.classRowTitle}>{isTeacher ? "Filtrer par classe" : "Classe"}</Text>
-        {levelFilter !== "all" ? (
-          <Pressable onPress={() => setLevelFilter("all")} style={styles.clearChip}>
-            <Ionicons name="close" size={14} color={theme.color.textMuted} />
-            <Text style={styles.clearChipText}>Reinitialiser</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.levelRow}
-      >
-        {levelOptions.map((opt) => {
-          const active = levelFilter === opt.key;
-          return (
-            <Pressable
-              key={opt.key}
-              onPress={() => setLevelFilter(opt.key)}
-              style={[styles.levelChip, active && styles.levelChipActive]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={`Filtrer par ${opt.label}`}
-            >
-              <Text style={[styles.levelChipText, active && styles.levelChipTextActive]}>{opt.label}</Text>
-              <View style={[styles.levelCount, active && styles.levelCountActive]}>
-                <Text style={[styles.levelCountText, active && styles.levelCountTextActive]}>{opt.count}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </LinearGradient>
-  );
+  const hasFilters = !!query.trim() || subject !== "all";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <View style={[styles.root, { backgroundColor: color.bg }]}>
+      <View style={{ paddingTop: insets.top + space.lg, gap: space.md }}>
+        <View style={[styles.headRow, { paddingHorizontal: space.lg, gap: space.md }]}>
+          <Text variant="title" style={styles.flex}>
+            {isTeacher ? "Mes cours" : "Cours"}
+          </Text>
+          {isTeacher ? (
+            <Pressable
+              onPress={() => router.push("/(app)/course/new")}
+              accessibilityRole="button"
+              accessibilityLabel="Creer un cours"
+              style={[
+                styles.iconBtn,
+                { backgroundColor: color.primary, borderRadius: radius.pill },
+              ]}
+            >
+              <Ionicons name="add" size={22} color={color.textOnPrimary} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.search,
+            {
+              marginHorizontal: space.lg,
+              borderColor: color.borderInteractive,
+              backgroundColor: color.surfaceSunk,
+              borderRadius: radius.md,
+              paddingHorizontal: space.md,
+              gap: space.sm,
+            },
+          ]}
+        >
+          <Ionicons name="search-outline" size={17} color={color.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Chercher un cours, une matiere"
+            placeholderTextColor={color.textFaint}
+            style={[styles.searchInput, { color: color.text }]}
+            returnKeyType="search"
+            accessibilityLabel="Chercher un cours"
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Effacer">
+              <Ionicons name="close-circle" size={17} color={color.textFaint} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {scopeOptions.length > 1 ? (
+          <FilterChips
+            options={scopeOptions}
+            value={scope}
+            onChange={(k) => setScope(k as Scope)}
+            accessibilityLabel="Perimetre"
+          />
+        ) : null}
+
+        {subjectOptions.length > 2 ? (
+          <FilterChips
+            options={subjectOptions}
+            value={subject}
+            onChange={setSubject}
+            accessibilityLabel="Matiere"
+          />
+        ) : null}
+      </View>
+
+      {loading ? (
+        <View style={{ padding: space.lg }}>
+          <SkeletonList count={4} />
+        </View>
+      ) : (
         <FlatList
           data={filtered}
-          ListHeaderComponent={Header}
-          keyExtractor={(i) => i.id}
-          numColumns={2}
-          columnWrapperStyle={{ paddingHorizontal: 16, justifyContent: "space-between" }}
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 + insets.bottom }}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{
+            padding: space.lg,
+            paddingBottom: insets.bottom + 120,
+            gap: space.sm,
+          }}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
-            <View style={styles.gridItem}>
-              <CourseCard item={item} onPress={() => router.push(`/(app)/course/${item.id}`)} />
-            </View>
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              isTeacher={isTeacher}
-              segment={segment}
-              levelFilter={levelFilter}
-              hasSearch={!!q.trim()}
+            <CourseRow
+              course={item}
+              progress={progress[item.id]}
+              showStatus={isTeacher && scope === "mine"}
             />
+          )}
+          ListHeaderComponent={
+            filtered.length ? (
+              <Text variant="caption" tone="muted" style={{ marginBottom: space.xs }}>
+                {filtered.length} cours
+              </Text>
+            ) : null
+          }
+          ListEmptyComponent={
+            hasFilters ? (
+              <EmptyState
+                icon="search-outline"
+                title="Aucun resultat"
+                message="Aucun cours ne correspond a cette recherche. Essayez une autre matiere ou effacez les filtres."
+                actionLabel="Effacer les filtres"
+                onAction={clearFilters}
+              />
+            ) : isTeacher ? (
+              <EmptyState
+                icon="add-circle-outline"
+                title="Aucun cours pour l'instant"
+                message="Creez votre premier cours, ajoutez ses chapitres, puis envoyez-le en relecture."
+                actionLabel="Creer un cours"
+                onAction={() => router.push("/(app)/course/new")}
+              />
+            ) : (
+              <EmptyState
+                icon="book-outline"
+                title={scope === "class" ? "Rien pour ta classe" : "Catalogue vide"}
+                message={
+                  scope === "class"
+                    ? "Aucun cours n'est encore publie pour ta classe. Regarde les autres classes en attendant."
+                    : "Aucun cours publie pour le moment. Reviens bientot."
+                }
+                actionLabel={scope === "class" ? "Voir toutes les classes" : undefined}
+                onAction={scope === "class" ? () => setScope("all") : undefined}
+              />
+            )
           }
         />
-
-        {isTeacher ? (
-          <Pressable onPress={() => router.push("/(app)/course/new")} style={[styles.fabWrap, { bottom: 16 + insets.bottom }]}>
-            <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fab}>
-              <Ionicons name="add" size={18} color={theme.color.textOnPrimary} />
-              <Text style={styles.fabText}>Creer un cours</Text>
-            </LinearGradient>
-          </Pressable>
-        ) : null}
-      </KeyboardAvoidingView>
-
-      {!isTeacher ? (
-        <Modal visible={menuVisible} animationType="slide" transparent onRequestClose={() => setMenuVisible(false)}>
-          <View style={styles.menuRoot}>
-            <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)} />
-            <View style={[styles.menuSheet, { paddingBottom: 10 + insets.bottom }]}>
-              <View style={styles.menuGrabber} />
-              <View style={styles.menuHeader}>
-                <Text style={styles.menuTitle}>Menu Classe - Matiere - Cours - Chapitre</Text>
-                <Pressable onPress={() => setMenuVisible(false)} style={styles.menuCloseBtn}>
-                  <Ionicons name="close" size={18} color={theme.color.text} />
-                </Pressable>
-              </View>
-              <ScrollView contentContainerStyle={styles.menuTreeContent}>
-                {studentTree.length ? (
-                  studentTree.map((item) => {
-                    const levelOpen = openLevels[item.level] ?? false;
-                    return (
-                      <View key={item.level} style={styles.levelCard}>
-                        <Pressable
-                          style={styles.levelHead}
-                          onPress={() => toggleLevel(item.level)}
-                          accessibilityRole="button"
-                          accessibilityState={{ expanded: levelOpen }}
-                          accessibilityLabel={`Classe ${item.level}`}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.levelTitle}>Classe {item.level}</Text>
-                            <Text style={styles.levelSub}>
-                              {item.subjects.length} matiere{item.subjects.length > 1 ? "s" : ""} - {item.courses} cours - {item.chapters} chapitres
-                            </Text>
-                          </View>
-                          <Ionicons name={levelOpen ? "chevron-up" : "chevron-down"} size={18} color={theme.color.textMuted} />
-                        </Pressable>
-
-                        {levelOpen ? (
-                          <View style={styles.levelBody}>
-                            {item.subjects.map((subject) => {
-                              const subjectKey = `${item.level}__${subject.subject}`;
-                              const subjectOpen = openSubjects[subjectKey] ?? false;
-                              return (
-                                <View key={subjectKey} style={styles.subjectCard}>
-                                  <Pressable
-                                    style={styles.subjectHead}
-                                    onPress={() => toggleSubject(subjectKey)}
-                                    accessibilityRole="button"
-                                    accessibilityState={{ expanded: subjectOpen }}
-                                    accessibilityLabel={`Matiere ${subject.subject}`}
-                                  >
-                                    <Text style={styles.subjectTitle}>{subject.subject}</Text>
-                                    <View style={styles.subjectRight}>
-                                      <Text style={styles.subjectCount}>{subject.courses.length}</Text>
-                                      <Ionicons name={subjectOpen ? "chevron-up" : "chevron-down"} size={16} color={theme.color.textMuted} />
-                                    </View>
-                                  </Pressable>
-
-                                  {subjectOpen ? (
-                                    <View style={styles.subjectBody}>
-                                      {subject.courses.map((course) => {
-                                        const chapters = [...(course.chapters || [])].sort((a, b) => {
-                                          const ao = typeof a.order === "number" ? a.order : Number.MAX_SAFE_INTEGER;
-                                          const bo = typeof b.order === "number" ? b.order : Number.MAX_SAFE_INTEGER;
-                                          if (ao !== bo) return ao - bo;
-                                          return (a.title || "").localeCompare(b.title || "", "fr", { sensitivity: "base" });
-                                        });
-                                        const courseOpen = openCourses[course.id] ?? false;
-                                        return (
-                                          <View key={course.id} style={styles.courseCard}>
-                                            <Pressable
-                                              style={styles.courseHead}
-                                              onPress={() => toggleCourse(course.id)}
-                                              accessibilityRole="button"
-                                              accessibilityState={{ expanded: courseOpen }}
-                                            >
-                                              <View style={{ flex: 1 }}>
-                                                <Text style={styles.courseTitle} numberOfLines={2}>{course.title || "Sans titre"}</Text>
-                                                <Text style={styles.courseMeta}>{chapters.length} chapitre{chapters.length > 1 ? "s" : ""}</Text>
-                                              </View>
-                                              <Ionicons name={courseOpen ? "chevron-up" : "chevron-down"} size={16} color={theme.color.textMuted} />
-                                            </Pressable>
-
-                                            <View style={styles.courseActions}>
-                                              <Pressable
-                                                style={styles.courseActionBtn}
-                                                onPress={() => {
-                                                  setMenuVisible(false);
-                                                  router.push(`/(app)/course/${course.id}`);
-                                                }}
-                                              >
-                                                <Ionicons name="eye-outline" size={14} color={theme.color.text} />
-                                                <Text style={styles.courseActionTxt}>Cours</Text>
-                                              </Pressable>
-                                              {chapters.length > 0 ? (
-                                                <Pressable
-                                                  style={styles.courseActionBtn}
-                                                  onPress={() => {
-                                                    setMenuVisible(false);
-                                                    router.push(`/(app)/course/play?courseId=${course.id}`);
-                                                  }}
-                                                >
-                                                  <Ionicons name="play-outline" size={14} color={theme.color.text} />
-                                                  <Text style={styles.courseActionTxt}>Lire</Text>
-                                                </Pressable>
-                                              ) : null}
-                                            </View>
-
-                                            {courseOpen ? (
-                                              chapters.length > 0 ? (
-                                                <View style={styles.chapterList}>
-                                                  {chapters.map((ch, idx) => (
-                                                    <Pressable
-                                                      key={ch.id}
-                                                      style={styles.chapterRow}
-                                                      onPress={() => {
-                                                        setMenuVisible(false);
-                                                        router.push(`/(app)/course/play?courseId=${course.id}&lessonId=${ch.id}`);
-                                                      }}
-                                                    >
-                                                      <Ionicons name="play-circle-outline" size={15} color={theme.color.primary} />
-                                                      <Text style={styles.chapterText} numberOfLines={1}>{idx + 1}. {ch.title || "Chapitre"}</Text>
-                                                    </Pressable>
-                                                  ))}
-                                                </View>
-                                              ) : (
-                                                <Text style={styles.chapterEmpty}>Aucun chapitre pour ce cours.</Text>
-                                              )
-                                            ) : null}
-                                          </View>
-                                        );
-                                      })}
-                                    </View>
-                                  ) : null}
-                                </View>
-                              );
-                            })}
-                          </View>
-                        ) : null}
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text style={styles.menuEmpty}>Aucun cours disponible.</Text>
-                )}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-      ) : null}
-    </SafeAreaView>
+      )}
+    </View>
   );
 }
 
-function EmptyState({
-  isTeacher,
-  segment,
-  levelFilter,
-  hasSearch,
-}: {
-  isTeacher: boolean;
-  segment: SegmentKey;
-  levelFilter: string;
-  hasSearch: boolean;
-}) {
-  const { styles, theme } = useThemedStyles(makeStyles);
-  const hasScopedFilter = levelFilter !== "all" || hasSearch;
-  const title = isTeacher
-    ? segment === "mine"
-      ? "Commencez par creer votre premier cours."
-      : segment === "published"
-      ? "Aucun cours publie pour l'instant."
-      : hasScopedFilter
-      ? "Aucun cours pour ce filtre."
-      : "Aucun cours ne correspond a votre recherche."
-    : hasScopedFilter
-    ? "Aucun cours pour ce filtre."
-    : "Aucun cours disponible pour l'instant.";
-
-  const subtitle = isTeacher
-    ? segment === "mine"
-      ? "Ajoutez vos chapitres et publiez en un clic."
-      : hasScopedFilter
-      ? "Essayez une autre classe ou effacez la recherche."
-      : "Revenez plus tard ou ajustez vos filtres."
-    : hasScopedFilter
-    ? "Essayez une autre classe ou effacez la recherche."
-    : "Revenez plus tard ou ajustez vos filtres.";
-
-  return (
-    <UiEmptyState
-      icon={isTeacher ? "add-circle-outline" : "book-outline"}
-      title={title}
-      message={subtitle}
-    />
-  );
-}
-
-const makeStyles = (t: Theme) =>
-  StyleSheet.create({
-  headerBg: { paddingBottom: 10 },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12 },
-  title: { color: t.color.text, fontSize: 22, fontFamily: t.type.title.fontFamily },
-  subtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily },
-
-  addBtn: {
-    backgroundColor: t.color.primary,
-    borderRadius: t.radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    minHeight: 40,
-  },
-  addBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  menuBtn: {
-    backgroundColor: t.color.surface,
-    borderRadius: t.radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    minHeight: 40,
-    ...t.elevation(2),
-  },
-  menuBtnText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  quizNavBtn: {
-    backgroundColor: t.color.primarySoft,
-    borderColor: "rgba(29,78,216,0.28)",
-  },
-  quizNavBtnText: { color: t.color.primary },
-
-  searchWrap: {
-    marginTop: 12,
-    marginHorizontal: 16,
-    backgroundColor: t.color.surface,
-    borderRadius: t.radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    flexDirection: "row",
-    alignItems: "center",
-    height: 48,
-    ...t.elevation(2),
-  },
-  searchInput: { flex: 1, color: t.color.text, fontSize: 15, fontFamily: t.type.body.fontFamily },
-
-  segmentWrap: { marginTop: 10, paddingHorizontal: 16 },
-  classRowHead: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  classRowTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
-  clearChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    borderRadius: 999,
-    backgroundColor: t.color.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  clearChipText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-  levelRow: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2, gap: 8 },
-  levelChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    paddingLeft: 12,
-    paddingRight: 8,
-    paddingVertical: 8,
-  },
-  levelChipActive: {
-    borderColor: "transparent",
-    backgroundColor: t.color.primary,
-    shadowColor: t.color.shadow,
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  levelChipText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-  levelChipTextActive: { color: t.color.textOnPrimary },
-  levelCount: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-    backgroundColor: t.color.surfaceSunk,
-  },
-  levelCountActive: { backgroundColor: "rgba(255,255,255,0.2)" },
-  levelCountText: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
-  levelCountTextActive: { color: t.color.textOnPrimary },
-
-  levelCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: t.color.surface,
-    borderRadius: t.radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    overflow: "hidden",
-    ...t.elevation(2),
-  },
-  levelHead: { paddingHorizontal: 12, paddingVertical: 11, flexDirection: "row", alignItems: "center", gap: 10 },
-  levelTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 15 },
-  levelSub: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12, marginTop: 2 },
-  levelBody: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, padding: 10, gap: 8 },
-
-  subjectCard: {
-    backgroundColor: t.color.surfaceSunk,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    borderRadius: t.radius.md,
-    overflow: "hidden",
-  },
-  subjectHead: { paddingHorizontal: 10, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  subjectTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13, flex: 1, paddingRight: 10 },
-  subjectRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  subjectCount: {
-    minWidth: 22,
-    textAlign: "center",
-    color: t.color.textMuted,
-    fontFamily: t.type.bodyStrong.fontFamily,
-    fontSize: 11,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    overflow: "hidden",
-  },
-  subjectBody: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, padding: 8, gap: 8 },
-
-  courseCard: {
-    backgroundColor: t.color.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    borderRadius: t.radius.md,
-    padding: 10,
-    gap: 8,
-    ...t.elevation(2),
-  },
-  courseHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  courseTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 13 },
-  courseMeta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 11, marginTop: 2 },
-  courseActions: { flexDirection: "row", gap: 8 },
-  courseActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surfaceSunk,
-  },
-  courseActionTxt: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-
-  chapterList: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, paddingTop: 8, gap: 6 },
-  chapterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    borderRadius: 8,
-    backgroundColor: t.color.surfaceSunk,
-  },
-  chapterText: { flex: 1, color: t.color.text, fontFamily: t.type.body.fontFamily, fontSize: 12 },
-  chapterEmpty: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
-
-  gridItem: { flexBasis: "48%", minWidth: 160, marginTop: 12 },
-
-  fabWrap: {
-    position: "absolute",
-    right: 16,
-    bottom: 24,
-    borderRadius: 999,
-    shadowColor: t.color.shadow,
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  fab: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  fabText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
-
-  menuRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(11, 17, 32, 0.28)" },
-  menuBackdrop: { ...StyleSheet.absoluteFillObject },
-  menuSheet: {
-    maxHeight: "88%",
-    backgroundColor: t.color.bg,
-    borderTopLeftRadius: t.radius.xl,
-    borderTopRightRadius: t.radius.xl,
-    overflow: "hidden",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: t.color.border,
-  },
-  menuGrabber: {
-    alignSelf: "center",
-    width: 46,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: t.color.border,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  menuHeader: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: t.color.border,
-    gap: 8,
-  },
-  menuTitle: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 14, flex: 1 },
-  menuCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: t.color.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: t.color.border,
-  },
-  menuTreeContent: { paddingBottom: 8 },
-  menuEmpty: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, fontSize: 13, paddingHorizontal: 16, paddingTop: 12 },
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  headRow: { flexDirection: "row", alignItems: "center" },
+  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  search: { flexDirection: "row", alignItems: "center", borderWidth: 1, minHeight: 46 },
+  searchInput: { flex: 1, paddingVertical: 11 },
 });
