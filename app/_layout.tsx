@@ -13,6 +13,7 @@ import { useFonts } from "@expo-google-fonts/sora";
 import { Sora_600SemiBold, Sora_700Bold } from "@expo-google-fonts/sora";
 import { Manrope_500Medium, Manrope_700Bold } from "@expo-google-fonts/manrope";
 import { COLOR } from "@/theme/colors";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 function Gate({ children, fontsReady }: { children: React.ReactNode; fontsReady: boolean }) {
@@ -139,11 +140,13 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <Gate fontsReady={fontsLoaded}>
-          <Slot />
-        </Gate>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Gate fontsReady={fontsLoaded}>
+            <Slot />
+          </Gate>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -14,6 +14,7 @@ import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 
 import { COLOR, FONT, RADIUS } from "@/theme/colors";
+import { useTheme, type ThemePreference } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useSchoolingOptions } from "@/hooks/useSchoolingOptions";
 import { invalidateReferentials } from "@/storage/referentials";
@@ -31,8 +32,15 @@ import {
 } from "@/storage/parentLinks";
 import SelectionSheetField from "@/components/SelectionSheetField";
 
+const THEME_CHOICES: Array<{ key: ThemePreference; label: string; hint: string }> = [
+  { key: "system", label: "Automatique", hint: "Suit le reglage de votre telephone" },
+  { key: "light", label: "Clair", hint: "Toujours en clair" },
+  { key: "dark", label: "Sombre", hint: "Toujours en sombre" },
+];
+
 export default function Settings() {
   const { user, updateSchooling } = useAuth();
+  const theme = useTheme();
 
   const [countryCode, setCountryCode] = useState<string>(user?.countryCode ?? "");
   const [gradeLevelId, setGradeLevelId] = useState<string>(user?.gradeLevelId ?? "");
@@ -251,6 +259,46 @@ export default function Settings() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Apparence</Text>
+        <Text style={styles.sectionHint}>
+          Le mode sombre repose les yeux le soir et economise la batterie sur les ecrans OLED.
+        </Text>
+
+        <View style={styles.themeRow}>
+          {THEME_CHOICES.map((choice) => {
+            const active = theme.preference === choice.key;
+            return (
+              <Pressable
+                key={choice.key}
+                onPress={() => theme.setPreference(choice.key)}
+                style={[styles.themeOption, active && styles.themeOptionActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Ionicons
+                  name={
+                    choice.key === "system"
+                      ? "phone-portrait-outline"
+                      : choice.key === "light"
+                      ? "sunny-outline"
+                      : "moon-outline"
+                  }
+                  size={18}
+                  color={active ? COLOR.primary : COLOR.sub}
+                />
+                <Text style={[styles.themeLabel, active && styles.themeLabelActive]}>
+                  {choice.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.rowSub}>
+          {THEME_CHOICES.find((c) => c.key === theme.preference)?.hint}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Application</Text>
 
         <View style={styles.row}>
@@ -453,6 +501,22 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1 },
   rowTitle: { color: COLOR.text, fontFamily: FONT.bodyBold, fontSize: 14 },
   rowSub: { color: COLOR.sub, marginTop: 2, fontFamily: FONT.body, fontSize: 12, lineHeight: 17 },
+
+  themeRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  themeOption: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLOR.border,
+    backgroundColor: COLOR.muted,
+  },
+  themeOptionActive: { borderColor: COLOR.primary, backgroundColor: COLOR.tint },
+  themeLabel: { color: COLOR.sub, fontFamily: FONT.bodyBold, fontSize: 12 },
+  themeLabelActive: { color: COLOR.primary },
 
   roleTag: {
     backgroundColor: COLOR.tint,

@@ -1,59 +1,52 @@
-export const COLOR = {
-  bg: "#F4F7FC",
-  surface: "#FFFFFF",
-  card: "#FFFFFF",
-  text: "#0B1220",
-  sub: "#5A6780",
-  primary: "#2F5BFF",
-  accent: "#F59E0B",
-  success: "#16A34A",
-  warn: "#F59E0B",
-  danger: "#DC2626",
-  border: "#DCE4F1",
-  muted: "#EEF3FA",
-  tint: "#EAF0FF",
-  overlay: "rgba(11, 18, 32, 0.08)",
-  ring: "#C7D6FF",
-} as const;
+// Compatibilite avec les ecrans non encore migres.
+//
+// Quarante-cinq ecrans importent COLOR, FONT, RADIUS, SPACE et ELEVATION comme
+// des constantes statiques. Les rebrancher sur les jetons permet de centraliser
+// les valeurs sans reecrire tous les ecrans d'un coup.
+//
+// Ces constantes restent figees sur le theme clair : un ecran qui doit suivre
+// le theme sombre passe par useTheme(), et abandonne cet import au passage.
 
-export const FONT = {
-  heading: "Sora_700Bold",
-  headingAlt: "Sora_600SemiBold",
-  body: "Manrope_500Medium",
-  bodyBold: "Manrope_700Bold",
-  mono: "Menlo"
+import { LIGHT, PALETTE, RADIUS as RADIUS_TOKENS, SPACE as SPACE_TOKENS, elevation } from "@/theme/tokens";
+
+export { FONT_FAMILY as FONT } from "@/theme/tokens";
+
+export const COLOR = {
+  bg: LIGHT.bg,
+  surface: LIGHT.surface,
+  card: LIGHT.surface,
+  text: LIGHT.text,
+  sub: LIGHT.textMuted,
+  primary: LIGHT.primary,
+  accent: PALETTE.warning[500],
+  success: LIGHT.success,
+  warn: LIGHT.warning,
+  danger: LIGHT.danger,
+  border: LIGHT.border,
+  muted: LIGHT.surfaceSunk,
+  tint: LIGHT.primarySoft,
+  overlay: "rgba(11, 18, 32, 0.08)",
+  ring: PALETTE.primary[200],
 } as const;
 
 export const RADIUS = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 22,
-  pill: 999,
+  sm: RADIUS_TOKENS.sm,
+  md: RADIUS_TOKENS.md,
+  lg: RADIUS_TOKENS.lg,
+  xl: RADIUS_TOKENS.xl,
+  pill: RADIUS_TOKENS.pill,
 } as const;
 
 export const SPACE = {
-  xxs: 4,
-  xs: 8,
-  sm: 12,
-  md: 16,
-  lg: 20,
-  xl: 24,
+  xxs: SPACE_TOKENS.xs,
+  xs: SPACE_TOKENS.sm,
+  sm: SPACE_TOKENS.md,
+  md: SPACE_TOKENS.lg,
+  lg: SPACE_TOKENS.xl,
+  xl: SPACE_TOKENS.xxl,
 } as const;
 
 export const ELEVATION = {
-  card: {
-    shadowColor: "#0B1D39",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
-  floating: {
-    shadowColor: "#0B1D39",
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
-  },
+  card: elevation(2, LIGHT.shadow),
+  floating: elevation(3, LIGHT.shadow),
 } as const;
