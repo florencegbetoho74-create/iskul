@@ -352,7 +352,7 @@ const makeStyles = (t: Theme) =>
   actionPublishText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   modalRoot: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.4)" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: t.color.scrim },
   sheet: {
     backgroundColor: t.color.surface,
     borderTopLeftRadius: 18,

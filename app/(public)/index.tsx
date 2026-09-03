@@ -57,7 +57,7 @@ const makeStyles = (t: Theme) =>
   heroCard: {
     width: "100%",
     maxWidth: 430,
-    backgroundColor: "rgba(255,255,255,0.96)",
+    backgroundColor: t.color.surface,
     borderRadius: t.radius.xl,
     borderWidth: 1,
     borderColor: t.color.border,

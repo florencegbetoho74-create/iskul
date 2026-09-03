@@ -392,7 +392,7 @@ export default function NewBook() {
 
       {sourceType === "upload" ? (
         <Pressable style={[styles.secondary, busy && { opacity: 0.6 }]} onPress={pickFileAndUpload} disabled={busy}>
-          <Ionicons name="document-text" size={18} color={theme.color.text} />
+          <Ionicons name="document-text-outline" size={18} color={theme.color.text} />
           <Text style={styles.secondaryText}>{fileUrl ? "Remplacer le fichier" : "Importer le fichier"}</Text>
         </Pressable>
       ) : null}

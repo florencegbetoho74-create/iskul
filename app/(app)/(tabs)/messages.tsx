@@ -115,7 +115,7 @@ export default function Inbox() {
       </View>
 
       <View style={styles.searchRow} accessible accessibilityRole="search">
-        <Ionicons name="search" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
+        <Ionicons name="search-outline" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
         <TextInput
           value={q}
           onChangeText={setQ}
@@ -127,7 +127,7 @@ export default function Inbox() {
         />
         {q.length > 0 && (
           <Pressable onPress={() => setQ("")} hitSlop={8} accessibilityLabel="Effacer la recherche">
-            <Ionicons name="close" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
+            <Ionicons name="close-circle" size={18} color={theme.color.textMuted} style={{ marginHorizontal: 10 }} />
           </Pressable>
         )}
       </View>
@@ -173,7 +173,7 @@ export default function Inbox() {
             <Link href={`/(app)/messages/${item.id}`} asChild>
               <TouchableOpacity style={styles.thread} activeOpacity={0.9}>
                 <View style={styles.avatar}>
-                  <Ionicons name="person" size={18} color={theme.color.textMuted} />
+                  <Ionicons name="person-outline" size={18} color={theme.color.textMuted} />
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -327,8 +327,8 @@ const makeStyles = (t: Theme) =>
     overflow: "hidden",
     backgroundColor: t.color.surfaceSunk,
   },
-  skelSheen: { position: "absolute", top: 0, bottom: 0, width: 80, backgroundColor: "rgba(255,255,255,0.5)" },
-  skelSheenThin: { position: "absolute", top: 0, bottom: 0, width: 60, backgroundColor: "rgba(255,255,255,0.5)" },
+  skelSheen: { position: "absolute", top: 0, bottom: 0, width: 80, backgroundColor: t.color.surfaceRaised },
+  skelSheenThin: { position: "absolute", top: 0, bottom: 0, width: 60, backgroundColor: t.color.surfaceRaised },
 });
 
 

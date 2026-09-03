@@ -178,7 +178,7 @@ const makeStyles = (t: Theme) =>
   flag: { fontSize: 18 },
 
   modalRoot: { flex: 1, justifyContent: "flex-end" },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.4)" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: t.color.scrim },
   sheet: {
     backgroundColor: t.color.surface,
     borderTopLeftRadius: 18,

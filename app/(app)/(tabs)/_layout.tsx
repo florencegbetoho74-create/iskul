@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/ThemeProvider";
@@ -80,7 +80,7 @@ export default function TabsLayout() {
             : {
                 title: "Quiz",
                 tabBarIcon: ({ color: c, size }) => (
-                  <MaterialCommunityIcons name="brain" size={size} color={c} />
+                  <Ionicons name="checkmark-circle-outline" size={size} color={c} />
                 ),
               }
         }
@@ -98,7 +98,7 @@ export default function TabsLayout() {
             ? {
                 title: "Live",
                 tabBarIcon: ({ color: c, size }) => (
-                  <MaterialCommunityIcons name="broadcast" size={size} color={c} />
+                  <Ionicons name="radio-outline" size={size} color={c} />
                 ),
               }
             : HIDDEN

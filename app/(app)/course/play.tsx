@@ -797,7 +797,7 @@ const makeStyles = (t: Theme) =>
       textAlign: "center",
     },
     fallbackText: {
-      color: "rgba(255,255,255,0.75)",
+      color: t.color.onMediaMuted,
       fontFamily: t.type.body.fontFamily,
       fontSize: t.type.caption.fontSize,
       lineHeight: t.type.caption.lineHeight,

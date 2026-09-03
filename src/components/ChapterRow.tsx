@@ -19,7 +19,7 @@ export default function ChapterRow({ title, active, hasVideo, onPress, index }: 
 const makeStyles = (t: Theme) =>
   StyleSheet.create({
   row: { backgroundColor: t.color.surface, borderColor: t.color.border, borderWidth: 1, borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  active: { borderColor: t.color.primary, backgroundColor: "rgba(29,78,216,0.06)" },
+  active: { borderColor: t.color.primary, backgroundColor: t.color.primarySoft },
   title: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, flex: 1 },
   dim: { color: t.color.textMuted }
 });

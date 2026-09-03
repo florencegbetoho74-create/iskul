@@ -246,7 +246,7 @@ const makeStyles = (t: Theme) =>
     padding: 18,
     borderWidth: 1,
     borderColor: t.color.border,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: t.color.surface,
     gap: 10,
     shadowColor: t.color.shadow,
     shadowOpacity: 0.1,

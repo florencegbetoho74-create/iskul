@@ -29,6 +29,33 @@ export function hexToRgb(hex: string): Rgb | null {
   };
 }
 
+/**
+ * Compose une couleur translucide sur un fond opaque et renvoie le resultat en
+ * hexadecimal. Les jetons poses sur la video sont translucides : sans cette
+ * composition, ils echapperaient a toute verification de contraste.
+ */
+export function over(color: string, backdrop: string): string | null {
+  const back = hexToRgb(backdrop);
+  if (!back) return null;
+
+  const solid = hexToRgb(color);
+  if (solid) return color;
+
+  const match = /^rgba?\(([^)]+)\)$/i.exec(String(color ?? "").trim());
+  if (!match) return null;
+  const parts = match[1].split(",").map((p) => Number(p.trim()));
+  if (parts.length < 3 || parts.slice(0, 3).some((n) => !Number.isFinite(n))) return null;
+
+  const alpha = parts.length > 3 && Number.isFinite(parts[3]) ? Math.min(1, Math.max(0, parts[3])) : 1;
+  const mix = (fg: number, bg: number) => Math.round(alpha * fg + (1 - alpha) * bg);
+  const channels = [
+    mix(parts[0], back.r),
+    mix(parts[1], back.g),
+    mix(parts[2], back.b),
+  ];
+  return "#" + channels.map((c) => c.toString(16).padStart(2, "0")).join("");
+}
+
 function channelLuminance(value: number): number {
   const c = value / 255;
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);

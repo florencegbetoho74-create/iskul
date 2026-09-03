@@ -300,8 +300,8 @@ const makeStyles = (t: Theme) =>
     overflow: "hidden",
     backgroundColor: t.color.surfaceSunk,
   },
-  skelSheen: { position: "absolute", top: 0, bottom: 0, width: 80, backgroundColor: "rgba(255,255,255,0.5)" },
-  skelSheenThin: { position: "absolute", top: 0, bottom: 0, width: 60, backgroundColor: "rgba(255,255,255,0.5)" },
+  skelSheen: { position: "absolute", top: 0, bottom: 0, width: 80, backgroundColor: t.color.surfaceRaised },
+  skelSheenThin: { position: "absolute", top: 0, bottom: 0, width: 60, backgroundColor: t.color.surfaceRaised },
 });
 
 

@@ -1194,12 +1194,12 @@ const makeStyles = (t: Theme) =>
     gap: 10,
   },
   feedbackGood: {
-    backgroundColor: "rgba(22,163,74,0.08)",
-    borderColor: "rgba(22,163,74,0.25)",
+    backgroundColor: t.color.successSoft,
+    borderColor: t.color.success,
   },
   feedbackBad: {
-    backgroundColor: "rgba(239,68,68,0.08)",
-    borderColor: "rgba(239,68,68,0.25)",
+    backgroundColor: t.color.dangerSoft,
+    borderColor: t.color.danger,
   },
   feedbackTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
   feedbackText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily, marginTop: 2, lineHeight: 18 },
@@ -1214,12 +1214,12 @@ const makeStyles = (t: Theme) =>
     marginBottom: 12,
   },
   resultCardSuccess: {
-    backgroundColor: "rgba(22,163,74,0.08)",
-    borderColor: "rgba(22,163,74,0.25)",
+    backgroundColor: t.color.successSoft,
+    borderColor: t.color.success,
   },
   resultCardWarn: {
-    backgroundColor: "rgba(245,158,11,0.12)",
-    borderColor: "rgba(245,158,11,0.3)",
+    backgroundColor: t.color.warningSoft,
+    borderColor: t.color.warning,
   },
   resultIcon: {
     width: 44,
@@ -1251,12 +1251,12 @@ const makeStyles = (t: Theme) =>
     backgroundColor: t.color.primarySoft,
   },
   answerRowCorrect: {
-    borderColor: "rgba(22,163,74,0.55)",
-    backgroundColor: "rgba(22,163,74,0.12)",
+    borderColor: t.color.success,
+    backgroundColor: t.color.successSoft,
   },
   answerRowWrong: {
-    borderColor: "rgba(239,68,68,0.55)",
-    backgroundColor: "rgba(239,68,68,0.12)",
+    borderColor: t.color.danger,
+    backgroundColor: t.color.dangerSoft,
   },
   answerText: { color: t.color.text, fontFamily: t.type.body.fontFamily, flex: 1 },
   answerTextActive: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },

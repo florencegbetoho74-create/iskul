@@ -102,7 +102,7 @@ export default function CourseDetail() {
             <Text style={styles.coverMeta}>{fallbackMeta}</Text>
           </LinearGradient>
           <LinearGradient
-            colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
+            colors={["transparent", theme.color.mediaScrim]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={styles.coverFade}
@@ -197,23 +197,23 @@ const makeStyles = (t: Theme) =>
     height: 32,
     width: 32,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: t.color.mediaControl,
     alignItems: "center",
     justifyContent: "center",
   },
   coverTitle: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 14 },
-  coverMeta: { color: "rgba(255,255,255,0.7)", fontFamily: t.type.body.fontFamily, fontSize: 12 },
+  coverMeta: { color: t.color.onMediaMuted, fontFamily: t.type.body.fontFamily, fontSize: 12 },
   coverFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 70 },
   coverBadgeRow: { position: "absolute", left: 12, bottom: 12, flexDirection: "row", gap: 8 },
   badge: {
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: t.color.media,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: t.color.border,
+    borderColor: t.color.mediaControl,
   },
-  badgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
+  badgeText: { color: t.color.onMedia, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   heroBody: { padding: 14, gap: 6 },
   title: { color: t.color.text, fontFamily: t.type.heading.fontFamily, fontSize: 18 },

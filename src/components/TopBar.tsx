@@ -30,7 +30,7 @@ const makeStyles = (t: Theme) =>
     paddingHorizontal: t.space.lg,
     paddingBottom: t.space.sm,
     gap: t.space.sm,
-    backgroundColor: "rgba(244,247,252,0.92)",
+    backgroundColor: t.color.surface,
     borderBottomWidth: 1,
     borderBottomColor: t.color.border,
     ...t.elevation(2),

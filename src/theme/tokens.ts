@@ -63,6 +63,8 @@ export type Palette = {
   textFaint: string;
   /** Encre posee sur une surface de couleur primaire. */
   textOnPrimary: string;
+  /** Encre secondaire sur un aplat primaire : horodatage d'un message emis. */
+  textOnPrimaryMuted: string;
 
   /** Separateur discret : decoratif, sans exigence de contraste. */
   border: string;
@@ -98,6 +100,14 @@ export type Palette = {
   media: string;
   /** Encre posee sur une surface media. */
   onMedia: string;
+  /** Encre secondaire sur media : duree restante, legende sous la video. */
+  onMediaMuted: string;
+  /** Fond d'une commande posee sur la video : bouton actif, pastille. */
+  mediaControl: string;
+  /** Portion non lue d'une barre de progression posee sur la video. */
+  mediaTrack: string;
+  /** Degrade sombre pose sur une couverture pour rendre un titre lisible. */
+  mediaScrim: string;
 };
 
 export const LIGHT: Palette = {
@@ -110,6 +120,7 @@ export const LIGHT: Palette = {
   textMuted: PALETTE.neutral[600],
   textFaint: PALETTE.neutral[500],
   textOnPrimary: PALETTE.neutral[0],
+  textOnPrimaryMuted: PALETTE.primary[50],
 
   border: PALETTE.neutral[200],
   borderStrong: PALETTE.neutral[300],
@@ -134,6 +145,10 @@ export const LIGHT: Palette = {
 
   media: "#0F172A",
   onMedia: "#FFFFFF",
+  onMediaMuted: "rgba(255, 255, 255, 0.72)",
+  mediaControl: "rgba(255, 255, 255, 0.18)",
+  mediaTrack: "rgba(255, 255, 255, 0.24)",
+  mediaScrim: "rgba(8, 13, 24, 0.55)",
 };
 
 export const DARK: Palette = {
@@ -147,6 +162,7 @@ export const DARK: Palette = {
   textFaint: "#7C889D",
   // Le bleu clair du mode sombre demande une encre foncee.
   textOnPrimary: PALETTE.primary[900],
+  textOnPrimaryMuted: PALETTE.primary[800],
 
   border: "#28324a",
   borderStrong: "#3A4763",
@@ -171,6 +187,10 @@ export const DARK: Palette = {
 
   media: "#0F172A",
   onMedia: "#FFFFFF",
+  onMediaMuted: "rgba(255, 255, 255, 0.72)",
+  mediaControl: "rgba(255, 255, 255, 0.18)",
+  mediaTrack: "rgba(255, 255, 255, 0.24)",
+  mediaScrim: "rgba(8, 13, 24, 0.55)",
 };
 
 export const PALETTES: Record<ThemeName, Palette> = { light: LIGHT, dark: DARK };

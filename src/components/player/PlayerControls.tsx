@@ -70,7 +70,7 @@ export default function PlayerControls({
           onSlidingComplete={onSeekEnd}
           onValueChange={onSeek}
           minimumTrackTintColor={color.onMedia}
-          maximumTrackTintColor="rgba(255,255,255,0.3)"
+          maximumTrackTintColor={color.mediaTrack}
           thumbTintColor={color.onMedia}
           accessibilityLabel="Position dans la video"
         />
@@ -146,7 +146,7 @@ function Ctrl({
           width: primary ? hit.min : hit.compact,
           height: primary ? hit.min : hit.compact,
           borderRadius: 999,
-          backgroundColor: primary ? "rgba(255,255,255,0.18)" : "transparent",
+          backgroundColor: primary ? color.mediaControl : "transparent",
         },
         pressed && { opacity: 0.6 },
       ]}
@@ -171,7 +171,7 @@ export function PlayerProgressBar({
   const ratio = durationSec > 0 ? Math.max(0, Math.min(1, currentSec / durationSec)) : 0;
   return (
     <View
-      style={[styles.progressTrack, { backgroundColor: "rgba(255,255,255,0.22)" }]}
+      style={[styles.progressTrack, { backgroundColor: color.mediaTrack }]}
       accessibilityElementsHidden
     >
       <View

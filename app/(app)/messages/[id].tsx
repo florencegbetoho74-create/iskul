@@ -214,7 +214,7 @@ function Bubble({
                       <Text style={[styles.attText, mine && { color: theme.color.textOnPrimary }]} numberOfLines={1}>
                         {a.name || "fichier"}
                       </Text>
-                      <Text style={[styles.attMeta, mine && { color: "rgba(255,255,255,0.7)" }]}>
+                      <Text style={[styles.attMeta, mine && { color: theme.color.textOnPrimaryMuted }]}>
                         {fmtBytes(a.size)}
                       </Text>
                     </View>
@@ -718,7 +718,7 @@ const makeStyles = (t: Theme) =>
   msgMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 },
   msgMetaRight: { flexDirection: "row", alignItems: "center" },
   msgTime: { fontSize: 10, fontFamily: t.type.body.fontFamily },
-  msgStatus: { fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily, color: "rgba(255,255,255,0.8)" },
+  msgStatus: { fontSize: 10, fontFamily: t.type.bodyStrong.fontFamily, color: t.color.textOnPrimaryMuted },
   msgStatusFail: { color: t.color.danger },
 
   attRow: {
@@ -737,7 +737,7 @@ const makeStyles = (t: Theme) =>
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(15,23,42,0.08)",
+    backgroundColor: t.color.surfaceSunk,
   },
   attBody: { flex: 1 },
   attText: { color: t.color.text, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
@@ -746,7 +746,7 @@ const makeStyles = (t: Theme) =>
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(15,23,42,0.08)",
+    backgroundColor: t.color.surfaceSunk,
   },
   attExtText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 10 },
   attImgWrap: { padding: 0, borderRadius: 12, overflow: "hidden", borderWidth: 0 },
@@ -758,9 +758,9 @@ const makeStyles = (t: Theme) =>
     bottom: 0,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: t.color.mediaScrim,
   },
-  attImgText: { color: t.color.textOnPrimary, fontSize: 11, fontFamily: t.type.bodyStrong.fontFamily },
+  attImgText: { color: t.color.onMedia, fontSize: 11, fontFamily: t.type.bodyStrong.fontFamily },
 
   pendingCard: {
     flexDirection: "row",
@@ -774,7 +774,7 @@ const makeStyles = (t: Theme) =>
     minWidth: 180,
   },
   pendingText: { color: t.color.textOnPrimary, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
-  pendingBar: { height: 4, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 999, marginTop: 6 },
+  pendingBar: { height: 4, backgroundColor: t.color.textOnPrimaryMuted, borderRadius: 999, marginTop: 6 },
   pendingBarFill: { height: 4, backgroundColor: t.color.textOnPrimary, borderRadius: 999 },
 
   inputRow: {
@@ -819,7 +819,7 @@ const makeStyles = (t: Theme) =>
 
   viewerWrap: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.9)",
+    backgroundColor: t.color.media,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -829,7 +829,7 @@ const makeStyles = (t: Theme) =>
     position: "absolute",
     top: 40,
     right: 20,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: t.color.mediaControl,
     borderRadius: 999,
     padding: 8,
   },

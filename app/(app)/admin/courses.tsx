@@ -84,7 +84,7 @@ export default function AdminCourses() {
 
       <View style={styles.filters}>
         <View style={styles.searchWrap}>
-          <Ionicons name="search" size={16} color={theme.color.textMuted} />
+          <Ionicons name="search-outline" size={16} color={theme.color.textMuted} />
           <TextInput
             value={q}
             onChangeText={setQ}
@@ -94,7 +94,7 @@ export default function AdminCourses() {
           />
           {!!q && (
             <Pressable onPress={() => setQ("")} hitSlop={6}>
-              <Ionicons name="close" size={16} color={theme.color.textMuted} />
+              <Ionicons name="close-circle" size={16} color={theme.color.textMuted} />
             </Pressable>
           )}
         </View>

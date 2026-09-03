@@ -64,7 +64,7 @@ export default function MyLives() {
             </View>
             <Link href={`/(app)/live/${item.id}`} asChild>
               <Pressable style={styles.secondary}>
-                <Ionicons name="play" size={16} color={theme.color.text} />
+                <Ionicons name="play-outline" size={16} color={theme.color.text} />
                 <Text style={styles.secondaryText}>Ouvrir</Text>
               </Pressable>
             </Link>

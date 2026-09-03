@@ -33,7 +33,7 @@ export default function ChapterCard({ item, index, active, onPress }: Props) {
 
         {item.videoUrl ? (
           <View style={styles.playBadge}>
-            <Ionicons name="play" size={14} color={theme.color.text} />
+            <Ionicons name="play" size={14} color={theme.color.onMedia} />
           </View>
         ) : null}
       </View>
@@ -72,13 +72,13 @@ const makeStyles = (t: Theme) =>
   sub: { color: t.color.textMuted, fontSize: 12, fontFamily: t.type.body.fontFamily },
   topBadge: {
     position: "absolute", top: 8, left: 8,
-    backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2,
-    borderWidth: 1, borderColor: t.color.border
+    backgroundColor: t.color.media, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: t.color.mediaControl
   },
-  topBadgeText: { color: t.color.text, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
+  topBadgeText: { color: t.color.onMedia, fontSize: 12, fontFamily: t.type.bodyStrong.fontFamily },
   playBadge: {
     position: "absolute", right: 8, bottom: 8,
-    backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 999, padding: 6,
-    borderWidth: 1, borderColor: t.color.border
+    backgroundColor: t.color.media, borderRadius: 999, padding: 6,
+    borderWidth: 1, borderColor: t.color.mediaControl
   }
 });

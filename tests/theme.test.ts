@@ -7,10 +7,21 @@ import {
   contrastRatio,
   hexToRgb,
   meetsContrast,
+  over,
   readableInk,
   relativeLuminance,
 } from "../src/theme/contrast.ts";
 import { DARK, LIGHT, PALETTES, type Palette, type ThemeName } from "../src/theme/tokens.ts";
+
+/**
+ * Rend opaque un jeton translucide en le composant sur son fond reel.
+ * Une composition impossible est une erreur de palette, pas un cas a ignorer.
+ */
+function solid(color: string, backdrop: string): string {
+  const flat = over(color, backdrop);
+  assert.ok(flat, `composition impossible : ${color} sur ${backdrop}`);
+  return flat as string;
+}
 
 describe("hexToRgb", () => {
   it("lit les formes longues et courtes", () => {
@@ -86,6 +97,12 @@ function textPairs(p: Palette): Array<[string, string, string]> {
     ["erreur sur surface", p.danger, p.surface],
     ["succes sur surface", p.success, p.surface],
     ["encre sur surface media", p.onMedia, p.media],
+    // Les jetons media sont translucides : on les compose sur le letterbox,
+    // seul fond garanti sous eux.
+    ["encre secondaire sur media", solid(p.onMediaMuted, p.media), p.media],
+    ["encre sur voile media", p.onMedia, solid(p.mediaScrim, p.media)],
+    ["encre sur commande video", p.onMedia, solid(p.mediaControl, p.media)],
+    ["encre secondaire sur primaire", p.textOnPrimaryMuted, p.primary],
   ];
 }
 
@@ -161,6 +178,18 @@ describe("coherence des deux themes", () => {
   it("garde la surface media identique dans les deux themes", () => {
     assert.equal(LIGHT.media, DARK.media);
     assert.equal(LIGHT.onMedia, DARK.onMedia);
+  });
+
+  it("garde les commandes video perceptibles sur le letterbox", () => {
+    for (const name of THEMES) {
+      const p = PALETTES[name];
+      const ground = solid(p.mediaControl, p.media);
+      const ratio = contrastRatio(ground, p.media) as number;
+      assert.ok(
+        ratio >= 1.3,
+        `${name} : la commande video ne se detache pas (${ratio.toFixed(2)}:1)`
+      );
+    }
   });
 
   it("garde le meme sens de lecture pour les surfaces", () => {

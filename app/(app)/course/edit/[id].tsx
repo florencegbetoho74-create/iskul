@@ -19,7 +19,7 @@ import { useThemedStyles } from "@/theme/useStyles";
 import type { Theme } from "@/theme/ThemeProvider";
 import { getCourse, updateCourse, deleteCourse, addChapter, deleteChapter } from "@/storage/courses";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { uploadOne } from "@/lib/upload";
 import SelectionSheetField from "@/components/SelectionSheetField";
@@ -614,14 +614,6 @@ function GlassCard({ children }: { children: React.ReactNode }) {
   const { styles, theme } = useThemedStyles(makeStyles);
   return (
     <View style={styles.card}>
-      {/* Gradient léger non intrusif */}
-      <LinearGradient
-        colors={["rgba(125,211,252,0.04)", "rgba(96,165,250,0.02)"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
       {children}
     </View>
   );
@@ -788,8 +780,8 @@ function StatusPill({ status }: { status: ContentStatus }) {
   const tone = statusTone(theme, view.tone);
   return (
     <View style={[styles.publishPill, { borderColor: tone }]}>
-      <MaterialCommunityIcons
-        name={status === "published" ? "check-decagram" : "decagram-outline"}
+      <Ionicons
+        name={status === "published" ? "checkmark-circle" : "ellipse-outline"}
         size={16}
         color={tone}
       />
@@ -977,7 +969,7 @@ const makeStyles = (t: Theme) =>
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionIconDanger: { backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.35)" },
+  sectionIconDanger: { backgroundColor: t.color.dangerSoft, borderColor: t.color.danger },
   sectionTitle: { color: t.color.text, fontSize: 15, fontFamily: t.type.heading.fontFamily, lineHeight: 20 },
   sectionSubtitle: { color: t.color.textMuted, fontSize: 12, marginTop: 2, fontFamily: t.type.body.fontFamily, lineHeight: 16 },
   sectionBody: { marginTop: SP - 2 },
@@ -1142,7 +1134,7 @@ const makeStyles = (t: Theme) =>
     flexDirection: "row",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    borderColor: t.color.danger,
     minHeight: BTN_H,
   },
   dangerBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
