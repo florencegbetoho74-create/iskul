@@ -464,3 +464,28 @@ export function getReviewDetail(kind: string, contentId: string) {
     p_content_id: contentId,
   });
 }
+
+/**
+ * Ouvre un contenu pour le moderer, publie ou renvoye.
+ *
+ * Plus large que `getReviewDetail`, qui ne rend que ce qui attend une
+ * decision. Le brouillon reste exclu des deux : tant qu'un professeur n'a rien
+ * soumis, son travail ne regarde que lui.
+ */
+export function getContentDetail(kind: string, contentId: string) {
+  return rpc<ReviewDetail & { published?: boolean; hasSource?: boolean; hasContent?: boolean }>(
+    "admin_content_detail",
+    { p_kind: kind, p_content_id: contentId }
+  );
+}
+
+/**
+ * Lance le traitement d'un document depose.
+ *
+ * Le depot ne declenche plus rien : chaque extraction coute un appel facture,
+ * et l'equipe bibliotheque choisit ce qui merite d'etre traite. La console ne
+ * connait pas l'adresse du fichier -- le serveur la relit.
+ */
+export function requestIngestionForBook(bookId: string) {
+  return rpc<string>("admin_request_ingestion", { p_book_id: bookId });
+}

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { getReviewDetail, type ReviewDetail as Detail, type ReviewQuestion } from "../../../lib/admin";
+import {
+  getContentDetail,
+  getReviewDetail,
+  type ReviewDetail as Detail,
+  type ReviewQuestion,
+} from "../../../lib/admin";
 import VideoSource from "../../../components/admin/VideoSource";
 
 const LANG_LABEL: Record<string, string> = {
@@ -17,7 +22,16 @@ const LANG_LABEL: Record<string, string> = {
  * pas la qualité d'un cours sur sa fiche : les vidéos se regardent, les
  * questions se lisent avec leurs bonnes réponses, le document se parcourt.
  */
-export default function ReviewDetail({ kind, id }: { kind: string; id: string }) {
+export default function ReviewDetail({
+  kind,
+  id,
+  /** `moderation` ouvre aussi le publie et le renvoye, pas seulement l'attente. */
+  mode = "review",
+}: {
+  kind: string;
+  id: string;
+  mode?: "review" | "moderation";
+}) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<Record<string, string>>({});
@@ -26,13 +40,14 @@ export default function ReviewDetail({ kind, id }: { kind: string; id: string })
     let alive = true;
     setDetail(null);
     setError(null);
-    void getReviewDetail(kind, id)
+    const load = mode === "moderation" ? getContentDetail : getReviewDetail;
+    void load(kind, id)
       .then((d) => alive && setDetail(d))
       .catch((e) => alive && setError(e instanceof Error ? e.message : "Lecture impossible."));
     return () => {
       alive = false;
     };
-  }, [kind, id]);
+  }, [kind, id, mode]);
 
   if (error) {
     return (

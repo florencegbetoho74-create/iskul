@@ -507,6 +507,13 @@
     position: sticky;
     top: 0;
     inset: auto;
+    /*
+     * `align-self: start` est ce qui fait tenir la barre. Un element de grille
+     * est etire par defaut : il occupe deja toute la hauteur de la ligne, et
+     * `position: sticky` n'a alors aucune marge pour epingler quoi que ce soit
+     * -- la barre defilait avec la page.
+     */
+    align-self: start;
     height: 100dvh;
     width: auto;
     transform: none;
@@ -532,4 +539,84 @@
   .col-secondary {
     display: table-cell;
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Examen d'un contenu publie                                                 */
+/* -------------------------------------------------------------------------- */
+/* Le titre devient la commande : c'est ce qu'on vise pour examiner une ligne,
+   plutot qu'un bouton de plus a droite. */
+.cell-open {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cell-open:hover strong {
+  color: var(--primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.cell-open-hint {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.cell-open:hover .cell-open-hint,
+.cell-open:focus-visible .cell-open-hint,
+.cell-open[aria-expanded="true"] .cell-open-hint {
+  opacity: 1;
+}
+
+.content-panel {
+  margin-top: var(--s-4);
+}
+
+.content-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.content-panel-head h3 {
+  font-size: 1.02rem;
+}
+
+.doc-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  background: var(--surface-sunk);
+  border-radius: var(--radius-md);
+}
+
+.doc-actions h4 {
+  font-size: 0.86rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.doc-actions p {
+  max-width: 70ch;
+  font-size: var(--fs-sm);
 }

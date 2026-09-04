@@ -15,6 +15,8 @@ import {
   type AdminQuiz,
 } from "../../../lib/admin";
 import DataTable, { relativeTime, shortDate, type Column } from "../../../components/admin/DataTable";
+import ReviewDetail from "./ReviewDetail";
+import DocumentActions from "./DocumentActions";
 import SearchBar from "../../../components/admin/SearchBar";
 
 type Kind = "courses" | "books" | "quizzes" | "lives";
@@ -51,6 +53,8 @@ export default function ContentSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Un contenu ouvert a la fois : moderer, c'est examiner une chose.
+  const [opened, setOpened] = useState<string | null>(null);
 
   const load = useCallback(async (which: Kind, term: string) => {
     setLoading(true);
@@ -132,16 +136,35 @@ export default function ContentSection() {
     },
   };
 
+  // Les seances ne portent pas de contenu a examiner : elles ont lieu, ou pas.
+  const openable = kind !== "lives";
+
   const baseColumns: Column<Row>[] = [
     {
       key: "title",
       header: "Titre",
-      render: (row) => (
-        <div className="cell-identity">
-          <strong>{row.title || "Sans titre"}</strong>
-          <small>{row.owner_name || "Auteur inconnu"}</small>
-        </div>
-      ),
+      render: (row) =>
+        openable ? (
+          <button
+            type="button"
+            className="cell-open"
+            aria-expanded={opened === row.id}
+            onClick={() => setOpened(opened === row.id ? null : row.id)}
+          >
+            <span className="cell-identity">
+              <strong>{row.title || "Sans titre"}</strong>
+              <small>{row.owner_name || "Auteur inconnu"}</small>
+            </span>
+            <span className="cell-open-hint">
+              {opened === row.id ? "Fermer" : "Examiner"}
+            </span>
+          </button>
+        ) : (
+          <div className="cell-identity">
+            <strong>{row.title || "Sans titre"}</strong>
+            <small>{row.owner_name || "Auteur inconnu"}</small>
+          </div>
+        ),
     },
   ];
 
@@ -251,6 +274,30 @@ export default function ContentSection() {
             : "Aucun contenu de ce type pour le moment."
         }
       />
+
+      {/*
+        Le contenu s'ouvre sous la liste plutot que dans une fenetre modale :
+        le moderateur garde sous les yeux la ligne qu'il examine, et peut
+        depublier sans avoir referme.
+      */}
+      {opened && openable ? (
+        <section className="card content-panel">
+          <header className="content-panel-head">
+            <h3>{rows.find((row) => row.id === opened)?.title || "Contenu"}</h3>
+            <button type="button" className="btn ghost small" onClick={() => setOpened(null)}>
+              Fermer
+            </button>
+          </header>
+
+          {kind === "books" ? <DocumentActions bookId={opened} /> : null}
+
+          <ReviewDetail
+            mode="moderation"
+            kind={kind === "courses" ? "course" : kind === "books" ? "book" : "quiz"}
+            id={opened}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }
