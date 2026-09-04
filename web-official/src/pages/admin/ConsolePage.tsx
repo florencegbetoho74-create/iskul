@@ -9,23 +9,36 @@ import UsersSection from "./sections/UsersSection";
 import ContentSection from "./sections/ContentSection";
 import ThreadsSection from "./sections/ThreadsSection";
 import SettingsSection from "./sections/SettingsSection";
+import IngestionSection from "./sections/IngestionSection";
 
-type SectionKey = "overview" | "review" | "content" | "users" | "threads" | "settings";
+type SectionKey =
+  | "overview"
+  | "review"
+  | "ingestion"
+  | "content"
+  | "users"
+  | "threads"
+  | "settings";
 
 type Access = "checking" | "anonymous" | "denied" | "reviewer" | "admin";
 
 const SECTIONS: { key: SectionKey; label: string; hint: string; reviewerOk?: boolean }[] = [
-  { key: "overview", label: "Vue d'ensemble", hint: "L'etat de la plateforme en un coup d'oeil" },
+  { key: "overview", label: "Vue d'ensemble", hint: "L'état de la plateforme en un coup d'œil" },
   {
     key: "review",
     label: "Relecture",
-    hint: "Les contenus en attente d'une decision",
+    hint: "Les contenus en attente d'une décision",
     reviewerOk: true,
   },
-  { key: "content", label: "Contenus", hint: "Cours, documents, quiz et seances" },
+  {
+    key: "ingestion",
+    label: "Traitements",
+    hint: "Les PDF déposés, et ceux qui ont échoué",
+  },
+  { key: "content", label: "Contenus", hint: "Cours, documents, quiz et séances" },
   { key: "users", label: "Comptes", hint: "Rôles, droits et activité" },
-  { key: "threads", label: "Conversations", hint: "Les echanges entre professeurs et eleves" },
-  { key: "settings", label: "Reglages", hint: "Portail professeur et etat technique" },
+  { key: "threads", label: "Conversations", hint: "Les échanges entre professeurs et élèves" },
+  { key: "settings", label: "Réglages", hint: "Portail professeur et état technique" },
 ];
 
 /**
@@ -117,7 +130,7 @@ export default function ConsolePage() {
           compte disposant des droits.
         </p>
         <Link className="btn primary" to="/espace-professeur">
-          Aller a la connexion
+          Aller à la connexion
         </Link>
       </div>
     );
@@ -201,6 +214,7 @@ export default function ConsolePage() {
         <div className="console-body">
           {section === "overview" ? <OverviewSection /> : null}
           {section === "review" ? <ReviewSection /> : null}
+          {section === "ingestion" ? <IngestionSection /> : null}
           {section === "content" ? <ContentSection /> : null}
           {section === "users" ? <UsersSection /> : null}
           {section === "threads" ? <ThreadsSection /> : null}

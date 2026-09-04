@@ -495,3 +495,57 @@
   padding-top: var(--s-3);
   border-top: 1px solid var(--line);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Chaine de traitement                                                       */
+/* -------------------------------------------------------------------------- */
+.console-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chip-btn {
+  padding: var(--s-2) var(--s-4);
+  min-height: 36px;
+  border: 1px solid var(--line-interactive);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.chip-btn:hover {
+  border-color: var(--primary);
+}
+
+.chip-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+/* Un motif d'echec se lit en entier ou ne sert a rien : il ne se tronque pas. */
+.cell-error {
+  display: block;
+  max-width: 46ch;
+  white-space: normal;
+  color: var(--danger);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.console-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+}
+
+@media (min-width: 720px) {
+  .console-settings-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

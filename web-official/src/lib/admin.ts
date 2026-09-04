@@ -20,10 +20,16 @@ async function rpc<T>(name: string, args?: Record<string, unknown>): Promise<T> 
 
 /** Les codes leves par les procedures deviennent des phrases lisibles. */
 function translate(raw: string): string {
-  if (raw.includes("admin_only")) return "Cette action est reservee aux administrateurs.";
-  if (raw.includes("reviewer_only")) return "Cette action est reservee aux relecteurs.";
-  if (raw.includes("auth_required")) return "Votre session a expire. Reconnectez-vous.";
-  if (raw.includes("JWT") || raw.includes("401")) return "Votre session a expire. Reconnectez-vous.";
+  if (raw.includes("admin_only")) return "Cette action est réservée aux administrateurs.";
+  if (raw.includes("reviewer_only")) return "Cette action est réservée aux relecteurs.";
+  if (raw.includes("auth_required")) return "Votre session a expiré. Reconnectez-vous.";
+  if (raw.includes("JWT") || raw.includes("401")) return "Votre session a expiré. Reconnectez-vous.";
+  if (raw.includes("traitement_deja_en_cours"))
+    return "Un traitement est déjà en cours sur ce document.";
+  if (raw.includes("source_manquante"))
+    return "Aucun fichier source n'est attaché à ce document.";
+  if (raw.includes("limite_negative")) return "Une limite ne peut pas être négative.";
+  if (raw.includes("pages_minimum")) return "Le nombre de pages doit valoir au moins 1.";
   return raw;
 }
 
@@ -317,4 +323,78 @@ export function listStaffRoles() {
 
 export function setStaffRoles(userId: string, roles: StaffRole[]) {
   return rpc<StaffRole[]>("admin_set_staff_roles", { p_user_id: userId, p_roles: roles });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Chaine de traitement des documents                                         */
+/* -------------------------------------------------------------------------- */
+
+export type IngestionHealth = {
+  queued: number;
+  running: number;
+  failed: number;
+  done: number;
+  oldestQueuedMs: number | null;
+  inputTokens: number;
+  outputTokens: number;
+};
+
+export type IngestionJob = {
+  id: string;
+  book_id: string;
+  book_title: string | null;
+  state: "queued" | "running" | "done" | "failed";
+  requested_by: string;
+  requester_name: string | null;
+  page_count: number | null;
+  block_count: number | null;
+  figure_count: number | null;
+  error: string | null;
+  attempts: number;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  created_at_ms: number | null;
+  finished_at_ms: number | null;
+};
+
+export function getIngestionHealth() {
+  return rpc<IngestionHealth>("admin_ingestion_health");
+}
+
+/**
+ * Le journal des traitements, sans l'adresse du PDF d'origine.
+ *
+ * Celle-ci n'est pas filtrée ici : la procédure ne la rend pas. Un filtrage
+ * côté client n'aurait rien protégé, la réponse étant déjà passée par le
+ * navigateur.
+ */
+export function listIngestions(state?: IngestionJob["state"], limit = 100) {
+  return rpc<IngestionJob[]>("admin_list_ingestions", {
+    p_state: state ?? null,
+    p_limit: limit,
+  });
+}
+
+/** Relance une extraction échouée. La source est relue côté serveur. */
+export function retryIngestion(bookId: string) {
+  return rpc<string>("retry_document_ingestion", { p_book_id: bookId });
+}
+
+export type IngestionSettings = {
+  dailyLimit: number;
+  reviewerDailyLimit: number;
+  maxPages: number;
+};
+
+export function getIngestionSettings() {
+  return rpc<IngestionSettings>("admin_get_ingestion_settings");
+}
+
+export function updateIngestionSettings(next: IngestionSettings) {
+  return rpc<IngestionSettings>("admin_update_ingestion_settings", {
+    p_daily_limit: next.dailyLimit,
+    p_reviewer_daily_limit: next.reviewerDailyLimit,
+    p_max_pages: next.maxPages,
+  });
 }
