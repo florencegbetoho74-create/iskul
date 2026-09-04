@@ -227,12 +227,14 @@
 .page-wrap {
   padding: 34px 0 70px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   animation: rise-up 0.56s ease both;
 }
 
 .page-head {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -253,6 +255,7 @@
   padding: 16px;
   box-shadow: var(--shadow-sm);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 9px;
 }
 

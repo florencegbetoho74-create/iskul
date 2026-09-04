@@ -348,6 +348,7 @@
 
 .shell-footer-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-6);
   padding-block: var(--s-7) var(--s-5);
 }
