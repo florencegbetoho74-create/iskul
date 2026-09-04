@@ -22,6 +22,9 @@ async function rpc<T>(name: string, args?: Record<string, unknown>): Promise<T> 
 function translate(raw: string): string {
   if (raw.includes("admin_only")) return "Cette action est réservée aux administrateurs.";
   if (raw.includes("reviewer_only")) return "Cette action est réservée aux relecteurs.";
+  if (raw.includes("contenu_introuvable"))
+    return "Ce contenu n'attend plus de décision : il a déjà été traité.";
+  if (raw.includes("type_inconnu")) return "Type de contenu inconnu.";
   if (raw.includes("auth_required")) return "Votre session a expiré. Reconnectez-vous.";
   if (raw.includes("JWT") || raw.includes("401")) return "Votre session a expiré. Reconnectez-vous.";
   if (raw.includes("traitement_deja_en_cours"))
@@ -396,5 +399,68 @@ export function updateIngestionSettings(next: IngestionSettings) {
     p_daily_limit: next.dailyLimit,
     p_reviewer_daily_limit: next.reviewerDailyLimit,
     p_max_pages: next.maxPages,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Le contenu qu'on demande de juger                                          */
+/* -------------------------------------------------------------------------- */
+
+export type ReviewChapter = {
+  id: string;
+  title: string | null;
+  orderIndex: number | null;
+  videoUrl: string | null;
+  videoByLang: Record<string, string> | null;
+};
+
+export type ReviewQuestion = {
+  prompt?: string;
+  question?: string;
+  options?: string[];
+  choices?: string[];
+  answerIndex?: number;
+  correctIndex?: number;
+  explanation?: string;
+};
+
+export type ReviewDetail = {
+  kind: "course" | "book" | "quiz";
+  id: string;
+  title: string | null;
+  description?: string | null;
+  level?: string | null;
+  subject?: string | null;
+  coverUrl?: string | null;
+  ownerName?: string | null;
+  status?: string | null;
+  updatedAtMs?: number | null;
+  /** Cours */
+  chapters?: ReviewChapter[];
+  /** Document */
+  content?: unknown;
+  reference?: unknown;
+  author?: string | null;
+  series?: string | null;
+  examName?: string | null;
+  examYear?: number | null;
+  examSession?: string | null;
+  /** Quiz -- bonnes reponses comprises. */
+  questions?: ReviewQuestion[];
+  courseId?: string | null;
+  chapterId?: string | null;
+};
+
+/**
+ * Rassemble en un appel ce que le relecteur doit avoir sous les yeux.
+ *
+ * La procedure refuse un type que le compte n'a pas le droit de juger, et ne
+ * rend que du contenu effectivement soumis : un brouillon ne regarde que son
+ * auteur.
+ */
+export function getReviewDetail(kind: string, contentId: string) {
+  return rpc<ReviewDetail>("review_content_detail", {
+    p_kind: kind,
+    p_content_id: contentId,
   });
 }

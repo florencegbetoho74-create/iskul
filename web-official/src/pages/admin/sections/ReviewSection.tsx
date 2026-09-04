@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getReviewQueue, reviewContent, type ReviewItem } from "../../../lib/admin";
 import { relativeTime } from "../../../components/admin/DataTable";
+import ReviewDetail from "./ReviewDetail";
 
 const KIND_LABEL: Record<string, string> = {
   course: "Cours",
@@ -23,6 +24,9 @@ export default function ReviewSection() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
+  // Le contenu ne se charge qu'a l'ouverture : la file peut etre longue, et
+  // charger cinquante cours pour en juger un serait absurde.
+  const [opened, setOpened] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
   const load = useCallback(async () => {
@@ -116,6 +120,19 @@ export default function ReviewSection() {
               </div>
             </div>
 
+            <div className="review-actions">
+              <button
+                type="button"
+                className="btn ghost small"
+                aria-expanded={opened === key}
+                onClick={() => setOpened(opened === key ? null : key)}
+              >
+                {opened === key ? "Masquer le contenu" : "Voir le contenu"}
+              </button>
+            </div>
+
+            {opened === key ? <ReviewDetail kind={item.content_kind} id={item.content_id} /> : null}
+
             {isRejecting ? (
               <div className="field">
                 <label htmlFor={`note-${key}`}>Ce qui doit être corrigé</label>
@@ -173,7 +190,12 @@ export default function ReviewSection() {
                   <button
                     type="button"
                     className="btn primary"
-                    disabled={busy}
+                    disabled={busy || opened !== key}
+                    title={
+                      opened === key
+                        ? undefined
+                        : "Ouvrez le contenu avant de le publier."
+                    }
                     onClick={() => void decide(item, "approve")}
                   >
                     {busy ? "Publication…" : "Publier"}
