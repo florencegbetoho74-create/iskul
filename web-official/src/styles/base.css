@@ -11,6 +11,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  /*
+   * Rien ne doit pouvoir faire defiler la page lateralement. `clip` plutot que
+   * `hidden` : `hidden` transforme la racine en conteneur de defilement et
+   * casse `position: sticky` de l'en-tete.
+   */
+  overflow-x: clip;
   /* Une ancre ne doit pas se retrouver sous l'en-tete colle en haut. */
   scroll-padding-top: calc(var(--header-h) + var(--s-4));
 }
