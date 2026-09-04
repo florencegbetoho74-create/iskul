@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { getReviewDetail, type ReviewDetail as Detail, type ReviewQuestion } from "../../../lib/admin";
+import VideoSource from "../../../components/admin/VideoSource";
 
 const LANG_LABEL: Record<string, string> = {
   fon: "Fon",
@@ -99,15 +100,7 @@ export default function ReviewDetail({ kind, id }: { kind: string; id: string })
                 </div>
               ) : null}
 
-              {source ? (
-                /* Le lecteur natif suffit : la console n'a pas besoin du lecteur
-                   de l'application, elle a besoin de montrer la video. */
-                <video className="review-video" src={source} controls preload="metadata" />
-              ) : (
-                <p className="cell-error">
-                  Aucune vidéo sur ce chapitre. Un élève ouvrirait une page vide.
-                </p>
-              )}
+              <VideoSource url={source} />
             </article>
           );
         })}

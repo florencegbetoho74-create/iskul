@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { Link } from "react-router-dom";
 
 import { supabase } from "../../lib/supabase";
+import { getIngestionHealth, getReviewQueue, listUnclassified } from "../../lib/admin";
 import OverviewSection from "./sections/OverviewSection";
 import ReviewSection from "./sections/ReviewSection";
 import UsersSection from "./sections/UsersSection";
@@ -57,6 +58,36 @@ export default function ConsolePage() {
   const [access, setAccess] = useState<Access>("checking");
   const [section, setSection] = useState<SectionKey>("overview");
   const [navOpen, setNavOpen] = useState(false);
+
+  /*
+   * Une console de supervision doit dire ou ca coince avant qu'on la fouille.
+   * Trois nombres suffisent : ce qui attend une decision, ce qui a echoue, et
+   * ce qui est en ligne sans etre rattache au programme.
+   */
+  const [attention, setAttention] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (access !== "admin" && access !== "reviewer") return;
+    let alive = true;
+
+    void (async () => {
+      const [queue, ingest, orphans] = await Promise.all([
+        getReviewQueue().catch(() => []),
+        access === "admin" ? getIngestionHealth().catch(() => null) : Promise.resolve(null),
+        access === "admin" ? listUnclassified().catch(() => []) : Promise.resolve([]),
+      ]);
+      if (!alive) return;
+      setAttention({
+        review: queue.length,
+        ingestion: ingest?.failed ?? 0,
+        overview: orphans.length,
+      });
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [access]);
 
   useEffect(() => {
     let alive = true;
@@ -178,7 +209,12 @@ export default function ConsolePage() {
                 setNavOpen(false);
               }}
             >
-              <span>{item.label}</span>
+              <span className="console-nav-label">
+                {item.label}
+                {attention[item.key] ? (
+                  <span className="console-nav-count">{attention[item.key]}</span>
+                ) : null}
+              </span>
               <small>{item.hint}</small>
             </button>
           ))}

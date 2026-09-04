@@ -5,6 +5,7 @@
 @import "./styles/motion.css";
 @import "./styles/shell.css";
 @import "./styles/page.css";
+@import "./styles/admin-shell.css";
 @import "./styles/admin.css";
 
 * {
