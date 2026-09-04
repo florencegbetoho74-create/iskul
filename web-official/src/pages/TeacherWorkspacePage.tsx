@@ -3,6 +3,19 @@ import type { Session } from "@supabase/supabase-js";
 import { Link } from "react-router-dom";
 
 import { supabase } from "../lib/supabase";
+import {
+  DEFAULT_CONTENT_COUNTRY,
+  LOCAL_LANGUAGES,
+  checkVideoUrl,
+  cleanVideoByLang,
+  isDirectMediaUrl,
+  listGradeLevels,
+  listSubjects,
+  readVideoByLang,
+  type GradeLevel,
+  type Subject,
+  type VideoByLang,
+} from "../lib/referentials";
 
 type TabKey = "overview" | "courses" | "books" | "lives" | "quizzes";
 type QuizScope = "standalone" | "lesson";
@@ -22,6 +35,8 @@ type CourseRow = {
   description: string | null;
   level: string;
   subject: string;
+  grade_level_id: string | null;
+  subject_id: string | null;
   cover_url: string | null;
   published: boolean;
   owner_id: string;
@@ -35,6 +50,7 @@ type ChapterRow = {
   title: string;
   order_index: number;
   video_url: string | null;
+  video_by_lang: Record<string, string> | null;
   updated_at_ms: number | null;
 };
 
@@ -141,8 +157,11 @@ type PeriodDays = 7 | 30 | 90;
 type CourseForm = {
   id: string | null;
   title: string;
+  /** Libelles derives du referentiel, conserves pour les colonnes non nulles. */
   level: string;
   subject: string;
+  gradeLevelId: string;
+  subjectId: string;
   description: string;
   coverUrl: string;
   published: boolean;
@@ -153,6 +172,7 @@ type ChapterForm = {
   title: string;
   order: string;
   videoUrl: string;
+  videoByLang: VideoByLang;
 };
 
 type BookForm = {
@@ -217,6 +237,8 @@ const EMPTY_OVERVIEW: OverviewMetrics = {
 };
 
 const EMPTY_COURSE_FORM: CourseForm = {
+  gradeLevelId: "",
+  subjectId: "",
   id: null,
   title: "",
   level: "",
@@ -227,6 +249,7 @@ const EMPTY_COURSE_FORM: CourseForm = {
 };
 
 const EMPTY_CHAPTER_FORM: ChapterForm = {
+  videoByLang: {},
   id: null,
   title: "",
   order: "",
@@ -476,6 +499,8 @@ export default function TeacherWorkspacePage() {
   const [loginPassword, setLoginPassword] = useState("");
 
   const [notice, setNotice] = useState<Notice>(null);
+  const [gradeLevels, setGradeLevels] = useState<GradeLevel[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [tab, setTab] = useState<TabKey>("overview");
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -694,7 +719,7 @@ export default function TeacherWorkspacePage() {
         supabase.from("profiles").select("id,name,role,school,email,is_admin").eq("id", userId).maybeSingle(),
         supabase
           .from("courses")
-          .select("id,title,description,level,subject,cover_url,published,owner_id,owner_name,updated_at_ms")
+          .select("id,title,description,level,subject,grade_level_id,subject_id,cover_url,published,owner_id,owner_name,updated_at_ms")
           .eq("owner_id", userId)
           .order("updated_at_ms", { ascending: false }),
         supabase
@@ -765,7 +790,7 @@ export default function TeacherWorkspacePage() {
       if (nextCourseIds.length) {
         const chaptersRes = await supabase
           .from("chapters")
-          .select("id,course_id,title,order_index,video_url,updated_at_ms")
+          .select("id,course_id,title,order_index,video_url,video_by_lang,updated_at_ms")
           .in("course_id", nextCourseIds)
           .order("order_index", { ascending: true });
         if (chaptersRes.error) throw chaptersRes.error;
@@ -789,6 +814,30 @@ export default function TeacherWorkspacePage() {
     }
   }, [analyticsDays, loadTeacherAnalytics, selectedCourseId, userId]);
 
+  // Le referentiel est charge une fois : il change au rythme des reformes
+  // scolaires, pas des visites. Son echec n'empeche pas le reste de l'espace
+  // de fonctionner, mais l'enregistrement d'un cours restera refuse.
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const [levels, matters] = await Promise.all([listGradeLevels(), listSubjects()]);
+        if (!active) return;
+        setGradeLevels(levels);
+        setSubjects(matters);
+      } catch {
+        if (active) {
+          setNotice({
+            kind: "error",
+            text: "Le programme scolaire n'a pas pu etre charge. Rechargez la page avant de creer un cours.",
+          });
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     let alive = true;
 
@@ -907,15 +956,30 @@ export default function TeacherWorkspacePage() {
 
   const handleCourseSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!courseForm.title.trim() || !courseForm.level.trim() || !courseForm.subject.trim()) {
-      setNotice({ kind: "error", text: "Titre, niveau et matiere sont obligatoires." });
+    if (!courseForm.title.trim()) {
+      setNotice({ kind: "error", text: "Le titre du cours est obligatoire." });
+      return;
+    }
+    // Sans classe ni matiere du referentiel, le cours n'apparaitrait dans la
+    // portee d'aucun eleve : l'enregistrement est refuse plutot que de creer
+    // un cours introuvable.
+    if (!courseForm.gradeLevelId || !courseForm.subjectId) {
+      setNotice({ kind: "error", text: "Choisissez la classe et la matiere." });
       return;
     }
 
+    const grade = gradeLevels.find((item) => item.id === courseForm.gradeLevelId);
+    const subject = subjects.find((item) => item.id === courseForm.subjectId);
+
     const payload = {
       title: courseForm.title.trim(),
-      level: courseForm.level.trim(),
-      subject: courseForm.subject.trim(),
+      // level et subject sont derives du referentiel par un declencheur : on
+      // les envoie quand meme pour satisfaire les colonnes non nulles.
+      level: grade?.code || courseForm.level.trim(),
+      subject: subject?.label || courseForm.subject.trim(),
+      country_code: DEFAULT_CONTENT_COUNTRY,
+      grade_level_id: courseForm.gradeLevelId,
+      subject_id: courseForm.subjectId,
       description: courseForm.description.trim() || null,
       cover_url: courseForm.coverUrl.trim() || null,
       owner_id: userId,
@@ -958,11 +1022,23 @@ export default function TeacherWorkspacePage() {
         ? Math.floor(parsedOrder)
         : Math.max(0, ...chapterRows.map((chapter) => safeNumber(chapter.order_index))) + 1;
 
+    const byLang = cleanVideoByLang(chapterForm.videoByLang);
+    const allUrls = [chapterForm.videoUrl, ...Object.values(byLang || {})]
+      .map((value) => (value || "").trim())
+      .filter(Boolean);
+
+    const refused = allUrls.map(checkVideoUrl).find((check) => !check.ok);
+    if (refused) {
+      setNotice({ kind: "error", text: refused.reason || "Lien video refuse." });
+      return;
+    }
+
     const payload = {
       course_id: selectedCourseId,
       title: chapterForm.title.trim(),
       order_index: nextOrder,
       video_url: chapterForm.videoUrl.trim() || null,
+      video_by_lang: byLang,
       updated_at_ms: Date.now(),
     };
 
@@ -1203,6 +1279,8 @@ export default function TeacherWorkspacePage() {
       title: course.title,
       level: course.level,
       subject: course.subject,
+      gradeLevelId: course.grade_level_id || "",
+      subjectId: course.subject_id || "",
       description: course.description || "",
       coverUrl: course.cover_url || "",
       published: course.published,
@@ -1217,6 +1295,7 @@ export default function TeacherWorkspacePage() {
       title: chapter.title,
       order: String(chapter.order_index),
       videoUrl: chapter.video_url || "",
+      videoByLang: readVideoByLang(chapter.video_by_lang),
     });
     setTab("courses");
   };
@@ -1626,11 +1705,27 @@ export default function TeacherWorkspacePage() {
                 <label className="teacher-field">Titre
                   <input value={courseForm.title} onChange={(event) => setCourseForm((prev) => ({ ...prev, title: event.target.value }))} />
                 </label>
-                <label className="teacher-field">Niveau
-                  <input value={courseForm.level} onChange={(event) => setCourseForm((prev) => ({ ...prev, level: event.target.value }))} />
+                <label className="teacher-field">Classe
+                  <select
+                    value={courseForm.gradeLevelId}
+                    onChange={(event) => setCourseForm((prev) => ({ ...prev, gradeLevelId: event.target.value }))}
+                  >
+                    <option value="">Choisir une classe</option>
+                    {gradeLevels.map((item) => (
+                      <option key={item.id} value={item.id}>{item.label}</option>
+                    ))}
+                  </select>
                 </label>
                 <label className="teacher-field">Matiere
-                  <input value={courseForm.subject} onChange={(event) => setCourseForm((prev) => ({ ...prev, subject: event.target.value }))} />
+                  <select
+                    value={courseForm.subjectId}
+                    onChange={(event) => setCourseForm((prev) => ({ ...prev, subjectId: event.target.value }))}
+                  >
+                    <option value="">Choisir une matiere</option>
+                    {subjects.map((item) => (
+                      <option key={item.id} value={item.id}>{item.label}</option>
+                    ))}
+                  </select>
                 </label>
                 <label className="teacher-field teacher-field-wide">Description
                   <textarea rows={3} value={courseForm.description} onChange={(event) => setCourseForm((prev) => ({ ...prev, description: event.target.value }))} />
@@ -1711,9 +1806,42 @@ export default function TeacherWorkspacePage() {
               <label className="teacher-field">Ordre
                 <input type="number" min="1" value={chapterForm.order} onChange={(event) => setChapterForm((prev) => ({ ...prev, order: event.target.value }))} />
               </label>
-              <label className="teacher-field">URL video (optionnel)
-                <input value={chapterForm.videoUrl} onChange={(event) => setChapterForm((prev) => ({ ...prev, videoUrl: event.target.value }))} placeholder="https://..." />
+              <label className="teacher-field">Video en francais
+                <input
+                  value={chapterForm.videoUrl}
+                  onChange={(event) => setChapterForm((prev) => ({ ...prev, videoUrl: event.target.value }))}
+                  placeholder="https://... (.mp4, .m3u8, .mpd)"
+                />
+                {chapterForm.videoUrl.trim() &&
+                /^https?:\/\//i.test(chapterForm.videoUrl.trim()) &&
+                !isDirectMediaUrl(chapterForm.videoUrl.trim()) ? (
+                  <small className="teacher-field-warning">
+                    Ce lien ne ressemble pas a un flux direct : il s'ouvrira hors de l'application
+                    au lieu d'etre lu dans le lecteur.
+                  </small>
+                ) : null}
               </label>
+
+              {/* La lecon en langue locale est la raison d'etre d'iSkul : le web
+                  ne pouvait pas la renseigner, l'application si. */}
+              <fieldset className="teacher-field teacher-field-wide teacher-langs">
+                <legend>Versions en langue locale (optionnel)</legend>
+                {LOCAL_LANGUAGES.map((lang) => (
+                  <label key={lang.key} className="teacher-lang-row">
+                    <span>{lang.label}</span>
+                    <input
+                      value={chapterForm.videoByLang[lang.key] || ""}
+                      onChange={(event) =>
+                        setChapterForm((prev) => ({
+                          ...prev,
+                          videoByLang: { ...prev.videoByLang, [lang.key]: event.target.value },
+                        }))
+                      }
+                      placeholder="https://..."
+                    />
+                  </label>
+                ))}
+              </fieldset>
               <div className="teacher-inline-actions">
                 {chapterForm.id ? (<button className="btn ghost" type="button" onClick={() => setChapterForm(EMPTY_CHAPTER_FORM)} disabled={busy}>Annuler</button>) : null}
                 <button className="btn primary" type="submit" disabled={busy}>{chapterForm.id ? "Mettre a jour chapitre" : "Ajouter chapitre"}</button>

@@ -2885,3 +2885,51 @@ button:focus-visible {
 .teacher-line-chart.score polyline {
   stroke: var(--ok-500);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Espace professeur : champs ajoutes a la mise a niveau                      */
+/* -------------------------------------------------------------------------- */
+.teacher-field-warning {
+  display: block;
+  margin-top: var(--s-2);
+  color: var(--warning);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+/* Les quatre langues locales tiennent dans un cadre a part : melangees aux
+   autres champs, elles doubleraient la hauteur du formulaire pour une saisie
+   qui reste facultative. */
+.teacher-langs {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.teacher-langs legend {
+  padding-inline: var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.teacher-lang-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .teacher-lang-row {
+    grid-template-columns: 1fr;
+    gap: var(--s-2);
+  }
+}
