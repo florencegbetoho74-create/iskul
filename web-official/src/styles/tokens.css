@@ -1,0 +1,254 @@
+/*
+ * Jetons de l'identite iSkul sur le web.
+ *
+ * Les valeurs sont celles de src/theme/tokens.ts cote application : les deux
+ * produits partagent une identite, pas deux bleus voisins. Toute correction de
+ * contraste faite d'un cote doit etre reportee de l'autre.
+ *
+ * Les noms de roles repris de l'ancienne feuille -- --primary, --bg, --text,
+ * --muted, --line -- sont conserves : le site entier bascule au bleu sans
+ * attendre que chaque page soit reprise.
+ */
+
+:root {
+  /* --- Echelles brutes. Ne pas utiliser directement : passer par les roles. */
+  --blue-50: #eef3ff;
+  --blue-100: #dce5ff;
+  --blue-200: #bacbff;
+  --blue-300: #8ea8ff;
+  --blue-400: #6182ff;
+  --blue-500: #2f5bff;
+  --blue-600: #1f42d6;
+  --blue-700: #1833a8;
+  --blue-800: #132880;
+  --blue-900: #0e1c59;
+
+  /* Neutres legerement bleutes : un gris pur jurerait a cote du bleu. */
+  --n-0: #ffffff;
+  --n-50: #f6f8fc;
+  --n-100: #edf1f8;
+  --n-200: #dde4ef;
+  --n-300: #c2ccdc;
+  --n-400: #93a0b5;
+  --n-500: #6b7889;
+  --n-600: #515c6e;
+  --n-700: #3a4354;
+  --n-800: #222a38;
+  --n-900: #0b1220;
+
+  --ok-50: #e6f6ec;
+  --ok-100: #c6ebd4;
+  --ok-500: #16a34a;
+  --ok-600: #12833c;
+  --ok-700: #0d6630;
+  --amber-50: #fdf3e2;
+  --amber-100: #fae3bc;
+  --amber-500: #b45309;
+  --amber-600: #96450a;
+  --amber-700: #7a3a09;
+  --red-50: #fdebeb;
+  --red-100: #f9cfcf;
+  --red-500: #dc2626;
+  --red-600: #b91c1c;
+  --red-700: #991b1b;
+
+  /* --- Roles. */
+  --bg: var(--n-50);
+  --surface: var(--n-0);
+  --surface-raised: var(--n-0);
+  --surface-soft: var(--n-100);
+  --surface-sunk: var(--n-100);
+
+  --text: var(--n-900);
+  --muted: var(--n-600);
+  --faint: var(--n-500);
+  --on-primary: var(--n-0);
+
+  --line: var(--n-200);
+  --line-strong: var(--n-300);
+  /* Tient 3:1 sur la surface blanche comme sur le fond bas : c'est ce trait
+     qui identifie un champ de saisie, il ne peut pas etre decoratif. */
+  --line-interactive: #78859a;
+
+  --primary: var(--blue-500);
+  --primary-strong: var(--blue-600);
+  --primary-soft: var(--blue-50);
+  --primary-ink: var(--blue-700);
+  --ink-deep: var(--blue-900);
+
+  /* Le 600 tombe a 4.32:1 sur son propre fond teinte : sous le seuil AA. */
+  --success: var(--ok-700);
+  --success-soft: var(--ok-50);
+  --warning: var(--amber-500);
+  --warning-soft: var(--amber-50);
+  --danger: var(--red-600);
+  --danger-soft: var(--red-50);
+
+  --scrim: rgba(11, 18, 32, 0.45);
+
+  /* --- Typographie. Une seule famille : la hierarchie vient de la graisse et
+     de l'echelle, pas d'un second caractere. */
+  --sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+  --display: var(--sans);
+
+  /* Les titres suivent la largeur du viewport : un titre fige casse soit sur
+     un telephone, soit sur un grand ecran. */
+  --fs-display: clamp(2.1rem, 1.4rem + 3.1vw, 3.9rem);
+  --fs-h1: clamp(1.8rem, 1.3rem + 2.2vw, 3rem);
+  --fs-h2: clamp(1.45rem, 1.15rem + 1.3vw, 2.1rem);
+  --fs-h3: clamp(1.15rem, 1.02rem + 0.5vw, 1.4rem);
+  --fs-lead: clamp(1.02rem, 0.97rem + 0.25vw, 1.18rem);
+  --fs-body: 1rem;
+  --fs-sm: 0.9rem;
+  --fs-xs: 0.8rem;
+
+  --lh-tight: 1.1;
+  --lh-heading: 1.22;
+  --lh-body: 1.65;
+
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.08em;
+
+  /* --- Espacement : une seule progression de 4 px. */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4rem;
+  --s-9: 6rem;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* Une seule famille d'ombres, portee sur la teinte du bleu profond : une
+     ombre grise sur un fond bleute paraite sale. */
+  --shadow-sm: 0 1px 2px rgba(11, 29, 57, 0.06), 0 2px 6px rgba(11, 29, 57, 0.05);
+  --shadow-md: 0 4px 10px rgba(11, 29, 57, 0.07), 0 12px 28px rgba(11, 29, 57, 0.07);
+  --shadow-lg: 0 10px 24px rgba(11, 29, 57, 0.09), 0 28px 60px rgba(11, 29, 57, 0.1);
+  --shadow-card: var(--shadow-sm);
+  --shadow-soft: var(--shadow-md);
+  --ring: 0 0 0 3px rgba(47, 91, 255, 0.35);
+
+  --container: 1180px;
+  --container-narrow: 760px;
+
+  --header-h: 72px;
+}
+
+/*
+ * Mode sombre.
+ *
+ * L'application en a un ; un site qui l'ignore s'affiche en blanc eclatant a
+ * cote d'une application sombre. Le bleu remonte l'echelle plutot que de
+ * garder la meme valeur des deux cotes : le 500 devient illisible sur fond
+ * sombre.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0f1a;
+    --surface: #141b29;
+    --surface-raised: #1c2536;
+    --surface-soft: #101725;
+    --surface-sunk: #101725;
+
+    --text: #e9edf5;
+    --muted: #a3afc4;
+    --faint: #7c889d;
+    --on-primary: var(--blue-900);
+
+    --line: #28324a;
+    --line-strong: #3a4763;
+    --line-interactive: #5a6884;
+
+    --primary: var(--blue-300);
+    --primary-strong: var(--blue-200);
+    --primary-soft: #182449;
+    --primary-ink: var(--blue-200);
+    --ink-deep: #e9edf5;
+
+    --success: #5bd08b;
+    --success-soft: #12291d;
+    --warning: #e9b665;
+    --warning-soft: #2c2213;
+    --danger: #f08a83;
+    --danger-soft: #2e1717;
+
+    --scrim: rgba(0, 0, 0, 0.6);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 46px rgba(0, 0, 0, 0.55);
+    --ring: 0 0 0 3px rgba(142, 168, 255, 0.4);
+  }
+}
+
+/* Le choix explicite du visiteur l'emporte sur la preference du systeme. */
+:root[data-theme="dark"] {
+  --bg: #0a0f1a;
+  --surface: #141b29;
+  --surface-raised: #1c2536;
+  --surface-soft: #101725;
+  --surface-sunk: #101725;
+
+  --text: #e9edf5;
+  --muted: #a3afc4;
+  --faint: #7c889d;
+  --on-primary: var(--blue-900);
+
+  --line: #28324a;
+  --line-strong: #3a4763;
+  --line-interactive: #5a6884;
+
+  --primary: var(--blue-300);
+  --primary-strong: var(--blue-200);
+  --primary-soft: #182449;
+  --primary-ink: var(--blue-200);
+  --ink-deep: #e9edf5;
+
+  --success: #5bd08b;
+  --success-soft: #12291d;
+  --warning: #e9b665;
+  --warning-soft: #2c2213;
+  --danger: #f08a83;
+  --danger-soft: #2e1717;
+
+  --scrim: rgba(0, 0, 0, 0.6);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 46px rgba(0, 0, 0, 0.55);
+  --ring: 0 0 0 3px rgba(142, 168, 255, 0.4);
+}
+
+/*
+ * Correspondance des anciens noms de marque.
+ *
+ * L'ancienne feuille reference le vert, l'or et la creme a une quarantaine
+ * d'endroits. Les rebrancher ici fait basculer le site entier d'un coup,
+ * plutot que de remapper chaque site a l'aveugle -- c'est ainsi qu'on fabrique
+ * l'incoherence qu'on cherche a corriger.
+ *
+ * Ce bloc disparait quand chaque page aura ete reprise sur les primitives.
+ */
+:root {
+  --green-900: var(--blue-900);
+  --green-800: var(--blue-700);
+  --green-700: var(--blue-500);
+  --green-600: var(--blue-400);
+  /* L'or servait d'accent decoratif et de texte sur fond sombre : le bleu 300
+     tient les deux, la ou le 400 passerait sous le seuil en texte. */
+  --gold: var(--blue-300);
+  --gold-600: var(--blue-200);
+  --terracotta: var(--blue-600);
+  --cream: var(--n-50);
+  --cream-soft: var(--n-100);
+  --secondary: var(--blue-300);
+  --accent: var(--blue-600);
+}

@@ -1,0 +1,431 @@
+/*
+ * Primitives partagees.
+ *
+ * Ce sont les memes objets que ceux de l'application : bouton, surface,
+ * champ, pastille, etat vide. Une page qui a besoin d'un objet absent d'ici
+ * doit l'ajouter ici, pas le redessiner dans son coin -- c'est ainsi qu'une
+ * feuille finit avec trois boutons qui ne se ressemblent pas.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Mise en page                                                               */
+/* -------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--s-5);
+}
+
+.container--narrow {
+  max-width: var(--container-narrow);
+}
+
+.section {
+  padding-block: var(--s-8);
+}
+
+.section--tight {
+  padding-block: var(--s-7);
+}
+
+.section--soft {
+  background: var(--surface-soft);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.stack--tight {
+  gap: var(--s-2);
+}
+
+.stack--loose {
+  gap: var(--s-6);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* Une grille qui se reorganise sans point de rupture a maintenir. */
+.grid {
+  display: grid;
+  gap: var(--s-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+}
+
+.grid--two {
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Titres de section                                                          */
+/* -------------------------------------------------------------------------- */
+.eyebrow {
+  display: inline-block;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--primary-ink);
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Boutons                                                                    */
+/* -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  /* 44 px : la cible tactile recommandee, respectee aussi a la souris. */
+  min-height: 44px;
+  padding: var(--s-3) var(--s-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.primary {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--primary-strong);
+}
+
+.btn.secondary {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  border-color: var(--primary-soft);
+}
+
+.btn.secondary:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line-interactive);
+}
+
+.btn.ghost:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-ink);
+}
+
+.btn.danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.btn.small {
+  min-height: 36px;
+  padding: var(--s-2) var(--s-4);
+  font-size: var(--fs-xs);
+}
+
+.btn.block {
+  width: 100%;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Surfaces                                                                   */
+/* -------------------------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--s-5);
+}
+
+.card--raised {
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.card--flat {
+  background: var(--surface-soft);
+  border-color: transparent;
+}
+
+/* Une carte cliquable annonce qu'elle l'est, au survol comme au clavier. */
+a.card,
+button.card {
+  display: block;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+a.card:hover,
+button.card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pastilles                                                                  */
+/* -------------------------------------------------------------------------- */
+/* Une pastille porte toujours un mot : la couleur seule ne dit rien a qui la
+   distingue mal. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 0.2rem var(--s-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--surface-sunk);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.badge.primary {
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+}
+.badge.success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.badge.warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.badge.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Formulaires                                                                */
+/* -------------------------------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.field > label,
+.field-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.field-hint {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.input,
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-sunk);
+  color: var(--text);
+  border: 1px solid var(--line-interactive);
+  border-radius: var(--radius-md);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.input::placeholder,
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--faint);
+}
+
+.input:focus,
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: none;
+  /* Le focus epaissit le trait : la seule couleur ne suffit pas a signaler
+     l'etat a qui la percoit mal. */
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+
+.field textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.field[data-invalid="true"] input,
+.field[data-invalid="true"] textarea,
+.field[data-invalid="true"] select {
+  border-color: var(--danger);
+  border-width: 2px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Messages                                                                   */
+/* -------------------------------------------------------------------------- */
+.notice {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-size: var(--fs-sm);
+}
+
+.notice.success {
+  border-left-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+.notice.warning {
+  border-left-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.notice.danger {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.notice p {
+  max-width: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Etat vide                                                                  */
+/* -------------------------------------------------------------------------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-7) var(--s-5);
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+}
+
+.empty h3 {
+  color: var(--text);
+}
+
+.empty p {
+  max-width: 46ch;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tableaux                                                                   */
+/* -------------------------------------------------------------------------- */
+/* Un tableau large defile dans son propre cadre : le corps de page ne defile
+   jamais horizontalement. */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--s-3) var(--s-4);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--surface-sunk);
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Squelette de chargement                                                    */
+/* -------------------------------------------------------------------------- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunk) 25%,
+    color-mix(in srgb, var(--surface-sunk) 60%, var(--surface)) 37%,
+    var(--surface-sunk) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-sweep 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-sweep {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

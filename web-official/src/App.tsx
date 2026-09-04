@@ -415,7 +415,7 @@ function AppHeader() {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  // Lock scroll when mobile menu is open
+  // Le fond ne doit pas defiler derriere le menu ouvert.
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
@@ -549,7 +549,6 @@ function AppFooter() {
 function HomePage() {
   return (
     <div className="home2">
-      {/* HERO */}
       <section className="hero2 container">
         <div className="hero2-copy">
           <span className="eyebrow">Plateforme scolaire · Bénin</span>
@@ -584,7 +583,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* STATS */}
       <section className="container">
         <div className="stats-strip">
           {HERO_STATS.map((stat) => (
@@ -596,7 +594,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* POURQUOI */}
       <section className="sec container">
         <div className="split">
           <div className="split-copy">
@@ -706,7 +703,7 @@ function HomePage() {
                 </div>
               ))}
             </div>
-            <Link className="btn gold" to="/open-classroom">
+            <Link className="btn secondary" to="/open-classroom">
               Voir tout le planning
             </Link>
           </div>
@@ -737,7 +734,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* TEMOIGNAGES */}
       <section className="sec container">
         <div className="sec-head">
           <span className="eyebrow">Ils utilisent iSkul</span>
@@ -763,7 +759,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* TELECHARGEMENT */}
       <section className="sec container">
         <div className="download">
           <div className="download-copy">
@@ -1658,8 +1653,11 @@ export function App() {
     <div className="site-root">
       <ScrollToTop />
       <SeoHead />
+      <a className="skip-link" href="#contenu">
+        Aller au contenu
+      </a>
       <AppHeader />
-      <main>
+      <main id="contenu" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/inscription-professeur" element={<TeacherSignupPage />} />
@@ -1670,7 +1668,6 @@ export function App() {
           <Route path="/a-propos" element={<AboutPage />} />
           <Route path="/espace-professeur" element={<TeacherWorkspacePage />} />
 
-          {/* NEW */}
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/politique-confidentialite" element={<PrivacyPolicyPage />} />
