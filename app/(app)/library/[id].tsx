@@ -1,277 +1,265 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Image, Pressable, Alert } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
-import * as Clipboard from "expo-clipboard";
 import { WebView } from "react-native-webview";
 
-import { useThemedStyles } from "@/theme/useStyles";
-import type { Theme } from "@/theme/ThemeProvider";
+import { useTheme } from "@/theme/ThemeProvider";
+import Text from "@/components/ui/Text";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
+import DocumentReader from "@/components/library/DocumentReader";
 import { getBook } from "@/storage/books";
 import { formatExamLabel } from "@/lib/documentTaxonomy";
+import { parseDocument, parseReference } from "@/lib/documentFormat";
 import type { Book } from "@/types/book";
-import TopBar from "@/components/TopBar";
 
-function isPdf(url: string) {
-  return /\.pdf(\?|$)/i.test(url);
-}
-function isEpub(url: string) {
-  return /\.epub(\?|$)/i.test(url);
-}
-
+/**
+ * Un lien de partage cloud pointe sur une page, pas sur le fichier. Les
+ * documents anterieurs a la chaine de traitement en contiennent encore.
+ */
 function normalizeCloudLink(raw?: string | null): string | null {
-  if (!raw) return null;
-  let u = raw.trim();
-  if (!u) return null;
-
-  if (u.includes("drive.google.com")) {
-    const m = u.match(/\/d\/([^/]+)\//) || u.match(/[?&]id=([^&]+)/);
-    if (m?.[1]) return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+  const value = (raw || "").trim();
+  if (!value) return null;
+  if (value.includes("drive.google.com")) {
+    const match = value.match(/\/d\/([^/]+)\//) || value.match(/[?&]id=([^&]+)/);
+    if (match?.[1]) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
   }
-  if (u.includes("dropbox.com")) {
+  if (value.includes("dropbox.com")) {
     try {
-      const url = new URL(u);
+      const url = new URL(value);
       url.searchParams.set("dl", "1");
       return url.toString();
-    } catch {}
+    } catch {
+      return value;
+    }
   }
-  return u;
+  return value;
 }
 
-export default function BookDetail() {
-  const { styles, theme } = useThemedStyles(makeStyles);
+const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url);
+
+export default function DocumentDetail() {
+  const { color, space, radius } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const [book, setBook] = useState<Book | null>(null);
-  const [showReader, setShowReader] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [reading, setReading] = useState(false);
   const [webError, setWebError] = useState<string | null>(null);
-  const [loadPct, setLoadPct] = useState(0);
 
   useEffect(() => {
+    let active = true;
     (async () => {
       if (!id) return;
-      const b = await getBook(id);
-      if (!b) {
-        Alert.alert("Introuvable", "Livre inexistant.", [{ text: "OK", onPress: () => router.back() }]);
-        return;
-      }
-      setBook(b);
+      const found = await getBook(id);
+      if (!active) return;
+      setBook(found ?? null);
+      setLoading(false);
     })();
-  }, [id, router]);
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const doc = useMemo(() => parseDocument(book?.content ?? null), [book?.content]);
+  const reference = useMemo(() => parseReference(book?.reference ?? null), [book?.reference]);
+  const structured = doc.blocks.length > 0;
 
   const fileUrl = useMemo(() => normalizeCloudLink(book?.fileUrl), [book?.fileUrl]);
-
   const viewerSrc = useMemo(() => {
-    if (!fileUrl) return null;
-    if (isPdf(fileUrl)) {
-      const enc = encodeURIComponent(fileUrl);
-      return `https://docs.google.com/gview?embedded=1&url=${enc}`;
-    }
-    return null;
+    if (!fileUrl || !isPdf(fileUrl)) return null;
+    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`;
   }, [fileUrl]);
 
-  const canEmbed = !!viewerSrc;
-
-  const openInBrowser = async () => {
+  const openExternally = async () => {
     if (!fileUrl) return;
-    setShowReader(false);
+    setReading(false);
     await WebBrowser.openBrowserAsync(fileUrl);
   };
 
-  const copyLink = async () => {
-    if (!fileUrl) return;
-    await Clipboard.setStringAsync(fileUrl);
-    Alert.alert("Lien copie", "L'URL du document est dans le presse-papiers.");
-  };
+  if (loading) {
+    return <View style={{ flex: 1, backgroundColor: color.bg }} />;
+  }
 
-  if (!book) return <View style={{ flex: 1, backgroundColor: theme.color.bg }} />;
+  if (!book) {
+    return (
+      <View style={[styles.center, { backgroundColor: color.bg, padding: space.lg }]}>
+        <EmptyState
+          tone="error"
+          title="Document introuvable"
+          message="Ce document a peut-etre ete retire de la bibliotheque."
+          actionLabel="Revenir"
+          onAction={() => router.back()}
+        />
+      </View>
+    );
+  }
+
+  const meta = [book.subject, book.level, book.series ? `Serie ${book.series}` : null]
+    .filter(Boolean)
+    .join(" · ");
+
+  const BackBar = (
+    <View style={[styles.bar, { paddingTop: insets.top + space.md, paddingHorizontal: space.lg, gap: space.md }]}>
+      <Pressable
+        onPress={() => (reading ? setReading(false) : router.back())}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={reading ? "Quitter la lecture" : "Revenir"}
+      >
+        <Ionicons name="chevron-back" size={22} color={color.text} />
+      </Pressable>
+      <Text variant="bodyStrong" numberOfLines={1} style={styles.flex}>
+        {reading ? book.title : "Document"}
+      </Text>
+      {reading && fileUrl ? (
+        <Pressable onPress={openExternally} hitSlop={8} accessibilityLabel="Ouvrir hors de l'application">
+          <Ionicons name="open-outline" size={20} color={color.textMuted} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+
+  // Le document porte son contenu : il se lit dans l'application.
+  if (structured) {
+    return (
+      <View style={{ flex: 1, backgroundColor: color.bg }}>
+        {BackBar}
+        <DocumentReader
+          doc={doc}
+          reference={reference}
+          title={book.title}
+          ListHeaderComponent={
+            <View style={{ gap: space.sm }}>
+              {meta ? (
+                <Text variant="overline" tone="primary">
+                  {meta.toUpperCase()}
+                </Text>
+              ) : null}
+              {formatExamLabel(book) ? (
+                <Badge tone="neutral">{formatExamLabel(book)}</Badge>
+              ) : null}
+            </View>
+          }
+        />
+      </View>
+    );
+  }
+
+  // Documents anterieurs a la chaine de traitement : il n'y a qu'un fichier.
+  if (reading && viewerSrc) {
+    return (
+      <View style={{ flex: 1, backgroundColor: color.bg }}>
+        {BackBar}
+        <WebView
+          source={{ uri: viewerSrc }}
+          style={{ flex: 1, backgroundColor: color.bg }}
+          startInLoadingState
+          javaScriptEnabled
+          originWhitelist={["*"]}
+          mixedContentMode="always"
+          onError={(e) =>
+            setWebError(e?.nativeEvent?.description || "Impossible d'afficher ce document.")
+          }
+        />
+        {webError ? (
+          <View
+            style={[
+              styles.errorBar,
+              { backgroundColor: color.dangerSoft, padding: space.md, gap: space.sm },
+            ]}
+          >
+            <Text variant="caption" tone="danger" style={styles.flex} numberOfLines={2}>
+              {webError}
+            </Text>
+            <Button onPress={openExternally} variant="ghost" size="sm">
+              Ouvrir
+            </Button>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
-      <TopBar title="Livre" right={null} />
-
-      {!showReader ? (
-        <View style={styles.header}>
-          <View style={styles.coverWrap}>
+    <View style={{ flex: 1, backgroundColor: color.bg }}>
+      {BackBar}
+      <ScrollView
+        contentContainerStyle={{
+          padding: space.lg,
+          paddingBottom: insets.bottom + space.xxl,
+          gap: space.lg,
+        }}
+      >
+        <View style={[styles.head, { gap: space.lg }]}>
+          <View style={[styles.cover, { backgroundColor: color.surfaceSunk, borderRadius: radius.md }]}>
             {book.coverUrl ? (
-              <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="cover" />
+              <Image source={{ uri: book.coverUrl }} style={styles.coverImg} resizeMode="cover" />
             ) : (
-              <View style={[styles.cover, styles.coverFallback]}>
-                <Text style={{ color: theme.color.textMuted }}>Sans couverture</Text>
-              </View>
+              <Ionicons name="document-text-outline" size={26} color={color.textMuted} />
             )}
           </View>
-
-          <View style={{ flex: 1, gap: 8 }}>
-            <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
-            <Text style={styles.meta}>{book.subject || "-"} - {book.level || "-"}</Text>
-            {formatExamLabel(book) ? (
-              <Text style={styles.meta}>{formatExamLabel(book)}</Text>
-            ) : null}
-            {book.author ? <Text style={styles.meta}>{book.author}</Text> : null}
-            <View style={styles.badge}><Text style={styles.badgeText}>Gratuit</Text></View>
-
-            {canEmbed ? (
-              <Pressable style={styles.primary} onPress={() => { setWebError(null); setShowReader(true); }}>
-                <Text style={styles.primaryText}>Lire</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={styles.primary} onPress={openInBrowser} disabled={!fileUrl}>
-                <Text style={styles.primaryText}>{isEpub(fileUrl || "") ? "Ouvrir (EPUB)" : "Ouvrir dans le navigateur"}</Text>
-              </Pressable>
-            )}
-
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <Pressable style={styles.ghost} onPress={openInBrowser} disabled={!fileUrl}>
-                <Text style={styles.ghostText}>Ouvrir</Text>
-              </Pressable>
-              <Pressable style={styles.ghost} onPress={copyLink} disabled={!fileUrl}>
-                <Text style={styles.ghostText}>Copier le lien</Text>
-              </Pressable>
-              <Pressable onPress={() => router.back()} style={[styles.ghost, { paddingHorizontal: 10 }]}>
-                <Text style={styles.ghostText}>Retour</Text>
-              </Pressable>
-            </View>
-
-            {!canEmbed && !!fileUrl && (
-              <Text style={styles.note}>
-                Astuce : certains hebergeurs bloquent l'integration en app. Utilisez "Ouvrir" si l'apercu echoue.
+          <View style={styles.flex}>
+            <Text variant="title">{book.title}</Text>
+            {meta ? (
+              <Text variant="caption" tone="muted">
+                {meta}
               </Text>
-            )}
+            ) : null}
+            {formatExamLabel(book) ? (
+              <Text variant="caption" tone="muted">
+                {formatExamLabel(book)}
+              </Text>
+            ) : null}
+            {book.author ? (
+              <Text variant="caption" tone="muted">
+                {book.author}
+              </Text>
+            ) : null}
+            <Badge tone="success" style={{ marginTop: space.sm }}>
+              Gratuit
+            </Badge>
           </View>
         </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          <View style={styles.readerBar}>
-            <Pressable onPress={() => setShowReader(false)}>
-              <Text style={styles.back}>Quitter la lecture</Text>
-            </Pressable>
-            <Text style={styles.readerTitle} numberOfLines={1}>{book.title}</Text>
-            <Pressable onPress={openInBrowser}>
-              <Text style={styles.open}>Ouvrir</Text>
-            </Pressable>
-          </View>
 
-          {viewerSrc ? (
-            <>
-              {loadPct > 0 && loadPct < 1 ? (
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${Math.round(loadPct * 100)}%` }]} />
-                </View>
-              ) : null}
-              <WebView
-                source={{ uri: viewerSrc }}
-                style={{ flex: 1, backgroundColor: theme.color.bg }}
-                startInLoadingState
-                javaScriptEnabled
-                allowsInlineMediaPlayback
-                originWhitelist={["*"]}
-                mixedContentMode="always"
-                onLoadProgress={(e) => {
-                  const p = Number(e?.nativeEvent?.progress ?? 0);
-                  setLoadPct(p);
-                  if (p >= 1) setWebError(null);
-                }}
-                onError={(e) => {
-                  setWebError(e?.nativeEvent?.description || "Impossible d'afficher le document.");
-                }}
-              />
-            </>
-          ) : (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: theme.color.textMuted }}>Apercu non disponible.</Text>
-            </View>
-          )}
-
-          {!!webError && (
-            <View style={styles.errorBar}>
-              <Text style={styles.errorText} numberOfLines={2}>{webError}</Text>
-              <Pressable onPress={openInBrowser}>
-                <Text style={styles.errorAction}>Ouvrir dans le navigateur</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      )}
+        {viewerSrc ? (
+          <Button onPress={() => setReading(true)} icon="book-outline" block>
+            Lire
+          </Button>
+        ) : null}
+        {fileUrl ? (
+          <Button
+            onPress={openExternally}
+            icon="open-outline"
+            variant={viewerSrc ? "ghost" : "primary"}
+            block
+          >
+            Ouvrir hors de l'application
+          </Button>
+        ) : (
+          <EmptyState
+            icon="hourglass-outline"
+            title="Document en preparation"
+            message="Ce document n'a pas encore de contenu lisible. Revenez bientot."
+          />
+        )}
+      </ScrollView>
     </View>
   );
 }
 
-const makeStyles = (t: Theme) =>
-  StyleSheet.create({
-  header: { flexDirection: "row", gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: t.color.border },
-  coverWrap: { width: 120, height: 120, borderRadius: 12, overflow: "hidden", backgroundColor: t.color.surfaceSunk, borderWidth: 1, borderColor: t.color.border },
-  cover: { width: "100%", height: "100%" },
-  coverFallback: { alignItems: "center", justifyContent: "center" },
-
-  title: { color: t.color.text, fontSize: 18, fontFamily: t.type.heading.fontFamily },
-  meta: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
-  badge: {
-    alignSelf: "flex-start",
-    backgroundColor: t.color.primarySoft,
-    borderColor: t.color.border,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 6,
-  },
-  badgeText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
-
-  primary: {
-    backgroundColor: t.color.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  primaryText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily },
-
-  ghost: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: t.color.border,
-    backgroundColor: t.color.surface,
-    marginTop: 8,
-  },
-  ghostText: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily },
-
-  note: { color: t.color.textMuted, fontSize: 12, marginTop: 6, fontFamily: t.type.body.fontFamily },
-
-  back: { color: t.color.textMuted, textDecorationLine: "underline", fontFamily: t.type.bodyStrong.fontFamily },
-  open: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily },
-
-  readerBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: t.color.border,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: t.color.surface,
-  },
-  readerTitle: { color: t.color.text, fontFamily: t.type.bodyStrong.fontFamily, flex: 1 },
-
-  errorBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: t.color.border,
-    backgroundColor: t.color.surface,
-  },
-  errorText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
-  errorAction: { color: t.color.primary, fontFamily: t.type.bodyStrong.fontFamily, marginTop: 6 },
-  progressTrack: {
-    height: 2,
-    backgroundColor: t.color.border,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: t.color.primary,
-  },
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  flex: { flex: 1 },
+  bar: { flexDirection: "row", alignItems: "center" },
+  head: { flexDirection: "row" },
+  cover: { width: 84, height: 108, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  coverImg: { width: "100%", height: "100%" },
+  errorBar: { flexDirection: "row", alignItems: "center" },
 });
