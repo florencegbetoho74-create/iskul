@@ -275,36 +275,3 @@
   align-self: flex-start;
   margin-top: var(--s-4);
 }
-
-/* Le trait de la navigation suit la meme regle que les liens de contenu, sans
-   toucher au balisage : la classe active garde son trait deploye. */
-.nav-link {
-  position: relative;
-}
-
-.nav-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -4px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--primary);
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform var(--dur-fast) var(--ease);
-}
-
-.nav-link:hover::after,
-.nav-link:focus-visible::after,
-.nav-link.active::after {
-  transform: scaleX(1);
-  transform-origin: left;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nav-link::after {
-    transition: none;
-  }
-}

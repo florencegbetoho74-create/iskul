@@ -8,15 +8,39 @@
 /** ---------------------------
  *  NAVIGATION
  *  --------------------------*/
-export const NAV_ITEMS = [
-  { to: "/", label: "Accueil", end: true },
-  { to: "/cours", label: "Cours & Quiz" },
-  { to: "/bibliotheque", label: "Bibliotheque" },
-  { to: "/open-classroom", label: "Open Classroom" },
-  { to: "/parents", label: "Espace parents" },
-  { to: "/espace-professeur", label: "Espace professeur" },
+/**
+ * Navigation.
+ *
+ * Huit entrees a plat melangeaient trois choses : des pages qui racontent le
+ * produit, deux applications qui demandent une connexion, et un lien "Accueil"
+ * que le logo fait deja. Un visiteur qui cliquait "Espace professeur" attendait
+ * une presentation et tombait sur un formulaire.
+ *
+ * Le contenu est desormais a gauche, les acces a droite. Ce sont deux gestes
+ * differents : on lit, ou on entre.
+ */
+export type NavLeaf = { to: string; label: string; hint?: string; end?: boolean };
+export type NavEntry = NavLeaf & { children?: NavLeaf[] };
+
+export const NAV_CONTENT: NavEntry[] = [
+  {
+    to: "/cours",
+    label: "La plateforme",
+    children: [
+      { to: "/cours", label: "Cours & quiz", hint: "Chaque chapitre en video, puis un quiz" },
+      { to: "/bibliotheque", label: "Bibliotheque", hint: "Epreuves, oeuvres et fiches de revision" },
+      { to: "/open-classroom", label: "Open Classroom", hint: "Des seances en direct avec un professeur" },
+    ],
+  },
+  { to: "/inscription-professeur", label: "Enseigner sur iSkul" },
   { to: "/a-propos", label: "A propos" },
-  { to: "/contact", label: "Contact" },
+  { to: "/faq", label: "Aide" },
+];
+
+/** Les espaces qui demandent un compte. Separes du contenu, jamais melanges. */
+export const NAV_ACCOUNTS: NavLeaf[] = [
+  { to: "/parents", label: "Espace parents", hint: "Suivre la progression de mon enfant" },
+  { to: "/espace-professeur", label: "Espace professeur", hint: "Mes cours, mes quiz, mes seances" },
 ];
 
 /** Photographie (élèves du secondaire) — traitée en duotone de marque côté CSS.

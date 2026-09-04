@@ -1,0 +1,413 @@
+/*
+ * Coquille du site : en-tete et pied de page.
+ *
+ * Une regle tient tout le reste : ce qui se lit est a gauche, ce dans quoi on
+ * entre est a droite. La separation est visuelle autant que structurelle, sans
+ * quoi elle ne se voit pas.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* En-tete                                                                    */
+/* -------------------------------------------------------------------------- */
+.shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.shell-header-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  min-height: var(--header-h);
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.shell-brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.shell-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.shell-brand-text strong {
+  font-size: 1.05rem;
+  letter-spacing: var(--tracking-tight);
+}
+
+.shell-brand-text small {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.shell-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  flex: 1;
+  min-width: 0;
+}
+
+.shell-nav-content {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* La zone des acces est poussee a droite et separee par un trait : c'est ce
+   trait qui dit qu'on change de nature d'action. */
+.shell-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-left: auto;
+  padding-left: var(--s-5);
+  border-left: 1px solid var(--line);
+}
+
+.shell-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.16s var(--ease-soft), color 0.16s var(--ease-soft);
+}
+
+.shell-nav-link:hover {
+  background: var(--surface-sunk);
+}
+
+.shell-nav-link.active {
+  color: var(--primary-ink);
+  background: var(--primary-soft);
+}
+
+.shell-group {
+  position: relative;
+}
+
+.shell-group-trigger svg {
+  transition: transform 0.16s var(--ease-soft);
+}
+
+.shell-group-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.shell-panel {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  left: 0;
+  width: max-content;
+  max-width: min(340px, 82vw);
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-2);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  /* Ferme, le panneau n'est ni visible ni atteignable au clavier : `hidden`
+     seul le laisserait dans l'ordre de tabulation pendant la transition. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, -6px, 0);
+  transition: opacity 0.16s var(--ease-soft), transform 0.16s var(--ease-soft),
+    visibility 0.16s;
+}
+
+.shell-group--end .shell-panel {
+  left: auto;
+  right: 0;
+}
+
+.shell-panel.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.shell-panel-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-3);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.16s var(--ease-soft);
+}
+
+.shell-panel-link:hover,
+.shell-panel-link.active {
+  background: var(--primary-soft);
+}
+
+.shell-panel-link strong {
+  font-size: var(--fs-sm);
+}
+
+.shell-panel-link small {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.shell-burger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.shell-burger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.shell-scrim {
+  display: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pied de page                                                               */
+/* -------------------------------------------------------------------------- */
+.shell-footer {
+  margin-top: var(--s-9);
+  background: var(--ink-deep);
+  color: var(--n-200);
+}
+
+.shell-footer-grid {
+  display: grid;
+  gap: var(--s-6);
+  grid-template-columns: minmax(260px, 1.4fr) repeat(auto-fit, minmax(150px, 1fr));
+  padding-block: var(--s-8) var(--s-6);
+}
+
+.shell-footer-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--n-0);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.shell-footer-mark img {
+  border-radius: var(--radius-sm);
+}
+
+.shell-footer-brand p {
+  margin-top: var(--s-3);
+  color: var(--n-300);
+  font-size: var(--fs-sm);
+  max-width: 46ch;
+}
+
+.shell-footer-stores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.shell-footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.shell-footer-col h2 {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--blue-300);
+  margin-bottom: var(--s-1);
+}
+
+.shell-footer-col a {
+  color: var(--n-300);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  width: fit-content;
+}
+
+.shell-footer-col a:hover {
+  color: var(--n-0);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* La barre du bas porte ce qui se consulte une fois : elle est plus discrete
+   que les colonnes, et separee par un trait. */
+.shell-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--s-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.shell-footer-bottom p {
+  color: var(--n-400);
+  font-size: var(--fs-xs);
+  max-width: none;
+}
+
+.shell-footer-bottom nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+}
+
+.shell-footer-bottom a {
+  color: var(--n-400);
+  font-size: var(--fs-xs);
+  text-decoration: none;
+}
+
+.shell-footer-bottom a:hover {
+  color: var(--n-0);
+  text-decoration: underline;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Ecrans etroits                                                             */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .shell-burger {
+    display: flex;
+  }
+
+  .shell-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: var(--scrim);
+    z-index: 90;
+  }
+
+  /* Au doigt, plus de menus deroulants : tout se deplie dans un panneau
+     unique, ou le pouce atteint chaque entree sans viser. */
+  .shell-nav {
+    position: fixed;
+    inset: var(--header-h) 0 auto 0;
+    z-index: 95;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-4);
+    max-height: calc(100dvh - var(--header-h));
+    overflow-y: auto;
+    padding: var(--s-5);
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow-lg);
+    transform: translate3d(0, -12px, 0);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease), visibility 0.18s;
+  }
+
+  .shell-nav.open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+
+  .shell-nav-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-1);
+  }
+
+  .shell-nav-link {
+    justify-content: space-between;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .shell-actions {
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0;
+    padding-left: 0;
+    padding-top: var(--s-4);
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .shell-actions .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .shell-group,
+  .shell-group--end {
+    position: static;
+  }
+
+  .shell-panel {
+    position: static;
+    width: auto;
+    max-width: none;
+    box-shadow: none;
+    border: 0;
+    border-left: 2px solid var(--line);
+    border-radius: 0;
+    margin-left: var(--s-3);
+    padding: 0 0 0 var(--s-2);
+    transform: none;
+    /* Deplie, le panneau pousse le contenu au lieu de le recouvrir. */
+    display: none;
+  }
+
+  .shell-panel.open {
+    display: flex;
+  }
+
+  .shell-brand-text small {
+    display: none;
+  }
+}
