@@ -35,7 +35,7 @@ import { startThread } from "@/storage/chat";
 type PlayerLangKey = "fr" | "fon" | "adja" | "yoruba" | "dendi";
 const LANG_ORDER: PlayerLangKey[] = ["fr", "fon", "adja", "yoruba", "dendi"];
 const LANG_LABELS: Record<PlayerLangKey, string> = {
-  fr: "Francais",
+  fr: "Français",
   fon: "Fon",
   adja: "Adja",
   yoruba: "Yoruba",
@@ -645,7 +645,7 @@ export default function Play() {
       */}
       {availableLangs.length > 1 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Langue de la lecon</Text>
+          <Text style={styles.sectionTitle}>Langue de la leçon</Text>
           <View style={styles.langRow}>
             {availableLangs.map((k) => {
               const active = lang === k;

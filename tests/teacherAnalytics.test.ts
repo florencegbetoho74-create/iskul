@@ -88,7 +88,7 @@ describe("parseTeacherDashboard", () => {
       chapters: [{ chapterId: "ch1" }],
       weakQuestions: [{ quizId: "q1" }],
     });
-    assert.equal(snap.atRiskLearners[0].name, "Eleve");
+    assert.equal(snap.atRiskLearners[0].name, "Élève");
     assert.equal(snap.courses[0].title, "Cours");
     assert.equal(snap.chapters[0].title, "Chapitre");
     assert.equal(snap.weakQuestions[0].prompt, "Question");

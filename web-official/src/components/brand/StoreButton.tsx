@@ -16,10 +16,10 @@ export default function StoreButton({
       <span className="store-badge ios soon" aria-disabled="true">
         <AppleIcon />
         <span className="store-badge-text">
-          <small>Bientot sur</small>
+          <small>Bientôt sur</small>
           <strong>App Store</strong>
         </span>
-        <span className="store-badge-tag">Bientot</span>
+        <span className="store-badge-tag">Bientôt</span>
       </span>
     );
   }
@@ -29,10 +29,10 @@ export default function StoreButton({
       <span className="store-badge android soon" aria-disabled="true">
         <GooglePlayIcon />
         <span className="store-badge-text">
-          <small>Bientot sur</small>
+          <small>Bientôt sur</small>
           <strong>Google Play</strong>
         </span>
-        <span className="store-badge-tag">Bientot</span>
+        <span className="store-badge-tag">Bientôt</span>
       </span>
     );
   }

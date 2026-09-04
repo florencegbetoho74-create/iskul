@@ -63,12 +63,12 @@ export async function getTeacherLearners(limit = 100): Promise<TeacherLearner[]>
   if (!SUPABASE_READY) return [];
 
   const { data, error } = await supabase.rpc("teacher_learners", { p_limit: limit });
-  if (error) throw new Error(error.message || "Liste des eleves indisponible.");
+  if (error) throw new Error(error.message || "Liste des élèves indisponible.");
 
   const rows = Array.isArray(data) ? data : [];
   return rows.map((row: any) => ({
     userId: String(row?.user_id ?? ""),
-    name: String(row?.name ?? "Eleve"),
+    name: String(row?.name ?? "Élève"),
     grade: row?.grade ?? null,
     completionRate: clamp01(num(row?.completion_rate)),
     lessonsStarted: num(row?.lessons_started),

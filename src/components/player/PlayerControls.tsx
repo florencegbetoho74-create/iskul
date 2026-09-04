@@ -158,7 +158,7 @@ function Ctrl({
 
 /**
  * Barre de progression permanente, affichee quand les commandes sont masquees.
- * Sans elle, l'eleve perd tout repere des que l'habillage disparait.
+ * Sans elle, l'élève perd tout repere des que l'habillage disparait.
  */
 export function PlayerProgressBar({
   currentSec,

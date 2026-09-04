@@ -23,7 +23,7 @@ const SECTIONS: { key: SectionKey; label: string; hint: string; reviewerOk?: boo
     reviewerOk: true,
   },
   { key: "content", label: "Contenus", hint: "Cours, documents, quiz et seances" },
-  { key: "users", label: "Comptes", hint: "Roles, droits et activite" },
+  { key: "users", label: "Comptes", hint: "Rôles, droits et activité" },
   { key: "threads", label: "Conversations", hint: "Les echanges entre professeurs et eleves" },
   { key: "settings", label: "Reglages", hint: "Portail professeur et etat technique" },
 ];
@@ -103,7 +103,7 @@ export default function ConsolePage() {
   if (access === "checking") {
     return (
       <div className="console-gate">
-        <p className="lead">Verification de vos droits…</p>
+        <p className="lead">Vérification de vos droits…</p>
       </div>
     );
   }
@@ -113,7 +113,7 @@ export default function ConsolePage() {
       <div className="console-gate">
         <h1>Console iSkul</h1>
         <p className="lead">
-          Cette console est reservee a l'equipe. Connectez-vous depuis l'espace professeur avec un
+          Cette console est réservée a l'équipe. Connectez-vous depuis l'espace professeur avec un
           compte disposant des droits.
         </p>
         <Link className="btn primary" to="/espace-professeur">
@@ -126,10 +126,10 @@ export default function ConsolePage() {
   if (access === "denied") {
     return (
       <div className="console-gate">
-        <h1>Acces refuse</h1>
+        <h1>Accès refusé</h1>
         <p className="lead">
           Votre compte n'a ni les droits d'administration ni ceux de relecture. Si vous pensez qu'il
-          s'agit d'une erreur, contactez l'equipe iSkul.
+          s'agit d'une erreur, contactez l'équipe iSkul.
         </p>
         <Link className="btn ghost" to="/">
           Revenir au site

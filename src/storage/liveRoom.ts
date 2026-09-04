@@ -38,8 +38,8 @@ export type ModerationAction = "mute" | "unmute" | "lower_hand" | "kick";
 function mapError(error: any, fallback: string): string {
   const message = String(error?.message || "");
   if (message.includes("live_not_found")) return "Cette seance n'existe plus.";
-  if (message.includes("live_ended")) return "La seance est terminee.";
-  if (message.includes("participant_banned")) return "Vous avez ete exclu de cette seance.";
+  if (message.includes("live_ended")) return "La séance est terminee.";
+  if (message.includes("participant_banned")) return "Vous avez été exclu de cette séance.";
   if (message.includes("host_only")) return "Reserve a l'animateur.";
   if (message.includes("not_in_live")) return "Rejoignez la seance d'abord.";
   if (message.includes("cannot_moderate_self")) return "Vous ne pouvez pas vous moderer.";
@@ -87,7 +87,7 @@ export async function joinLive(liveId: string, agoraUid?: number | null) {
     p_live_id: liveId,
     p_agora_uid: agoraUid ?? null,
   });
-  if (error) throw new Error(mapError(error, "Impossible de rejoindre la seance."));
+  if (error) throw new Error(mapError(error, "Impossible de rejoindre la séance."));
   return {
     role: (data as any)?.role === "host" ? ("host" as const) : ("attendee" as const),
     joinedAtMs: Number((data as any)?.joinedAtMs || Date.now()),

@@ -266,10 +266,10 @@ export async function saveQuiz(input: {
       .select(RETURNING)
       .single());
   }
-  if (error || !data?.id) throw error || new Error("Quiz non enregistre.");
+  if (error || !data?.id) throw error || new Error("Quiz non enregistré.");
 
   const saved = await getQuizById(String(data.id));
-  if (!saved) throw new Error("Quiz enregistre mais illisible.");
+  if (!saved) throw new Error("Quiz enregistré mais illisible.");
   return saved;
 }
 
@@ -281,7 +281,7 @@ export async function listMyQuizAttempts(quizId: string): Promise<QuizAttempt[]>
   return (data as any[]).map((row) => mapAttempt({ ...row, quiz_id: quizId }));
 }
 
-/** Derniere tentative de l'eleve, ou null s'il n'a jamais passe ce quiz. */
+/** Derniere tentative de l'élève, ou null s'il n'a jamais passe ce quiz. */
 export async function getQuizAttempt(quizId: string): Promise<QuizAttempt | null> {
   const rows = await listMyQuizAttempts(quizId);
   return rows[0] ?? null;
@@ -364,8 +364,8 @@ function mapAttemptError(error: any): string {
   if (message.includes("quiz_not_found")) return "Ce quiz n'existe plus.";
   if (message.includes("quiz_not_published")) return "Ce quiz n'est pas encore publie.";
   if (message.includes("attempt_not_found")) return "Tentative introuvable.";
-  if (message.includes("attempt_closed")) return "Cette tentative est deja terminee.";
+  if (message.includes("attempt_closed")) return "Cette tentative est déjà terminee.";
   if (message.includes("question_out_of_range")) return "Question inconnue pour ce quiz.";
   if (message.includes("auth_required")) return "Connectez-vous pour repondre.";
-  return message || "Resultat non enregistre.";
+  return message || "Resultat non enregistré.";
 }

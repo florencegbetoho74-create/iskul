@@ -104,7 +104,7 @@ export default function Settings() {
       await setNotificationsEnabled(next);
     } catch (e: any) {
       setNotifsEnabled(!next);
-      Alert.alert("Erreur", e?.message ?? "Preference non enregistree.");
+      Alert.alert("Erreur", e?.message ?? "Preference non enregistrée.");
     } finally {
       setNotifsBusy(false);
     }
@@ -177,12 +177,12 @@ export default function Settings() {
   const copyCode = async () => {
     if (!pairingCode) return;
     await Clipboard.setStringAsync(pairingCode.code);
-    Alert.alert("Copie", "Le code a ete copie.");
+    Alert.alert("Copie", "Le code a été copie.");
   };
 
   const removeLink = (link: ParentLink) => {
     Alert.alert(
-      "Retirer cet acces",
+      "Retirer cet accès",
       `${link.label || "Ce parent"} ne pourra plus consulter votre progression.`,
       [
         { text: "Annuler", style: "cancel" },
@@ -204,7 +204,7 @@ export default function Settings() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Reglages</Text>
+      <Text style={styles.title}>Réglages</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Scolarite</Text>
@@ -339,7 +339,7 @@ export default function Settings() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Acces parental</Text>
+        <Text style={styles.sectionTitle}>Accès parental</Text>
         <Text style={styles.sectionHint}>
           Vos parents peuvent suivre votre progression depuis le site. Donnez-leur un code : il
           est valable 15 minutes et ne sert qu'une fois. Vous pouvez retirer un acces a tout
@@ -383,13 +383,13 @@ export default function Settings() {
                     : "Jamais consulte"}
                 </Text>
               </View>
-              <Pressable onPress={() => removeLink(link)} accessibilityLabel="Retirer l'acces">
+              <Pressable onPress={() => removeLink(link)} accessibilityLabel="Retirer l'accès">
                 <Text style={styles.revokeText}>Retirer</Text>
               </Pressable>
             </View>
           ))
         ) : (
-          <Text style={styles.rowSub}>Aucun parent n'a acces a votre progression.</Text>
+          <Text style={styles.rowSub}>Aucun parent n'a accès a votre progression.</Text>
         )}
       </View>
 
@@ -403,7 +403,7 @@ export default function Settings() {
           </View>
           <View style={styles.roleTag}>
             <Text style={styles.roleTagText}>
-              {user?.role === "teacher" ? "Professeur" : "Eleve"}
+              {user?.role === "teacher" ? "Professeur" : "Élève"}
             </Text>
           </View>
         </View>

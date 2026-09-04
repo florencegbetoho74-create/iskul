@@ -114,7 +114,7 @@ export default function NewBook() {
   if (!canPublish) {
     return (
       <View style={[styles.container, { padding: 16 }]}>
-        <Text style={styles.title}>Acces refuse</Text>
+        <Text style={styles.title}>Accès refusé</Text>
         <Text style={{ color: theme.color.textMuted, marginTop: 4 }}>Seuls les enseignants peuvent ajouter des documents.</Text>
       </View>
     );
@@ -206,7 +206,7 @@ export default function NewBook() {
     try {
       const trimmedYear = examYear.trim();
       if (selectedType?.isExam && trimmedYear && !isValidExamYear(trimmedYear)) {
-        Alert.alert("Annee invalide", "Indiquez une annee d'examen entre 1960 et 2100.");
+        Alert.alert("Année invalide", "Indiquez une annee d'examen entre 1960 et 2100.");
         setBusy(false);
         return;
       }
@@ -236,7 +236,7 @@ export default function NewBook() {
       // Le message promettait un envoi en relecture que rien ne declenchait :
       // le document restait en brouillon et son auteur le croyait en attente.
       Alert.alert(
-        "Document enregistre",
+        "Document enregistré",
         "Il est en brouillon. Un relecteur doit le valider avant qu'il soit visible par les eleves.",
         [
           {
@@ -258,7 +258,7 @@ export default function NewBook() {
         ]
       );
     } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Creation impossible.");
+      Alert.alert("Erreur", e?.message ?? "Création impossible.");
     } finally {
       setBusy(false);
     }
@@ -289,7 +289,7 @@ export default function NewBook() {
             const match = documentTypes.find((t) => t.label === label);
             if (match) setDocumentTypeId(match.id);
           }}
-          helperText="Les epreuves sont rangees a part des oeuvres et des manuels."
+          helperText="Les épreuves sont rangees a part des oeuvres et des manuels."
         />
 
         {selectedType?.isExam ? (
@@ -312,7 +312,7 @@ export default function NewBook() {
               onChangeText={setExamSession}
             />
 
-            <Text style={styles.label}>Annee</Text>
+            <Text style={styles.label}>Année</Text>
             <TextInput
               placeholder="Ex: 2024"
               placeholderTextColor={theme.color.textMuted}
@@ -352,10 +352,10 @@ export default function NewBook() {
         />
 
         <SelectionSheetField
-          label="Matiere"
+          label="Matière"
           icon="albums-outline"
           value={subjectLabel}
-          placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+          placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matière"}
           options={subjectOptions}
           onChange={(label) => {
             const match = subjects.find((x) => x.label === label);

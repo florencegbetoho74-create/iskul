@@ -85,7 +85,7 @@ export async function startThread(params: {
       last_read_at_ms: {},
     };
     const { data: created, error } = await supabase.from("chat_threads").insert(payload).select("*").single();
-    if (error || !created) throw error || new Error("Thread creation failed.");
+    if (error || !created) throw error || new Error("Thread création failed.");
     return mapThread(created);
   }
   return mapThread(data);

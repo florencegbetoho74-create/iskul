@@ -110,7 +110,7 @@ export default function StudentHome() {
           tone="error"
           title="Impossible de charger ton espace"
           message={error}
-          actionLabel="Reessayer"
+          actionLabel="Réessayer"
           onAction={() => {
             setLoading(true);
             void load();
@@ -247,7 +247,7 @@ export default function StudentHome() {
             <WeeklyBars data={data.weekly} />
             <View style={[styles.statRow, { gap: space.xl, marginTop: space.md }]}>
               <Stat value={`${data.totals.minutesThisPeriod}`} unit="min" label="Temps passe" />
-              <Stat value={`${data.totals.lessonsCompleted}`} label="Lecons finies" />
+              <Stat value={`${data.totals.lessonsCompleted}`} label="Leçons finies" />
               <Stat
                 value={data.totals.quizAttempts ? `${Math.round(data.totals.quizAvgScorePct)}` : "—"}
                 unit={data.totals.quizAttempts ? "%" : undefined}

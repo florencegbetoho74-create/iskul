@@ -93,7 +93,7 @@ export default function AdminMessages() {
           <View key={row.id} style={styles.tableRow}>
             <View style={{ flex: 2 }}>
               <Text style={styles.td} numberOfLines={1}>
-                {(row.teacherName || "Prof") + " - " + (row.studentName || "Eleve")}
+                {(row.teacherName || "Prof") + " - " + (row.studentName || "Élève")}
               </Text>
               <Text style={styles.meta}>{row.messageCount} messages</Text>
             </View>

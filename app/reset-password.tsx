@@ -262,7 +262,7 @@ export default function ResetPasswordScreen() {
             {preparing ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator color={theme.color.primary} />
-                <Text style={styles.loadingText}>Verification du lien...</Text>
+                <Text style={styles.loadingText}>Vérification du lien...</Text>
               </View>
             ) : null}
 

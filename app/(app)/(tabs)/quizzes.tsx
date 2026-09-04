@@ -100,14 +100,14 @@ export default function Quizzes() {
             <Text variant="caption" tone="muted">
               {isTeacher
                 ? "Ceux que vous avez ecrits"
-                : "Verifie ce que tu as vraiment compris"}
+                : "Vérifié ce que tu as vraiment compris"}
             </Text>
           </View>
           {isTeacher ? (
             <Pressable
               onPress={() => router.push("/(app)/course/quiz?mode=standalone")}
               accessibilityRole="button"
-              accessibilityLabel="Creer un quiz"
+              accessibilityLabel="Créer un quiz"
               style={[styles.iconBtn, { backgroundColor: color.primary, borderRadius: radius.pill }]}
             >
               <Ionicons name="add" size={22} color={color.textOnPrimary} />
@@ -150,7 +150,7 @@ export default function Quizzes() {
             options={subjectOptions}
             value={subject}
             onChange={setSubject}
-            accessibilityLabel="Matiere"
+            accessibilityLabel="Matière"
           />
         ) : null}
       </View>
@@ -242,7 +242,7 @@ export default function Quizzes() {
                   }
                 >
                   {item.status === "published"
-                    ? "Publie"
+                    ? "Publié"
                     : item.status === "in_review"
                     ? "En relecture"
                     : item.status === "rejected"
@@ -271,7 +271,7 @@ export default function Quizzes() {
                 tone="error"
                 title="Quiz indisponibles"
                 message={error}
-                actionLabel="Reessayer"
+                actionLabel="Réessayer"
                 onAction={() => {
                   setLoading(true);
                   void load();
@@ -300,7 +300,7 @@ export default function Quizzes() {
               <EmptyState
                 icon="checkmark-circle-outline"
                 title="Pas encore de quiz"
-                message="Aucun quiz n'est publie pour ta classe. Regarde d'abord un cours : la plupart en proposent un a la fin."
+                message="Aucun quiz n'est publié pour ta classe. Regarde d'abord un cours : la plupart en proposent un a la fin."
                 actionLabel="Voir les cours"
                 onAction={() => router.push("/(app)/(tabs)/courses")}
               />

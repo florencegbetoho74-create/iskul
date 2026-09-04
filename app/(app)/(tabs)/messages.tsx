@@ -96,7 +96,7 @@ export default function Inbox() {
     if (!q.trim()) return scoped;
     const s = q.trim().toLowerCase();
     return scoped.filter((t) => {
-      const otherName = user?.id === t.teacherId ? t.studentName || "Eleve" : t.teacherName || "Professeur";
+      const otherName = user?.id === t.teacherId ? t.studentName || "Élève" : t.teacherName || "Professeur";
       return (
         otherName.toLowerCase().includes(s) ||
         (t.courseTitle || "").toLowerCase().includes(s) ||
@@ -164,7 +164,7 @@ export default function Inbox() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         contentContainerStyle={{ padding: 16, paddingBottom: 120 + insets.bottom }}
         renderItem={({ item }) => {
-          const otherName = user?.id === item.teacherId ? item.studentName || "Eleve" : item.teacherName || "Professeur";
+          const otherName = user?.id === item.teacherId ? item.studentName || "Élève" : item.teacherName || "Professeur";
           const unread = user?.id ? hasUnread(item, user.id) : false;
           const subtitle = item.courseTitle || "1:1";
           const time = fmtTime((item as any).lastAtMs || (item as any).updatedAtMs || 0);

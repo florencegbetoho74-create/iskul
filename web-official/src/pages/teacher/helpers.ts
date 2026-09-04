@@ -51,7 +51,7 @@ export function toErrorMessage(error: unknown): string {
   const lower = message.toLowerCase();
 
   if (code === "PGRST202") return "Backend indisponible. Verifiez les migrations Supabase.";
-  if (code === "23505") return "Un quiz existe deja pour cette lecon.";
+  if (code === "23505") return "Un quiz existe déjà pour cette leçon.";
   if (lower.includes("invalid login credentials")) return "Identifiants invalides.";
   if (lower.includes("row-level security")) return "Action refusee par la politique de securite.";
   if (lower.includes("networkerror") || lower.includes("failed to fetch")) {

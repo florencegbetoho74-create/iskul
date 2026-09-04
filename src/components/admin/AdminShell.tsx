@@ -57,7 +57,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <Text style={styles.profileMeta} numberOfLines={1}>{user?.email || "admin@iskul"}</Text>
             <Pressable style={styles.signOutBtn} onPress={() => signOut?.()}>
               <Ionicons name="log-out-outline" size={16} color={theme.color.text} />
-              <Text style={styles.signOutText}>Deconnexion</Text>
+              <Text style={styles.signOutText}>Déconnexion</Text>
             </Pressable>
           </View>
         </View>

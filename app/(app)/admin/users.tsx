@@ -138,7 +138,7 @@ export default function AdminUsers() {
           <Text style={[styles.th, { flex: 1 }]}>Role</Text>
           <Text style={[styles.th, { flex: 1 }]}>Admin</Text>
               <Text style={[styles.th, { flex: 1 }]}>Relecteur</Text>
-          <Text style={[styles.th, { flex: 2 }]}>Activite</Text>
+          <Text style={[styles.th, { flex: 2 }]}>Activité</Text>
           <Text style={[styles.th, { flex: 2 }]}>Actions</Text>
         </View>
 
@@ -153,7 +153,7 @@ export default function AdminUsers() {
                   {(row.school || "Sans ecole")} {row.grade ? `- ${row.grade}` : ""}
                 </Text>
               </View>
-              <Text style={[styles.td, { flex: 1 }]}>{row.role === "teacher" ? "Prof" : "Eleve"}</Text>
+              <Text style={[styles.td, { flex: 1 }]}>{row.role === "teacher" ? "Prof" : "Élève"}</Text>
               <Text style={[styles.td, { flex: 1 }]}>{row.isAdmin ? "Oui" : "Non"}</Text>
               <Text style={[styles.td, { flex: 1 }]}>{row.isReviewer ? "Oui" : "Non"}</Text>
               <View style={{ flex: 2 }}>
@@ -163,7 +163,7 @@ export default function AdminUsers() {
               </View>
               <View style={{ flex: 2, flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
                 <Pressable style={[styles.actionBtn, isBusy && { opacity: 0.6 }]} disabled={isBusy} onPress={() => toggleRole(row)}>
-                  <Text style={styles.actionText}>{row.role === "teacher" ? "Passer eleve" : "Passer prof"}</Text>
+                  <Text style={styles.actionText}>{row.role === "teacher" ? "Passer élève" : "Passer prof"}</Text>
                 </Pressable>
                 <Pressable style={[styles.actionBtn, isBusy && { opacity: 0.6 }]} disabled={isBusy} onPress={() => toggleAdmin(row)}>
                   <Text style={styles.actionText}>{row.isAdmin ? "Retirer admin" : "Rendre admin"}</Text>

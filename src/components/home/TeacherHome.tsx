@@ -108,7 +108,7 @@ export default function TeacherHome() {
           tone="error"
           title="Indicateurs indisponibles"
           message={error}
-          actionLabel="Reessayer"
+          actionLabel="Réessayer"
           onAction={() => {
             setLoading(true);
             void load();
@@ -119,14 +119,14 @@ export default function TeacherHome() {
           icon="add-circle-outline"
           title="Rien a suivre pour l'instant"
           message="Creez un cours et soumettez-le a la relecture. Vos indicateurs se rempliront des que vos eleves l'ouvriront."
-          actionLabel="Creer un cours"
+          actionLabel="Créer un cours"
           onAction={() => router.push("/(app)/course/new")}
         />
       ) : (
         <>
           <Section title="Sur 30 jours">
             <View style={[styles.statRow, { gap: space.xl }]}>
-              <Stat value={String(data.learnerCount)} label="Eleves suivis" />
+              <Stat value={String(data.learnerCount)} label="Élèves suivis" />
               <Stat
                 value={`${Math.round(data.completionRate * 100)}`}
                 unit="%"
@@ -138,7 +138,7 @@ export default function TeacherHome() {
 
           {/* Ce qui appelle une action passe avant ce qui informe. */}
           {data.atRiskLearners.length ? (
-            <Section title="Eleves a suivre" meta={`${data.atRiskCount}`}>
+            <Section title="Élèves a suivre" meta={`${data.atRiskCount}`}>
               {data.atRiskLearners.slice(0, 5).map((learner) => (
                 <View
                   key={learner.userId}

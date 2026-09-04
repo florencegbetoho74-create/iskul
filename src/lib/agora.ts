@@ -60,7 +60,7 @@ export async function fetchAgoraToken(input: {
     const token = pickToken(data);
     const chan = pickChannelName(data) || channelName;
     const uid = pickUid(data) || input.uid;
-    if (!token || !chan) throw new Error("Reponse token Agora invalide.");
+    if (!token || !chan) throw new Error("Réponse token Agora invalide.");
     return { token, channelName: chan, uid };
   }
 
@@ -76,6 +76,6 @@ export async function fetchAgoraToken(input: {
   const token = pickToken(data);
   const chan = pickChannelName(data) || channelName;
   const uid = pickUid(data) || input.uid;
-  if (!token || !chan) throw new Error("Reponse token Agora invalide.");
+  if (!token || !chan) throw new Error("Réponse token Agora invalide.");
   return { token, channelName: chan, uid };
 }

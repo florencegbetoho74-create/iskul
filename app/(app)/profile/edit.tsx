@@ -129,7 +129,7 @@ export default function EditProfile() {
         }
       } catch {}
 
-      Alert.alert("Enregistre", "Votre profil a ete mis a jour.", [
+      Alert.alert("Enregistré", "Votre profil a été mis a jour.", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (e: any) {
@@ -224,7 +224,7 @@ export default function EditProfile() {
           />
           <TextInput
             style={styles.input}
-            placeholder="Etablissement"
+            placeholder="Établissement"
             placeholderTextColor={theme.color.textMuted}
             value={school}
             onChangeText={setSchool}
@@ -236,7 +236,7 @@ export default function EditProfile() {
           {isTeacher ? (
             <TextInput
               style={styles.input}
-              placeholder="Matieres (separees par des virgules)"
+              placeholder="Matières (separees par des virgules)"
               placeholderTextColor={theme.color.textMuted}
               value={subjects}
               onChangeText={setSubjects}

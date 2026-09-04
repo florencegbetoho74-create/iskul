@@ -203,7 +203,7 @@ export type PushHealth = {
  */
 export async function getPushHealth(): Promise<PushHealth> {
   const { data, error } = await supabase.rpc("admin_push_health");
-  assertNoError(error, "Etat des notifications indisponible.");
+  assertNoError(error, "État des notifications indisponible.");
   const row = (data || {}) as any;
   return {
     pending: Number(row.pending || 0),
@@ -371,7 +371,7 @@ export async function listAdminMessages(params?: {
 
 export async function getAdminPortalSettings(): Promise<AdminPortalSettings> {
   const { data, error } = await supabase.rpc("admin_get_portal_settings");
-  assertNoError(error, "Impossible de charger les reglages du portail.");
+  assertNoError(error, "Impossible de charger les réglages du portail.");
   const row = (((data as any[]) || [])[0] || {}) as any;
   return {
     teacherPortalOpen: !!row.teacher_portal_open,
@@ -385,5 +385,5 @@ export async function updateAdminPortalSettings(input: { teacherPortalOpen: bool
     p_open: input.teacherPortalOpen,
     p_message: input.teacherPortalMessage ?? null,
   });
-  assertNoError(error, "Impossible de mettre a jour les reglages du portail.");
+  assertNoError(error, "Impossible de mettre a jour les réglages du portail.");
 }

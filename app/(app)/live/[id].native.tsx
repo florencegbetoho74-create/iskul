@@ -212,7 +212,7 @@ export default function LiveRoom() {
       engine.leaveChannel();
     }
     setJoined(false);
-    Alert.alert("Seance quittee", "L'animateur vous a retire de cette seance.");
+    Alert.alert("Séance quittee", "L'animateur vous a retire de cette seance.");
   }, [joined, me?.isBanned]);
 
   /* -------------------------------------------------------------- agora */
@@ -356,7 +356,7 @@ export default function LiveRoom() {
           setLive(await setStatus(live.id, "live"));
         }
       } catch (e: any) {
-        Alert.alert("Erreur", e?.message || "Impossible de rejoindre la seance.");
+        Alert.alert("Erreur", e?.message || "Impossible de rejoindre la séance.");
       } finally {
         setJoining(false);
       }
@@ -478,13 +478,13 @@ export default function LiveRoom() {
 
   const stageMessage = useMemo(() => {
     if (externalUrl) {
-      return live?.status === "ended" ? "La seance est terminee." : "Cette seance passe par un lien externe.";
+      return live?.status === "ended" ? "La séance est terminee." : "Cette séance passe par un lien externe.";
     }
     if (!appId) return "AGORA_APP_ID manquant dans l'app.";
     if (agoraError) return agoraError;
     if (!engineReady) return "Agora indisponible. Reconstruisez l'application.";
-    if (live?.status === "ended") return "La seance est terminee.";
-    if (live?.status === "live") return joined ? "Connexion..." : "Rejoignez pour voir la seance.";
+    if (live?.status === "ended") return "La séance est terminee.";
+    if (live?.status === "live") return joined ? "Connexion..." : "Rejoignez pour voir la séance.";
     return "La seance n'a pas encore commence.";
   }, [live?.status, joined, engineReady, appId, agoraError, externalUrl]);
 
@@ -499,14 +499,14 @@ export default function LiveRoom() {
   if (!live) {
     return (
       <View style={styles.center}>
-        <Text style={styles.muted}>Seance introuvable.</Text>
+        <Text style={styles.muted}>Séance introuvable.</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.root}>
-      <TopBar title="Seance en direct" right={null} />
+      <TopBar title="Séance en direct" right={null} />
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
@@ -790,7 +790,7 @@ export default function LiveRoom() {
             />
             <ModAction
               icon="exit-outline"
-              label="Retirer de la seance"
+              label="Retirer de la séance"
               danger
               onPress={() =>
                 moderating &&

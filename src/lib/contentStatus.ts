@@ -1,7 +1,7 @@
 // Statut editorial d'un contenu, cote interface.
 //
 // Le libelle affiche a l'auteur doit dire ou en est son travail et ce qu'il
-// peut faire ensuite. "Publie / Non publie" ne suffit plus : un cours refuse et
+// peut faire ensuite. "Publié / Non publié" ne suffit plus : un cours refuse et
 // un cours jamais soumis ne demandent pas la meme action.
 
 export type ContentStatus = "draft" | "in_review" | "published" | "rejected";
@@ -35,8 +35,8 @@ const PRESENTATION: Record<ContentStatus, StatusPresentation> = {
     tone: "pending",
   },
   published: {
-    label: "Publie",
-    hint: "En ligne pour les eleves concernes.",
+    label: "Publié",
+    hint: "En ligne pour les élèves concernes.",
     tone: "success",
   },
   rejected: {

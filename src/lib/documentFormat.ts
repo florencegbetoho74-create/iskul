@@ -401,7 +401,7 @@ export function checkPublishable(
 
   if (options.isExam) {
     if (!reference.institution?.name) {
-      reasons.push("Renseignez l'etablissement qui a fait passer l'epreuve.");
+      reasons.push("Renseignez l'établissement qui a fait passer l'epreuve.");
     }
     if (!reference.schoolYear && !reference.session) {
       reasons.push("Renseignez l'annee scolaire ou la session.");

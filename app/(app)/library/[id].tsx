@@ -86,7 +86,7 @@ export default function DocumentDetail() {
         <EmptyState
           tone="error"
           title="Document introuvable"
-          message="Ce document a peut-etre ete retire de la bibliotheque."
+          message="Ce document a peut-être été retire de la bibliotheque."
           actionLabel="Revenir"
           onAction={() => router.back()}
         />

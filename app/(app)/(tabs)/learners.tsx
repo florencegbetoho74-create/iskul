@@ -76,7 +76,7 @@ export default function Learners() {
         <EmptyState
           icon="lock-closed-outline"
           title="Espace enseignant"
-          message="Cette page liste les eleves qui suivent vos cours."
+          message="Cette page liste les élèves qui suivent vos cours."
         />
       </View>
     );
@@ -85,7 +85,7 @@ export default function Learners() {
   return (
     <View style={[styles.root, { backgroundColor: color.bg }]}>
       <View style={{ paddingTop: insets.top + space.lg, paddingHorizontal: space.lg, gap: space.md }}>
-        <Text variant="title">Mes eleves</Text>
+        <Text variant="title">Mes élèves</Text>
         <Text variant="caption" tone="muted">
           Ceux qui ont ouvert une de vos lecons ou passe un de vos quiz.
         </Text>
@@ -106,10 +106,10 @@ export default function Learners() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Rechercher un eleve"
+            placeholder="Rechercher un élève"
             placeholderTextColor={color.textFaint}
             style={[styles.searchInput, { color: color.text }]}
-            accessibilityLabel="Rechercher un eleve"
+            accessibilityLabel="Rechercher un élève"
           />
         </View>
       </View>
@@ -145,7 +145,7 @@ export default function Learners() {
               message={
                 error ||
                 (query
-                  ? "Aucun eleve ne correspond a cette recherche."
+                  ? "Aucun élève ne correspond a cette recherche."
                   : "Vos indicateurs se rempliront des qu'un eleve ouvrira un de vos cours.")
               }
             />
@@ -191,7 +191,7 @@ export default function Learners() {
 
                 <View style={[styles.metaRow, { gap: space.xl }]}>
                   <Meta value={`${Math.round(item.completionRate * 100)} %`} label="Progression" />
-                  <Meta value={String(item.lessonsStarted)} label="Lecons" />
+                  <Meta value={String(item.lessonsStarted)} label="Leçons" />
                   <Meta
                     value={item.quizAttempts ? `${Math.round(item.avgScorePct)} %` : "—"}
                     label="Moyenne quiz"

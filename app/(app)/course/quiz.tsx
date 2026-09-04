@@ -79,8 +79,8 @@ export default function QuizPage() {
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
   const [attemptSession, setAttemptSession] = useState<QuizAttemptSession | null>(null);
   const [submission, setSubmission] = useState<QuizSubmission | null>(null);
-  // Le corrige ne descend plus avec le quiz : il arrive question par
-  // question, en reponse a ce que l'eleve a effectivement repondu.
+  // Le corrigé ne descend plus avec le quiz : il arrive question par
+  // question, en réponse a ce que l'élève a effectivement repondu.
   const [feedbackCorrect, setFeedbackCorrect] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -371,9 +371,9 @@ export default function QuizPage() {
     for (const q of questions) {
       if (!q.prompt.trim()) return "Chaque question doit avoir un texte.";
       if (!q.options || q.options.length < 2) return "Chaque question doit avoir au moins 2 options.";
-      if (q.options.some((o) => !o.trim())) return "Les options ne doivent pas etre vides.";
+      if (q.options.some((o) => !o.trim())) return "Les options ne doivent pas être vides.";
       const correct = normalizeIndices(q.correctIndices || [], q.options.length);
-      if (correct.length !== 1) return "Choisissez une seule reponse juste par question.";
+      if (correct.length !== 1) return "Choisissez une seule réponse juste par question.";
     }
     return null;
   };
@@ -409,7 +409,7 @@ export default function QuizPage() {
         return;
       }
       if (!standaloneSubjectId) {
-        Alert.alert("Matiere requise", "Selectionnez une matiere pour le quiz autonome.");
+        Alert.alert("Matière requise", "Selectionnez une matière pour le quiz autonome.");
         return;
       }
     }
@@ -443,7 +443,7 @@ export default function QuizPage() {
         ownerId: user.id,
       });
       setQuiz(saved);
-      Alert.alert("Enregistre", "Le quiz a ete sauvegarde.");
+      Alert.alert("Enregistré", "Le quiz a été sauvegarde.");
     } catch (e: any) {
       Alert.alert("Erreur", e?.message || "Impossible d'enregistrer le quiz.");
     } finally {
@@ -587,7 +587,7 @@ export default function QuizPage() {
                 {title || quiz?.title || "Nouveau quiz autonome"}
               </Text>
               <Text style={styles.heroSub} numberOfLines={2}>
-                {(standaloneSubject || quiz?.subject || "Matiere")} - {(standaloneLevel || quiz?.level || "Classe")}
+                {(standaloneSubject || quiz?.subject || "Matière")} - {(standaloneLevel || quiz?.level || "Classe")}
               </Text>
             </>
           ) : (
@@ -601,12 +601,12 @@ export default function QuizPage() {
         {isTeacher ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>
-              {isStandaloneQuiz ? "Creation du quiz autonome" : "Creation du quiz de chapitre"}
+              {isStandaloneQuiz ? "Création du quiz autonome" : "Création du quiz de chapitre"}
             </Text>
             {!isStandaloneQuiz ? (
               <TouchableOpacity onPress={() => router.push("/(app)/course/quiz?mode=standalone")} style={styles.linkBtn}>
                 <Ionicons name="sparkles-outline" size={14} color={theme.color.primary} />
-                <Text style={styles.linkBtnText}>Creer un quiz autonome</Text>
+                <Text style={styles.linkBtnText}>Créer un quiz autonome</Text>
               </TouchableOpacity>
             ) : null}
             {!canEdit ? (
@@ -635,14 +635,14 @@ export default function QuizPage() {
                         setStandaloneGradeLevelId(match.id);
                         setStandaloneLevel(match.code);
                       }}
-                      helperText="Ce quiz apparaitra dans la section eleve de cette classe."
+                      helperText="Ce quiz apparaîtra dans la section élève de cette classe."
                     />
                     <SelectionSheetField
-                      label="Matiere"
+                      label="Matière"
                       icon="albums-outline"
                       value={taxonomy.subjectLabel}
                       placeholder={
-                        taxonomy.loadingGrades ? "Chargement du programme..." : "Choisir une matiere"
+                        taxonomy.loadingGrades ? "Chargement du programme..." : "Choisir une matière"
                       }
                       options={taxonomy.subjectOptions}
                       onChange={(label) => {
@@ -661,7 +661,7 @@ export default function QuizPage() {
                     </View>
                     <View style={styles.readonlyMetaChip}>
                       <Ionicons name="albums-outline" size={14} color={theme.color.textMuted} />
-                      <Text style={styles.readonlyMetaText}>{standaloneSubject || quiz?.subject || "Matiere"}</Text>
+                      <Text style={styles.readonlyMetaText}>{standaloneSubject || quiz?.subject || "Matière"}</Text>
                     </View>
                   </View>
                 )}
@@ -712,7 +712,7 @@ export default function QuizPage() {
         {isTeacher ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Questions</Text>
-            <Text style={styles.mutedText}>Choisissez une seule reponse juste par question.</Text>
+            <Text style={styles.mutedText}>Choisissez une seule réponse juste par question.</Text>
             {questions.map((q, qIdx) => (
               <View key={q.id} style={styles.questionCard}>
                 <View style={styles.questionHeader}>
@@ -896,7 +896,7 @@ export default function QuizPage() {
                     style={[styles.primaryBtn, selectedOpt === null && styles.disabledBtn]}
                   >
                     <Ionicons name="checkmark-circle-outline" size={16} color={theme.color.textOnPrimary} />
-                    <Text style={styles.primaryText}>Verifier</Text>
+                    <Text style={styles.primaryText}>Vérifier</Text>
                   </TouchableOpacity>
                 ) : null}
 
@@ -915,7 +915,7 @@ export default function QuizPage() {
                         color={lastOutcome === "correct" ? theme.color.success : theme.color.danger}
                       />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.feedbackTitle}>{lastOutcome === "correct" ? "Bonne reponse" : "Mauvaise reponse"}</Text>
+                        <Text style={styles.feedbackTitle}>{lastOutcome === "correct" ? "Bonne réponse" : "Mauvaise réponse"}</Text>
                         {lastOutcome === "wrong" && currentCorrectIndices.length ? (
                           <Text style={styles.feedbackText}>
                             Bonne reponse: {currentCorrectIndices.map((i) => currentQuestion?.options?.[i]).filter(Boolean).join(", ")}
@@ -962,8 +962,8 @@ export default function QuizPage() {
                       {persistingAttempt
                         ? "Enregistrement du resultat..."
                         : runSaved
-                        ? "Resultat enregistre."
-                        : "Resultat non enregistre."}
+                        ? "Resultat enregistré."
+                        : "Resultat non enregistré."}
                     </Text>
 
                     <TouchableOpacity onPress={startRun} style={styles.primaryBtn}>

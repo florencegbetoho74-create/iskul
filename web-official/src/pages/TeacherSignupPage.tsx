@@ -87,17 +87,17 @@ export default function TeacherSignupPage() {
         <span className="kicker">Espace professeur</span>
         <h1>Devenir professeur iSkul</h1>
         <p>
-          Inscription dediee aux enseignants. Le web donne acces a des statistiques detaillees ; l'experience complete de
-          creation/organisation de contenus est pensee pour l'application iSkul.
+          Inscription dediee aux enseignants. Le web donne accès a des statistiques détaillées ; l'experience complète de
+          création/organisation de contenus est pensee pour l'application iSkul.
         </p>
       </header>
 
       <section className="signup-grid" data-reveal="up">
         <article className="signup-showcase">
           <span className="kicker signup-kicker">Portail enseignant</span>
-          <h2>Un onboarding clair, securise et rapide.</h2>
+          <h2>Un onboarding clair, sécurisé et rapide.</h2>
           <p>
-            Ce portail centralise la creation de compte professeur et garantit un controle qualite avant acces aux outils.
+            Ce portail centralise la création de compte professeur et garantit un contrôle qualite avant accès aux outils.
           </p>
 
           <div className="signup-pill-grid">
@@ -110,14 +110,14 @@ export default function TeacherSignupPage() {
               <span>Tracabilite</span>
             </div>
             <div className="signup-pill">
-              <strong>Securise</strong>
+              <strong>Sécurisé</strong>
               <span>Validation</span>
             </div>
           </div>
 
           <ul className="signup-list">
-            <li>Creation automatique du profil avec role enseignant.</li>
-            <li>Controle via politique d'ouverture du portail et domaine autorise.</li>
+            <li>Création automatique du profil avec role enseignant.</li>
+            <li>Contrôle via politique d'ouverture du portail et domaine autorise.</li>
             <li>Journalisation pour audit et suivi operationnel.</li>
             <li>Activation et fermeture du portail depuis la console admin.</li>
           </ul>
@@ -191,7 +191,7 @@ export default function TeacherSignupPage() {
             <h3>2. Profil enseignant</h3>
             <div className="form-grid-two">
               <label className="form-field">
-                Etablissement
+                Établissement
                 <input
                   value={school}
                   onChange={(event) => setSchool(event.target.value)}
@@ -200,7 +200,7 @@ export default function TeacherSignupPage() {
               </label>
 
               <label className="form-field">
-                Matieres
+                Matières
                 <input
                   value={subjects}
                   onChange={(event) => setSubjects(event.target.value)}
@@ -211,12 +211,12 @@ export default function TeacherSignupPage() {
           </section>
 
           <p className="field-hint">
-            L'acces reste securise par la politique du portail enseignant et les regles de validation cote serveur.
+            L'accès reste sécurisé par la politique du portail enseignant et les regles de validation cote serveur.
           </p>
 
           <label className="consent-check">
             <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
-            <span>Je confirme que ces informations sont exactes et que j'ai l'autorisation de creer ce compte.</span>
+            <span>Je confirme que ces informations sont exactes et que j'ai l'autorisation de créer ce compte.</span>
           </label>
 
           {error ? <p className="notice error">{error}</p> : null}
@@ -243,7 +243,7 @@ export default function TeacherSignupPage() {
             </span>
             <div>
               <strong>Inscription finalisee</strong>
-              <p>{success || "Le compte professeur a ete cree avec succes."}</p>
+              <p>{success || "Le compte professeur a été créé avec succès."}</p>
             </div>
             <button
               className="signup-success-close"
@@ -260,7 +260,7 @@ export default function TeacherSignupPage() {
           <div className="signup-success-tags">
             <span>Role : Professeur</span>
             <span>Statut : Actif</span>
-            <span>Acces : Web + App</span>
+            <span>Accès : Web + App</span>
           </div>
 
           <div className="signup-success-actions">

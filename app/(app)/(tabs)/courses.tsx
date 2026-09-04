@@ -164,7 +164,7 @@ export default function Courses() {
             <Pressable
               onPress={() => router.push("/(app)/course/new")}
               accessibilityRole="button"
-              accessibilityLabel="Creer un cours"
+              accessibilityLabel="Créer un cours"
               style={[
                 styles.iconBtn,
                 { backgroundColor: color.primary, borderRadius: radius.pill },
@@ -192,7 +192,7 @@ export default function Courses() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Chercher un cours, une matiere"
+            placeholder="Chercher un cours, une matière"
             placeholderTextColor={color.textFaint}
             style={[styles.searchInput, { color: color.text }]}
             returnKeyType="search"
@@ -219,7 +219,7 @@ export default function Courses() {
             options={subjectOptions}
             value={subject}
             onChange={setSubject}
-            accessibilityLabel="Matiere"
+            accessibilityLabel="Matière"
           />
         ) : null}
       </View>
@@ -257,7 +257,7 @@ export default function Courses() {
               <EmptyState
                 icon="search-outline"
                 title="Aucun resultat"
-                message="Aucun cours ne correspond a cette recherche. Essayez une autre matiere ou effacez les filtres."
+                message="Aucun cours ne correspond a cette recherche. Essayez une autre matière ou effacez les filtres."
                 actionLabel="Effacer les filtres"
                 onAction={clearFilters}
               />
@@ -265,8 +265,8 @@ export default function Courses() {
               <EmptyState
                 icon="add-circle-outline"
                 title="Aucun cours pour l'instant"
-                message="Creez votre premier cours, ajoutez ses chapitres, puis envoyez-le en relecture."
-                actionLabel="Creer un cours"
+                message="Créez votre premier cours, ajoutez ses chapitres, puis envoyez-le en relecture."
+                actionLabel="Créer un cours"
                 onAction={() => router.push("/(app)/course/new")}
               />
             ) : (
@@ -276,7 +276,7 @@ export default function Courses() {
                 message={
                   scope === "class"
                     ? "Aucun cours n'est encore publie pour ta classe. Regarde les autres classes en attendant."
-                    : "Aucun cours publie pour le moment. Reviens bientot."
+                    : "Aucun cours publié pour le moment. Reviens bientôt."
                 }
                 actionLabel={scope === "class" ? "Voir toutes les classes" : undefined}
                 onAction={scope === "class" ? () => setScope("all") : undefined}

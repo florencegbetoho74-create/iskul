@@ -155,7 +155,7 @@ function mapAuthError(e: any): string {
   const msg = String(e?.message || "");
   if (msg.includes("Invalid login")) return "Identifiants incorrects.";
   if (msg.includes("Email rate limit")) return "Trop de tentatives. Reessayez plus tard.";
-  if (msg.includes("User already registered")) return "Cette adresse email est deja utilisee.";
+  if (msg.includes("User already registered")) return "Cette adresse email est déjà utilisee.";
   if (msg.includes("Password should be at least")) return "Mot de passe trop faible (6 caracteres min.).";
   if (msg.includes("Email not confirmed")) return "Email non confirme. Desactivez la confirmation dans Supabase Auth.";
   return e?.message || "Erreur d'authentification.";

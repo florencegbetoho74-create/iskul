@@ -137,7 +137,7 @@ export default function ForgotPassword() {
                 <Link href="/(auth)/sign-in">Retour connexion</Link>
               </Text>
               <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
-                <Text style={styles.footerText}>Creer un compte</Text>
+                <Text style={styles.footerText}>Créer un compte</Text>
               </TouchableOpacity>
             </View>
           </View>

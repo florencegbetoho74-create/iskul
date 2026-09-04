@@ -126,7 +126,7 @@ export function parseStudentDashboard(input: unknown): StudentDashboard {
           if (!liveId) return null;
           return {
             liveId,
-            title: String(l.title ?? "Seance en direct"),
+            title: String(l.title ?? "Séance en direct"),
             startAtMs: num(l.startAtMs),
             status: l.status === "live" ? "live" : "scheduled",
             ownerName: (l.ownerName as string) ?? null,
@@ -174,7 +174,7 @@ export function greeting(date = new Date()): string {
   const h = date.getHours();
   if (h < 5) return "Bonne nuit";
   if (h < 12) return "Bonjour";
-  if (h < 18) return "Bon apres-midi";
+  if (h < 18) return "Bon après-midi";
   return "Bonsoir";
 }
 

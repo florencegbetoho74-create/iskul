@@ -14,14 +14,14 @@ export type ReviewQueueItem = {
 
 function mapError(error: any, fallback: string): string {
   const message = String(error?.message || "");
-  if (message.includes("reviewer_only")) return "Reserve aux relecteurs.";
+  if (message.includes("reviewer_only")) return "Réservé aux relecteurs.";
   if (message.includes("not_owner")) return "Ce contenu ne vous appartient pas.";
   if (message.includes("content_not_found")) return "Ce contenu n'existe plus.";
-  if (message.includes("already_in_review")) return "Deja en relecture.";
-  if (message.includes("already_published")) return "Deja publie.";
+  if (message.includes("already_in_review")) return "Déjà en relecture.";
+  if (message.includes("already_published")) return "Déjà publié.";
   if (message.includes("not_in_review")) return "Ce contenu n'est pas en relecture.";
   if (message.includes("note_required")) return "Indiquez le motif du renvoi a l'auteur.";
-  if (message.includes("invalid_decision")) return "Decision invalide.";
+  if (message.includes("invalid_decision")) return "Décision invalide.";
   if (message.includes("auth_required")) return "Connectez-vous d'abord.";
   return message || fallback;
 }
@@ -95,6 +95,6 @@ export async function decideReview(input: {
     p_decision: input.decision,
     p_note: input.note ?? null,
   });
-  if (error) throw new Error(mapError(error, "Decision non enregistree."));
+  if (error) throw new Error(mapError(error, "Décision non enregistrée."));
   return parseContentStatus((data as any)?.status);
 }

@@ -135,7 +135,7 @@ export function parseTeacherDashboard(input: unknown): TeacherDashboardSnapshot 
 
     atRiskLearners: list(root.atRiskLearners).map((l) => ({
       userId: String(l?.userId ?? ""),
-      name: String(l?.name ?? "Eleve"),
+      name: String(l?.name ?? "Élève"),
       completionRate: clamp01(num(l?.completionRate)),
       attempts: num(l?.attempts),
     })),

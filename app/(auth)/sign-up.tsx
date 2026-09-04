@@ -116,9 +116,9 @@ export default function SignUp() {
             <Image source={require("../../assets/logo.png")} style={styles.logo} />
             <View style={styles.heroBadge}>
               <Ionicons name="school-outline" size={14} color={theme.color.primary} />
-              <Text style={styles.heroBadgeText}>Compte eleve</Text>
+              <Text style={styles.heroBadgeText}>Compte élève</Text>
             </View>
-            <Text style={styles.heroTitle}>Creer votre compte</Text>
+            <Text style={styles.heroTitle}>Créer votre compte</Text>
             <Text style={styles.heroSubtitle}>Inscription rapide pour acceder aux cours, lives et quiz iSkul.</Text>
           </View>
 
@@ -204,7 +204,7 @@ export default function SignUp() {
             {optionsError ? <Text style={styles.errorText}>{optionsError}</Text> : null}
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.label}>Etablissement</Text>
+              <Text style={styles.label}>Établissement</Text>
               <View style={styles.inputShell}>
                 <Ionicons name="business-outline" size={18} color={theme.color.textMuted} />
                 <TextInput
@@ -227,7 +227,7 @@ export default function SignUp() {
                 style={[styles.primaryGrad, (loading || disabled) && styles.ctaDisabled]}
               >
                 <Ionicons name="checkmark-circle-outline" size={18} color={theme.color.textOnPrimary} />
-                <Text style={styles.primaryText}>{loading ? "Creation..." : "Creer le compte"}</Text>
+                <Text style={styles.primaryText}>{loading ? "Création..." : "Créer le compte"}</Text>
               </LinearGradient>
             </TouchableOpacity>
 

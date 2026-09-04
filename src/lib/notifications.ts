@@ -163,7 +163,7 @@ export async function scheduleHomeworkReminder(userId: string, hasPendingWork: b
 
   await scheduleAt(
     "Rappel de devoir",
-    "Tu as du contenu en cours. Termine une lecon ou un quiz ce soir.",
+    "Tu as du contenu en cours. Termine une leçon ou un quiz ce soir.",
     target.getTime(),
     { type: "homework_reminder" }
   );

@@ -6,7 +6,7 @@ export default function LegalPage() {
       <header className="page-head">
         <span className="kicker">Mentions legales</span>
         <h1>Informations legales</h1>
-        <p>Ce contenu est un minimum. Il peut etre complete selon votre structure juridique et vos obligations locales.</p>
+        <p>Ce contenu est un minimum. Il peut être complète selon votre structure juridique et vos obligations locales.</p>
       </header>
 
       <section className="content-card" data-reveal="up">
@@ -31,10 +31,10 @@ export default function LegalPage() {
           des erreurs peuvent exister. Les informations sont susceptibles d'evoluer.
         </p>
 
-        <h3>Donnees personnelles</h3>
+        <h3>Données personnelles</h3>
         <p>
-          Les donnees sont utilisees pour fournir les services (progression, statistiques, experience utilisateur).
-          Pour toute demande liee aux donnees, utilisez le formulaire de contact.
+          Les données sont utilisees pour fournir les services (progression, statistiques, experience utilisateur).
+          Pour toute demande liee aux données, utilisez le formulaire de contact.
         </p>
 
         <h3>Contact</h3>

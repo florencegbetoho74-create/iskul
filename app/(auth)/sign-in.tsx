@@ -142,7 +142,7 @@ export default function SignIn() {
             </TouchableOpacity>
 
             <Text style={styles.footerText}>
-              Pas de compte ? <Link href="/(auth)/sign-up">Creer un compte</Link>
+              Pas de compte ? <Link href="/(auth)/sign-up">Créer un compte</Link>
             </Text>
           </View>
         </ScrollView>

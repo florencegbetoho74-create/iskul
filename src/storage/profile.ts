@@ -94,7 +94,7 @@ export async function getNotificationsEnabled(userId: string): Promise<boolean> 
  */
 export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
   const { error } = await supabase.rpc("set_notifications_enabled", { p_enabled: enabled });
-  if (error) throw new Error(error.message || "Preference non enregistree.");
+  if (error) throw new Error(error.message || "Preference non enregistrée.");
 }
 
 export function watchProfile(userId: string, cb: (p: Profile | null) => void) {

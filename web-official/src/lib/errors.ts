@@ -10,7 +10,7 @@ export function mapTeacherSignupError(err: unknown): string {
   if (!msg) return "Inscription impossible pour le moment.";
   if (msg.includes("portal_closed")) return "Le portail professeur est temporairement ferme.";
   if (msg.includes("domain_not_allowed")) return "Domaine email non autorise pour ce portail.";
-  if (msg.includes("already") || msg.includes("registered")) return "Cette adresse email est deja utilisee.";
+  if (msg.includes("already") || msg.includes("registered")) return "Cette adresse email est déjà utilisee.";
   if (msg.includes("weak_password")) return "Mot de passe trop faible (8 caracteres minimum).";
   if (msg.includes("invalid_email")) return "Adresse email invalide.";
   if (msg.includes("missing_fields")) return "Veuillez remplir tous les champs obligatoires.";

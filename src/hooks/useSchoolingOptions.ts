@@ -102,7 +102,7 @@ export function useSchoolingOptions(countryCode?: string | null) {
   }, [state.scope, state.countries]);
 
   /**
-   * Message affiche a l'eleve quand on lui sert le programme d'un autre pays.
+   * Message affiche a l'élève quand on lui sert le programme d'un autre pays.
    * Le dire explicitement vaut mieux qu'un ecran vide ou qu'un contenu presente
    * a tort comme le sien.
    */

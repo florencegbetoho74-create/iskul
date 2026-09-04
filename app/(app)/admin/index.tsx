@@ -83,10 +83,10 @@ export default function AdminDashboard() {
         teacherPortalOpen: portalOpen,
         teacherPortalMessage: portalMessage.trim() || null,
       });
-      setNotice("Reglages du portail prof enregistres.");
+      setNotice("Réglages du portail prof enregistres.");
       await load();
     } catch (e: any) {
-      setError(e?.message || "Impossible de sauvegarder les reglages.");
+      setError(e?.message || "Impossible de sauvegarder les réglages.");
     } finally {
       setSaving(false);
     }
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
 
         <View style={styles.settingRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Etat du portail</Text>
+            <Text style={styles.label}>État du portail</Text>
             <Text style={styles.value}>{portalOpen ? "Ouvert" : "Ferme"}</Text>
           </View>
           <Switch value={portalOpen} onValueChange={setPortalOpen} />
@@ -175,12 +175,12 @@ export default function AdminDashboard() {
 
         <Pressable style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={savePortal} disabled={saving}>
           <Ionicons name="save-outline" size={16} color={theme.color.textOnPrimary} />
-          <Text style={styles.saveText}>{saving ? "Enregistrement..." : "Enregistrer les reglages"}</Text>
+          <Text style={styles.saveText}>{saving ? "Enregistrement..." : "Enregistrer les réglages"}</Text>
         </Pressable>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Acces Rapides</Text>
+        <Text style={styles.cardTitle}>Accès Rapides</Text>
         <View style={styles.quickGrid}>
           {quickLinks.map((x) => (
             <Pressable key={x.href} style={styles.quickCard} onPress={() => router.push(x.href as any)}>

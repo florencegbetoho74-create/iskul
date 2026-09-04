@@ -63,8 +63,8 @@ export default function NewCourse() {
     // l'ecran pour dire ce qui s'y trouve deja.
     const next: Errors = {};
     if (!title.trim()) next.title = "Donnez un titre au cours.";
-    if (!gradeLevelId) next.grade = "Choisissez la classe visee.";
-    if (!subjectId) next.subject = "Choisissez la matiere.";
+    if (!gradeLevelId) next.grade = "Choisissez la classe visée.";
+    if (!subjectId) next.subject = "Choisissez la matière.";
     setErrors(next);
     if (Object.keys(next).length) return;
 
@@ -87,7 +87,7 @@ export default function NewCourse() {
       });
       router.replace(`/(app)/course/edit/${created.id}`);
     } catch (e: any) {
-      setFailure(e?.message || "Creation impossible.");
+      setFailure(e?.message || "Création impossible.");
       setSaving(false);
     }
   };
@@ -143,7 +143,7 @@ export default function NewCourse() {
               if (match) setGradeLevelId(match.id);
               setErrors((e) => ({ ...e, grade: undefined }));
             }}
-            helperText="Le cours n'apparaitra qu'aux eleves de cette classe."
+            helperText="Le cours n'apparaîtra qu'aux eleves de cette classe."
           />
           {errors.grade ? (
             <Text variant="caption" tone="danger">
@@ -154,10 +154,10 @@ export default function NewCourse() {
 
         <View>
           <SelectionSheetField
-            label="Matiere"
+            label="Matière"
             icon="albums-outline"
             value={subjectLabel}
-            placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+            placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matière"}
             options={subjectOptions}
             onChange={(label) => {
               const match = subjects.find((x) => x.label === label);
@@ -179,7 +179,7 @@ export default function NewCourse() {
         ) : null}
 
         <Button onPress={save} icon="arrow-forward" loading={saving} block>
-          {saving ? "Creation..." : "Creer et ajouter les chapitres"}
+          {saving ? "Création..." : "Créer et ajouter les chapitres"}
         </Button>
 
         <Text variant="caption" tone="muted">

@@ -125,13 +125,13 @@ export default function AdminQuizzes() {
                 {(row.courseTitle || row.level || "-")} {row.chapterTitle ? `- ${row.chapterTitle}` : ""}
               </Text>
               <Text style={styles.meta} numberOfLines={1}>
-                {(row.subject || "Matiere -")} - MAJ {formatDate(row.updatedAtMs)}
+                {(row.subject || "Matière -")} - MAJ {formatDate(row.updatedAtMs)}
               </Text>
             </View>
-            <Text style={[styles.td, { flex: 1 }]}>{row.scope === "lesson" ? "Lecon" : "Standalone"}</Text>
+            <Text style={[styles.td, { flex: 1 }]}>{row.scope === "lesson" ? "Leçon" : "Standalone"}</Text>
             <Text style={[styles.td, { flex: 1 }]} numberOfLines={1}>{row.ownerName}</Text>
             <Text style={[styles.td, { flex: 1 }]}>{row.attempts}</Text>
-            <Text style={[styles.td, { flex: 1 }]}>{row.published ? "Publie" : "Brouillon"}</Text>
+            <Text style={[styles.td, { flex: 1 }]}>{row.published ? "Publié" : "Brouillon"}</Text>
             <View style={{ flex: 1 }}>
               <Pressable
                 style={[styles.actionBtn, busyId === row.id && { opacity: 0.6 }]}

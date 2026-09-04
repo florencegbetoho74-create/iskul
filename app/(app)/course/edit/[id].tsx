@@ -356,7 +356,7 @@ export default function EditCourse() {
         <EmptyState
           tone="error"
           title="Cours introuvable"
-          message="Ce cours a peut-etre ete supprime."
+          message="Ce cours a peut-être été supprimé."
           actionLabel="Revenir a mes cours"
           onAction={() => router.replace("/(app)/(tabs)/courses")}
         />
@@ -497,7 +497,7 @@ export default function EditCourse() {
                 <View style={{ gap: space.sm }}>
                   <Field
                     ref={linkRef}
-                    label="Video en francais"
+                    label="Video en français"
                     hint="Importez le fichier, ou collez un lien direct terminant par .mp4, .m3u8 ou .mpd."
                     placeholder="https://..."
                     value={chVideoUrl}
@@ -660,15 +660,15 @@ export default function EditCourse() {
                 if (match) setGradeLevelId(match.id);
                 setMetaError(null);
               }}
-              helperText="Le cours n'apparaitra qu'aux eleves de cette classe."
+              helperText="Le cours n'apparaîtra qu'aux eleves de cette classe."
               warningText={legacyLevel ? `Classe non reconnue a reclasser : « ${level} »` : undefined}
             />
 
             <SelectionSheetField
-              label="Matiere"
+              label="Matière"
               icon="albums-outline"
               value={subjectLabel}
-              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matière"}
               options={subjectOptions}
               onChange={(label) => {
                 const match = subjects.find((x) => x.label === label);
@@ -790,7 +790,7 @@ function ChapterEditRow({
         </Text>
         {hasVideo ? (
           <Text variant="caption" tone="muted" numberOfLines={1}>
-            {langs.length ? `Francais + ${langs.join(", ")}` : "Francais"}
+            {langs.length ? `Francais + ${langs.join(", ")}` : "Français"}
           </Text>
         ) : (
           <Text variant="caption" tone="warning">

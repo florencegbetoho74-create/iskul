@@ -235,7 +235,7 @@ function Bubble({
       <View style={styles.msgMetaRow}>
         {mine && (failed || sending) ? (
           <Text style={[styles.msgStatus, failed && styles.msgStatusFail]}>
-            {failed ? "Echec" : "Envoi..."}
+            {failed ? "Échec" : "Envoi..."}
           </Text>
         ) : (
           <View />
@@ -371,7 +371,7 @@ export default function ChatRoom() {
   }, [thread, user?.id]);
   const otherName = useMemo(() => {
     if (!thread || !user) return "";
-    return user.id === thread.teacherId ? thread.studentName || "Eleve" : thread.teacherName || "Professeur";
+    return user.id === thread.teacherId ? thread.studentName || "Élève" : thread.teacherName || "Professeur";
   }, [thread, user?.id]);
 
   const lastReadOther = thread?.lastReadAtMs?.[otherId || ""] ?? 0;

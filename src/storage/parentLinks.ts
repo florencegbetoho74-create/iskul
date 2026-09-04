@@ -16,7 +16,7 @@ export type ParentLink = {
 function mapError(error: any, fallback: string): string {
   const message = String(error?.message || "");
   if (message.includes("auth_required")) return "Connectez-vous d'abord.";
-  if (message.includes("link_not_found")) return "Cet acces a deja ete retire.";
+  if (message.includes("link_not_found")) return "Cet accès a déjà été retire.";
   if (message.includes("code_generation_failed")) return "Reessayez dans un instant.";
   return message || fallback;
 }
@@ -44,7 +44,7 @@ export async function createPairingCode(): Promise<PairingCode> {
 export async function listParentLinks(): Promise<ParentLink[]> {
   if (!SUPABASE_READY) return [];
   const { data, error } = await supabase.rpc("my_parent_links");
-  if (error) throw new Error(mapError(error, "Acces indisponibles."));
+  if (error) throw new Error(mapError(error, "Accès indisponibles."));
   const rows = Array.isArray(data) ? data : [];
   return rows.map((row: any) => ({
     id: String(row?.id ?? ""),

@@ -26,7 +26,7 @@ type Entry = {
  * Profil.
  *
  * L'ecran melangeait identite, statistiques et raccourcis de creation dans une
- * suite de cartes. Il redevient ce qu'il doit etre : qui je suis, ce que j'ai
+ * suite de cartes. Il redevient ce qu'il doit être : qui je suis, ce que j'ai
  * fait, et les reglages qui me concernent.
  */
 export default function Profile() {
@@ -79,10 +79,10 @@ export default function Profile() {
     ? [
         { icon: "person-outline", label: "Modifier mon profil", href: "/(app)/profile/edit" },
         { icon: "book-outline", label: "Mes cours", href: "/(app)/(tabs)/courses" },
-        { icon: "radio-outline", label: "Mes seances live", href: "/(app)/live/mine" },
+        { icon: "radio-outline", label: "Mes séances live", href: "/(app)/live/mine" },
         {
           icon: "settings-outline",
-          label: "Reglages",
+          label: "Réglages",
           hint: "Apparence, notifications, cache",
           href: "/(app)/profile/settings",
         },
@@ -98,13 +98,13 @@ export default function Profile() {
         },
         {
           icon: "people-outline",
-          label: "Acces parental",
+          label: "Accès parental",
           hint: "Donner un code a mes parents",
           href: "/(app)/profile/settings",
         },
         {
           icon: "settings-outline",
-          label: "Reglages",
+          label: "Réglages",
           hint: "Apparence, notifications, cache",
           href: "/(app)/profile/settings",
         },
@@ -155,7 +155,7 @@ export default function Profile() {
           </Text>
           <View style={[styles.badges, { gap: space.xs, marginTop: space.xs }]}>
             <Badge tone={isTeacher ? "primary" : "neutral"}>
-              {isTeacher ? "Professeur" : "Eleve"}
+              {isTeacher ? "Professeur" : "Élève"}
             </Badge>
             {user?.isReviewer ? <Badge tone="success">Relecteur</Badge> : null}
             {!isTeacher && user?.grade ? <Badge tone="neutral">{user.grade}</Badge> : null}
@@ -172,7 +172,7 @@ export default function Profile() {
             unit={hours > 0 ? "h" : "min"}
             label="Temps passe"
           />
-          <Stat value={String(usage?.lessonsViewed ?? 0)} label="Lecons ouvertes" />
+          <Stat value={String(usage?.lessonsViewed ?? 0)} label="Leçons ouvertes" />
           <Stat value={String(usage?.quizAttempts ?? 0)} label="Quiz passes" />
         </View>
       </View>
@@ -218,9 +218,9 @@ export default function Profile() {
       <View style={{ paddingHorizontal: space.lg }}>
         <Button
           onPress={() =>
-            Alert.alert("Se deconnecter", "Vous devrez saisir vos identifiants a nouveau.", [
+            Alert.alert("Se déconnecter", "Vous devrez saisir vos identifiants a nouveau.", [
               { text: "Annuler", style: "cancel" },
-              { text: "Se deconnecter", style: "destructive", onPress: () => signOut?.() },
+              { text: "Se déconnecter", style: "destructive", onPress: () => signOut?.() },
             ])
           }
           icon="log-out-outline"

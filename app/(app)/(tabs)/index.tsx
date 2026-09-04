@@ -7,7 +7,7 @@ import TeacherHome from "@/components/home/TeacherHome";
 /**
  * Accueil.
  *
- * Eleve et professeur n'ont plus le meme ecran : l'un reprend son cours,
+ * Eleve et professeur n'ont plus le même ecran : l'un reprend son cours,
  * l'autre suit ses classes. Les melanger dans un seul fichier de 1 368 lignes
  * pilote par des conditions rendait les deux mediocres.
  */

@@ -392,9 +392,9 @@ export default function ParentTrackingPage() {
         <span className="kicker">Espace Parents</span>
         <h1>Suivi parental en temps reel</h1>
         <p>
-          Votre enfant genere un code depuis l&apos;application, dans Reglages. Saisissez-le une fois
+          Votre enfant généré un code depuis l&apos;application, dans Réglages. Saisissez-le une fois
           pour suivre son temps passe, ses cours, ses lives et ses resultats. Il peut retirer votre
-          acces quand il le souhaite.
+          accès quand il le souhaite.
         </p>
       </header>
 
@@ -402,8 +402,8 @@ export default function ParentTrackingPage() {
         <div className="parent-filter-row">
           {token ? (
             <div className="teacher-field">
-              Acces
-              <p className="notice">Acces actif sur cet appareil.</p>
+              Accès
+              <p className="notice">Accès actif sur cet appareil.</p>
             </div>
           ) : (
             <label className="teacher-field">
@@ -514,13 +514,13 @@ export default function ParentTrackingPage() {
                   </div>
                 </>
               ) : (
-                <p className="teacher-empty">Pas encore de donnees sur cette periode.</p>
+                <p className="teacher-empty">Pas encore de données sur cette période.</p>
               )}
             </article>
 
             <article className="parent-panel parent-chart-card">
               <div className="teacher-panel-head">
-                <h2>Volume d'activite</h2>
+                <h2>Volume d'activité</h2>
                 <small>Interactions journalieres</small>
               </div>
               {timeline.length ? (
@@ -532,7 +532,7 @@ export default function ParentTrackingPage() {
                   </div>
                 </>
               ) : (
-                <p className="teacher-empty">Pas encore de donnees sur cette periode.</p>
+                <p className="teacher-empty">Pas encore de données sur cette période.</p>
               )}
             </article>
           </section>
@@ -557,7 +557,7 @@ export default function ParentTrackingPage() {
 
                     <section className="parent-panel">
             <div className="parent-panel-head">
-              <h2>Activite quotidienne</h2>
+              <h2>Activité quotidienne</h2>
               <button
                 className="parent-toggle-btn"
                 type="button"
@@ -585,13 +585,13 @@ export default function ParentTrackingPage() {
                 ))}
               </div>
             ) : (
-              <p className="parent-collapsed-hint">Section reduite. Ouvrez-la pour voir la timeline complete.</p>
+              <p className="parent-collapsed-hint">Section reduite. Ouvrez-la pour voir la timeline complète.</p>
             )}
           </section>
 
           <section className="parent-panel">
             <div className="parent-panel-head">
-              <h2>Details journaliers</h2>
+              <h2>Détails journaliers</h2>
               <button
                 className="parent-toggle-btn"
                 type="button"
@@ -638,7 +638,7 @@ export default function ParentTrackingPage() {
           </section>
 
           <section className="parent-panel">
-            <h2>Dernieres tentatives quiz</h2>
+            <h2>Dernières tentatives quiz</h2>
             <div className="parent-quiz-list">
               {snapshot.recentQuizAttempts.map((row, index) => (
                 <article className="parent-quiz-item" key={`${row.quizId}-${row.createdAtMs}-${index}`}>
@@ -648,7 +648,7 @@ export default function ParentTrackingPage() {
                 </article>
               ))}
               {snapshot.recentQuizAttempts.length === 0 ? (
-                <p>Aucune tentative quiz sur cette periode.</p>
+                <p>Aucune tentative quiz sur cette période.</p>
               ) : null}
             </div>
           </section>

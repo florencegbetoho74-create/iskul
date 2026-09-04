@@ -24,7 +24,7 @@ const isEmail = (s: string) => /^\S+@\S+\.\S+$/.test(s || "");
 function getErrorMessage(error: any): string {
   const msg = String(error?.message || "");
   if (!msg) return "Echec de l'inscription.";
-  if (msg.includes("already") || msg.includes("registered")) return "Cette adresse email existe deja.";
+  if (msg.includes("already") || msg.includes("registered")) return "Cette adresse email existe déjà.";
   if (msg.includes("portal_closed")) return "Le portail prof est temporairement ferme.";
   if (msg.includes("invalid_portal_key")) return "Code d'acces invalide.";
   if (msg.includes("weak_password")) return "Mot de passe trop faible (8 caracteres min).";
@@ -136,9 +136,9 @@ export default function TeacherPortal() {
             </View>
 
             <View style={styles.row}>
-              <Field label="Etablissement" value={school} onChangeText={setSchool} placeholder="College/Lycee/Universite" />
+              <Field label="Établissement" value={school} onChangeText={setSchool} placeholder="College/Lycee/Universite" />
               <Field
-                label="Matieres"
+                label="Matières"
                 value={subjects}
                 onChangeText={setSubjects}
                 placeholder="Maths, SVT, Physique"
@@ -146,7 +146,7 @@ export default function TeacherPortal() {
             </View>
 
             <Field
-              label="Code d'acces portail"
+              label="Code d'accès portail"
               value={portalKey}
               onChangeText={setPortalKey}
               placeholder="Code prive transmis en interne"
@@ -159,12 +159,12 @@ export default function TeacherPortal() {
 
             <Pressable onPress={onSubmit} disabled={disabled} style={{ marginTop: 14 }}>
               <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.cta, disabled && { opacity: 0.6 }]}>
-                <Text style={styles.ctaText}>{loading ? "Creation..." : "Creer mon compte prof"}</Text>
+                <Text style={styles.ctaText}>{loading ? "Création..." : "Créer mon compte prof"}</Text>
               </LinearGradient>
             </Pressable>
 
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Deja un compte ?</Text>
+              <Text style={styles.footerText}>Déjà un compte ?</Text>
               <Link href="/(auth)/sign-in" asChild>
                 <Pressable style={styles.ghostBtn}>
                   <Text style={styles.ghostText}>Se connecter</Text>

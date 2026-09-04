@@ -580,7 +580,7 @@ export default function TeacherWorkspacePage() {
         if (error) throw error;
         setCourseForm(EMPTY_COURSE_FORM);
       },
-      courseForm.id ? "Cours mis a jour." : "Cours cree."
+      courseForm.id ? "Cours mis a jour." : "Cours créé."
     );
   };
 
@@ -790,7 +790,7 @@ export default function TeacherWorkspacePage() {
         if (error) throw error;
         setQuizForm(makeEmptyQuizForm());
       },
-      quizForm.id ? "Quiz mis a jour." : "Quiz cree."
+      quizForm.id ? "Quiz mis a jour." : "Quiz créé."
     );
   };
 
@@ -970,7 +970,7 @@ export default function TeacherWorkspacePage() {
               {authBusy ? "Connexion..." : "Se connecter"}
             </button>
             <Link className="btn ghost" to="/inscription-professeur">
-              Creer un compte professeur
+              Créer un compte professeur
             </Link>
           </div>
         </form>
@@ -1087,7 +1087,7 @@ export default function TeacherWorkspacePage() {
                 <small>{publishedQuizzes} publies</small>
               </article>
               <article className="teacher-kpi-card">
-                <span>Eleves engages</span>
+                <span>Élèves engages</span>
                 <strong>{overview.learners}</strong>
                 <small>Sur vos contenus</small>
               </article>
@@ -1114,7 +1114,7 @@ export default function TeacherWorkspacePage() {
               <h3>Actions rapides</h3>
               <div className="teacher-inline-actions">
                 <button className="btn ghost" type="button" onClick={() => setTab("courses")}>Ajouter un cours</button>
-                <button className="btn ghost" type="button" onClick={() => setTab("quizzes")}>Creer un quiz</button>
+                <button className="btn ghost" type="button" onClick={() => setTab("quizzes")}>Créer un quiz</button>
                 <button className="btn ghost" type="button" onClick={() => setTab("lives")}>Programmer un live</button>
               </div>
             </article>
@@ -1150,14 +1150,14 @@ export default function TeacherWorkspacePage() {
                   </div>
                 </>
               ) : (
-                <p className="teacher-empty">Pas encore de donnees quotidiennes.</p>
+                <p className="teacher-empty">Pas encore de données quotidiennes.</p>
               )}
             </article>
 
             <article className="teacher-panel teacher-chart-card">
               <div className="teacher-panel-head">
                 <h3>Tentatives quiz par jour</h3>
-                <small>Activite sur la periode</small>
+                <small>Activité sur la période</small>
               </div>
               {dailyInsights.length ? (
                 <>
@@ -1168,7 +1168,7 @@ export default function TeacherWorkspacePage() {
                   </div>
                 </>
               ) : (
-                <p className="teacher-empty">Pas encore de donnees de tentatives.</p>
+                <p className="teacher-empty">Pas encore de données de tentatives.</p>
               )}
             </article>
           </section>
@@ -1199,7 +1199,7 @@ export default function TeacherWorkspacePage() {
                   ))}
                 </div>
               ) : (
-                <p className="teacher-empty">Pas encore assez de donnees pour cette section.</p>
+                <p className="teacher-empty">Pas encore assez de données pour cette section.</p>
               )}
             </article>
 
@@ -1229,14 +1229,14 @@ export default function TeacherWorkspacePage() {
                   ))}
                 </div>
               ) : (
-                <p className="teacher-empty">Pas encore assez de donnees pour cette section.</p>
+                <p className="teacher-empty">Pas encore assez de données pour cette section.</p>
               )}
             </article>
 
             <article className="teacher-panel teacher-insight-card">
               <div className="teacher-panel-head">
                 <h3>Questions a renforcer</h3>
-                <small>Faible taux de reussite</small>
+                <small>Faible taux de réussite</small>
               </div>
               {weakQuestions.length ? (
                 <div className="teacher-insight-list">
@@ -1295,12 +1295,12 @@ export default function TeacherWorkspacePage() {
                     ))}
                   </select>
                 </label>
-                <label className="teacher-field">Matiere
+                <label className="teacher-field">Matière
                   <select
                     value={courseForm.subjectId}
                     onChange={(event) => setCourseForm((prev) => ({ ...prev, subjectId: event.target.value }))}
                   >
-                    <option value="">Choisir une matiere</option>
+                    <option value="">Choisir une matière</option>
                     {subjects.map((item) => (
                       <option key={item.id} value={item.id}>{item.label}</option>
                     ))}
@@ -1385,7 +1385,7 @@ export default function TeacherWorkspacePage() {
               <label className="teacher-field">Ordre
                 <input type="number" min="1" value={chapterForm.order} onChange={(event) => setChapterForm((prev) => ({ ...prev, order: event.target.value }))} />
               </label>
-              <label className="teacher-field">Video en francais
+              <label className="teacher-field">Video en français
                 <input
                   value={chapterForm.videoUrl}
                   onChange={(event) => setChapterForm((prev) => ({ ...prev, videoUrl: event.target.value }))}
@@ -1396,7 +1396,7 @@ export default function TeacherWorkspacePage() {
                 !isDirectMediaUrl(chapterForm.videoUrl.trim()) ? (
                   <small className="teacher-field-warning">
                     Ce lien ne ressemble pas a un flux direct : il s'ouvrira hors de l'application
-                    au lieu d'etre lu dans le lecteur.
+                    au lieu d'être lu dans le lecteur.
                   </small>
                 ) : null}
               </label>
@@ -1481,7 +1481,7 @@ export default function TeacherWorkspacePage() {
               <label className="teacher-field">Niveau
                 <input value={bookForm.level} onChange={(event) => setBookForm((prev) => ({ ...prev, level: event.target.value }))} />
               </label>
-              <label className="teacher-field">Matiere
+              <label className="teacher-field">Matière
                 <input value={bookForm.subject} onChange={(event) => setBookForm((prev) => ({ ...prev, subject: event.target.value }))} />
               </label>
               <label className="teacher-field">Prix (FCFA)
@@ -1671,7 +1671,7 @@ export default function TeacherWorkspacePage() {
                   <label className="teacher-field">Niveau
                     <input value={quizForm.level} onChange={(event) => setQuizForm((previous) => ({ ...previous, level: event.target.value }))} />
                   </label>
-                  <label className="teacher-field">Matiere
+                  <label className="teacher-field">Matière
                     <input value={quizForm.subject} onChange={(event) => setQuizForm((previous) => ({ ...previous, subject: event.target.value }))} />
                   </label>
                 </>

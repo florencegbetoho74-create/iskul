@@ -101,7 +101,7 @@ describe("parseStudentDashboard — prochain live", () => {
 describe("greeting", () => {
   it("suit l'heure locale", () => {
     assert.equal(greeting(new Date(2026, 8, 4, 8, 0)), "Bonjour");
-    assert.equal(greeting(new Date(2026, 8, 4, 15, 0)), "Bon apres-midi");
+    assert.equal(greeting(new Date(2026, 8, 4, 15, 0)), "Bon après-midi");
     assert.equal(greeting(new Date(2026, 8, 4, 21, 0)), "Bonsoir");
     assert.equal(greeting(new Date(2026, 8, 4, 3, 0)), "Bonne nuit");
   });

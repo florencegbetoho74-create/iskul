@@ -205,7 +205,7 @@ export default function Library() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Titre, matiere, auteur, examen"
+            placeholder="Titre, matière, auteur, examen"
             placeholderTextColor={color.textFaint}
             style={[styles.searchInput, { color: color.text }]}
             returnKeyType="search"
@@ -369,8 +369,8 @@ export default function Library() {
             ) : canPublish && scope === "mine" ? (
               <EmptyState
                 icon="cloud-upload-outline"
-                title="Aucun document publie"
-                message="Ajoutez une epreuve corrigee, une oeuvre au programme ou une fiche de revision."
+                title="Aucun document publié"
+                message="Ajoutez une épreuve corrigee, une oeuvre au programme ou une fiche de revision."
                 actionLabel="Ajouter un document"
                 onAction={() => router.push("/(app)/library/new")}
               />
@@ -381,7 +381,7 @@ export default function Library() {
                 message={
                   scope === "class"
                     ? "Aucun document n'est encore publie pour ta classe. Regarde le reste de la bibliotheque."
-                    : "Aucun document publie pour le moment."
+                    : "Aucun document publié pour le moment."
                 }
                 actionLabel={scope === "class" ? "Voir toute la bibliotheque" : undefined}
                 onAction={scope === "class" ? () => setScope("all") : undefined}

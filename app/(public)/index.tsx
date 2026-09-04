@@ -35,7 +35,7 @@ export default function Landing() {
           <Link href="/(auth)/sign-up" asChild>
             <TouchableOpacity style={styles.primaryBtn}>
               <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnInner}>
-                <Text style={styles.primaryText}>Creer un compte eleve</Text>
+                <Text style={styles.primaryText}>Créer un compte élève</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Link>

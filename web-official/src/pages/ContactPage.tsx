@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase, OFFICIAL_WEB_ENV_ERROR } from "../lib/supabase";
 import { resolveContactError } from "../lib/errors";
 import { isEmail } from "../lib/validation";
+import PageHero from "../components/page/PageHero";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -53,54 +54,81 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="page-wrap container">
-      <header className="page-head">
-        <span className="kicker">Contact</span>
-        <h1>Ecrivez-nous</h1>
-        <p>Une question, une collaboration, une demande institutionnelle ? Envoyez-nous un message.</p>
-      </header>
+    <div className="page container container--narrow">
+      <PageHero
+        eyebrow="Contact"
+        title="Écrivez-nous."
+        lead="Une question sur la plateforme, une collaboration, une demande d'établissement : ce formulaire arrive directement à l'équipe."
+      />
 
-      {OFFICIAL_WEB_ENV_ERROR ? <p className="notice error">{OFFICIAL_WEB_ENV_ERROR}</p> : null}
+      {OFFICIAL_WEB_ENV_ERROR ? (
+        <div className="notice danger">
+          <p>{OFFICIAL_WEB_ENV_ERROR}</p>
+        </div>
+      ) : null}
 
       {sent ? (
-        <p className="notice success">Votre message a bien ete envoye. Nous vous repondrons des que possible.</p>
+        <div className="notice success" data-reveal="up">
+          <p>
+            Votre message est parti. Nous répondons sous deux jours ouvrés à l'adresse que vous
+            avez indiquée.
+          </p>
+        </div>
       ) : (
-        <form className="content-card" onSubmit={submit}>
-          <label className="form-field">
-            Nom
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Votre nom" />
-          </label>
-
-          <label className="form-field">
-            Email
+        <form className="card stack" onSubmit={submit} data-reveal="up">
+          <div className="field">
+            <label htmlFor="contact-name">Nom</label>
             <input
+              id="contact-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Votre nom"
+              autoComplete="name"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="contact-email">Adresse e-mail</label>
+            <span className="field-hint">C'est à cette adresse que nous répondrons.</span>
+            <input
+              id="contact-email"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nom@exemple.com"
               autoComplete="email"
             />
-          </label>
+          </div>
 
-          <label className="form-field">
-            Message
+          <div className="field">
+            <label htmlFor="contact-message">Message</label>
             <textarea
+              id="contact-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Expliquez votre besoin..."
+              placeholder="Dites-nous ce dont vous avez besoin."
               rows={6}
             />
-          </label>
+          </div>
 
-          {error ? <p className="notice error">{error}</p> : null}
+          {error ? (
+            <div className="notice danger">
+              <p>{error}</p>
+            </div>
+          ) : null}
 
-          <div className="hero-actions" style={{ justifyContent: "flex-start" }}>
+          <div className="row">
             <button className="btn primary" disabled={disabled}>
-              {busy ? "Envoi..." : "Envoyer"}
+              {busy ? "Envoi…" : "Envoyer"}
             </button>
             <Link className="btn ghost" to="/faq">
-              Voir la FAQ
+              Voir la FAQ d'abord
             </Link>
           </div>
+
+          <p className="field-hint">
+            Votre adresse ne sert qu'à vous répondre. Elle n'alimente aucune liste de diffusion.
+          </p>
         </form>
       )}
     </div>

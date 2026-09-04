@@ -67,7 +67,7 @@ export default function LessonNotes({
       setNotes((prev) => [...prev, created].sort((a, b) => a.t - b.t));
       setDraft("");
     } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Note non enregistree.");
+      Alert.alert("Erreur", e?.message ?? "Note non enregistrée.");
     } finally {
       setBusy(false);
     }

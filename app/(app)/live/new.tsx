@@ -202,14 +202,14 @@ export default function NewLive() {
                 const match = gradeLevels.find((l) => l.label === label);
                 if (match) setGradeLevelId(match.id);
               }}
-              helperText="Laissez vide pour une seance ouverte a toutes les classes."
+              helperText="Laissez vide pour une séance ouverte a toutes les classes."
             />
 
             <SelectionSheetField
-              label="Matiere"
+              label="Matière"
               icon="albums-outline"
               value={subjectLabel}
-              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matiere"}
+              placeholder={loadingGrades ? "Chargement du programme..." : "Choisir une matière"}
               options={subjectOptions}
               onChange={(label) => {
                 const match = subjects.find((x) => x.label === label);

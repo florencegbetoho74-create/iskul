@@ -61,8 +61,8 @@ export default function DeleteAccountPage() {
         <span className="kicker">Suppression de compte</span>
         <h1>Demander la suppression de votre compte iSkul</h1>
         <p>
-          Utilisez ce formulaire si vous n'avez plus acces a l'application. Si vous etes connecte dans l'app iSkul,
-          utilisez en priorite le menu <strong>Reglages &gt; Supprimer mon compte</strong>.
+          Utilisez ce formulaire si vous n'avez plus accès a l'application. Si vous etes connecte dans l'app iSkul,
+          utilisez en priorite le menu <strong>Réglages &gt; Supprimer mon compte</strong>.
         </p>
       </header>
 
@@ -70,8 +70,8 @@ export default function DeleteAccountPage() {
         <h3>Ce que traite cette demande</h3>
         <ul className="policy-list">
           <li>fermeture du compte utilisateur iSkul concerne ;</li>
-          <li>suppression ou anonymisation des donnees associees, sous reserve des obligations legales ou de securite ;</li>
-          <li>prise en charge par l'equipe iSkul a partir de l'email fourni.</li>
+          <li>suppression ou anonymisation des données associees, sous réservé des obligations legales ou de securite ;</li>
+          <li>prise en charge par l'équipe iSkul a partir de l'email fourni.</li>
         </ul>
         <p className="policy-note">
           Pour toute autre question, utilisez aussi la page <Link to="/contact">Contact</Link> ou consultez la{" "}
@@ -83,8 +83,8 @@ export default function DeleteAccountPage() {
 
       {sent ? (
         <p className="notice success">
-          Votre demande de suppression a bien ete enregistree. Nous reviendrons vers vous si une verification
-          supplementaire est necessaire.
+          Votre demande de suppression a bien été enregistree. Nous reviendrons vers vous si une vérification
+          supplementaire est nécessaire.
         </p>
       ) : (
         <form className="content-card" onSubmit={submit}>
@@ -115,7 +115,7 @@ export default function DeleteAccountPage() {
 
           <label className="consent-check">
             <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
-            <span>Je confirme etre autorise a demander la suppression de ce compte et comprendre que cette action est irreversible une fois traitee.</span>
+            <span>Je confirme être autorise a demander la suppression de ce compte et comprendre que cette action est irreversible une fois traitee.</span>
           </label>
 
           {error ? <p className="notice error">{error}</p> : null}

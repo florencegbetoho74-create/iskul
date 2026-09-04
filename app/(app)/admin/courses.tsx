@@ -116,7 +116,7 @@ export default function AdminCourses() {
         <View style={styles.tableHeader}>
           <Text style={[styles.th, { flex: 2 }]}>Titre</Text>
           <Text style={[styles.th, { flex: 1 }]}>Niveau</Text>
-          <Text style={[styles.th, { flex: 1 }]}>Matiere</Text>
+          <Text style={[styles.th, { flex: 1 }]}>Matière</Text>
           <Text style={[styles.th, { flex: 1 }]}>Statut</Text>
           <Text style={[styles.th, { flex: 1 }]}>Actions</Text>
         </View>
@@ -128,7 +128,7 @@ export default function AdminCourses() {
             </View>
             <Text style={[styles.td, { flex: 1 }]} numberOfLines={1}>{row.level || "-"}</Text>
             <Text style={[styles.td, { flex: 1 }]} numberOfLines={1}>{row.subject || "-"}</Text>
-            <Text style={[styles.td, { flex: 1 }]}>{row.published ? "Publie" : "Brouillon"}</Text>
+            <Text style={[styles.td, { flex: 1 }]}>{row.published ? "Publié" : "Brouillon"}</Text>
             <View style={{ flex: 1, flexDirection: "row", gap: 8 }}>
               <Pressable style={styles.actionBtn} onPress={() => togglePublish(row)}>
                 <Text style={styles.actionText}>{row.published ? "Depublier" : "Publier"}</Text>

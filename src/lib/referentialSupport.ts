@@ -95,7 +95,7 @@ export type ContentScope = {
 /**
  * Decide quel programme servir a un eleve.
  *
- * Regle produit : l'eleve voit le contenu de son pays des qu'il existe. Tant
+ * Regle produit : l'élève voit le contenu de son pays des qu'il existe. Tant
  * qu'il n'existe pas, il recoit le programme du pays de repli plutot qu'un
  * ecran vide -- et l'interface doit le dire explicitement.
  */

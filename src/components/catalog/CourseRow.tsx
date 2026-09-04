@@ -10,7 +10,7 @@ import type { Course } from "@/types/course";
 
 export type CourseRowProps = {
   course: Course;
-  /** Avancement de l'eleve sur ce cours, entre 0 et 1. Absent s'il n'y a pas touche. */
+  /** Avancement de l'élève sur ce cours, entre 0 et 1. Absent s'il n'y a pas touche. */
   progress?: number | null;
   /** Vue professeur : le statut editorial remplace l'avancement. */
   showStatus?: boolean;
@@ -26,7 +26,7 @@ const STATUS_TONE = {
 const STATUS_LABEL = {
   draft: "Brouillon",
   in_review: "En relecture",
-  published: "Publie",
+  published: "Publié",
   rejected: "A corriger",
 } as const;
 

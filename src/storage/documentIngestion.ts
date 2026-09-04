@@ -54,7 +54,7 @@ export function ingestionErrorMessage(raw: string): string {
     document_introuvable: "Ce document n'existe plus.",
     droits_insuffisants: "Vous ne pouvez pas lancer le traitement de ce document.",
     source_manquante: "Aucun fichier n'est attache a ce document.",
-    traitement_deja_en_cours: "Un traitement est deja en cours sur ce document.",
+    traitement_deja_en_cours: "Un traitement est déjà en cours sur ce document.",
   };
   for (const [code, message] of Object.entries(known)) {
     if (raw.includes(code)) return message;

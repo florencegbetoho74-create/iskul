@@ -100,7 +100,7 @@ export async function upsertDocumentType(input: {
     p_is_exam: input.isExam ?? false,
     p_order_index: input.orderIndex ?? 100,
   });
-  if (error) throw new Error(error.message || "Type non enregistre.");
+  if (error) throw new Error(error.message || "Type non enregistré.");
   await invalidateDocumentTypes();
 }
 
@@ -114,7 +114,7 @@ export async function deleteDocumentType(code: string): Promise<void> {
   if (error) {
     const message = String(error.message || "");
     if (message.includes("cannot_delete_fallback")) {
-      throw new Error("Le type de repli ne peut pas etre supprime.");
+      throw new Error("Le type de repli ne peut pas être supprimé.");
     }
     if (message.includes("type_not_found")) throw new Error("Ce type n'existe plus.");
     throw new Error(message || "Suppression impossible.");
