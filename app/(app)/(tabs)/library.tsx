@@ -8,11 +8,19 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import Text from "@/components/ui/Text";
 import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import FilterChips, { type FilterOption } from "@/components/catalog/FilterChips";
 import { watchBooksOrdered, watchBooksScoped } from "@/storage/books";
 import { listDocumentTypes, type DocumentType } from "@/storage/documentTypes";
+import { submitForReview, withdrawFromReview } from "@/storage/review";
+import {
+  authorActionLabel,
+  canSubmit,
+  presentStatus,
+  type ContentStatus,
+} from "@/lib/contentStatus";
 import type { Book } from "@/types/book";
 
 type Scope = "class" | "all" | "mine";
@@ -43,6 +51,11 @@ export default function Library() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  // Le statut rendu par la procedure prime sur celui de la liste : la liste
+  // ne se rafraichit qu'au prochain passage du flux temps reel.
+  const [statusOverride, setStatusOverride] = useState<Record<string, ContentStatus>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +140,31 @@ export default function Library() {
   );
 
   const hasFilters = !!query.trim() || typeFilter !== "all";
+
+  /**
+   * Depuis le lot relecture, un document depose nait en brouillon et sa
+   * publication est derivee de son statut editorial. Rien dans l'application
+   * ne permettait de le soumettre : le document restait invisible et son
+   * auteur n'avait aucun moyen d'agir.
+   */
+  const onReviewAction = useCallback(
+    async (bookId: string, status: ContentStatus) => {
+      if (reviewBusyId) return;
+      setReviewBusyId(bookId);
+      setReviewError(null);
+      try {
+        const next = canSubmit(status)
+          ? await submitForReview("book", bookId)
+          : await withdrawFromReview("book", bookId);
+        setStatusOverride((prev) => ({ ...prev, [bookId]: next }));
+      } catch (e: any) {
+        setReviewError(e?.message || "Action impossible.");
+      } finally {
+        setReviewBusyId(null);
+      }
+    },
+    [reviewBusyId]
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: color.bg }]}>
@@ -216,7 +254,11 @@ export default function Library() {
           renderItem={({ item }) => {
             const label = typeLabel(item.documentTypeId);
             const exam = [item.examName, item.examYear].filter(Boolean).join(" ");
+            const status: ContentStatus =
+              statusOverride[item.id] ?? item.status ?? (item.published ? "published" : "draft");
+            const action = scope === "mine" ? authorActionLabel(status) : null;
             return (
+              <View style={{ gap: space.xs }}>
               <Pressable
                 onPress={() => router.push(`/(app)/library/${item.id}`)}
                 accessibilityRole="button"
@@ -256,19 +298,50 @@ export default function Library() {
                     {[item.subject, item.level, exam || item.author].filter(Boolean).join(" · ") ||
                       "Document"}
                   </Text>
-                  {scope === "mine" && item.published === false ? (
-                    <Badge tone="warning" style={{ marginTop: space.xs }}>
-                      Non publie
+                  {scope === "mine" ? (
+                    <Badge
+                      tone={
+                        status === "published"
+                          ? "success"
+                          : status === "in_review"
+                          ? "warning"
+                          : status === "rejected"
+                          ? "danger"
+                          : "neutral"
+                      }
+                      style={{ marginTop: space.xs }}
+                    >
+                      {presentStatus(status).label}
                     </Badge>
                   ) : null}
                 </View>
 
                 <Ionicons name="chevron-forward" size={16} color={color.textFaint} />
               </Pressable>
+
+              {/* La publication d'un document passe par la relecture depuis le
+                  lot dedie ; il manquait la porte pour y entrer. */}
+              {action ? (
+                <Button
+                  onPress={() => void onReviewAction(item.id, status)}
+                  icon={canSubmit(status) ? "send-outline" : "arrow-undo-outline"}
+                  variant={canSubmit(status) ? "secondary" : "ghost"}
+                  size="sm"
+                  loading={reviewBusyId === item.id}
+                  block
+                >
+                  {action}
+                </Button>
+              ) : null}
+              </View>
             );
           }}
           ListHeaderComponent={
-            filtered.length ? (
+            reviewError ? (
+              <Text variant="caption" tone="danger" style={{ marginBottom: space.sm }}>
+                {reviewError}
+              </Text>
+            ) : filtered.length ? (
               <Text variant="caption" tone="muted" style={{ marginBottom: space.xs }}>
                 {filtered.length} document{filtered.length > 1 ? "s" : ""}
               </Text>
