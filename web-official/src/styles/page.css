@@ -1,0 +1,256 @@
+/*
+ * Pages de presentation.
+ *
+ * Les trois pages ouvraient chacune avec un balisage different pour un
+ * resultat identique, et refermaient sur les memes trois cartes generiques.
+ * Ce qui suit leur donne un rythme commun et quelques motifs propres a ce
+ * qu'elles ont vraiment a dire : un deroule numerote, une liste de seances,
+ * une serie d'etiquettes.
+ */
+
+.page {
+  padding-block: var(--s-7) var(--s-8);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Entete de page                                                             */
+/* -------------------------------------------------------------------------- */
+.page-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-block: var(--s-5) var(--s-8);
+  /* La mesure vaut pour le titre comme pour l'accroche : une ligne de titre
+     qui traverse un grand ecran ne se lit plus, elle se balaye. */
+  max-width: 34ch;
+}
+
+.page-hero h1 {
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+}
+
+.page-hero .lead {
+  max-width: 58ch;
+}
+
+.page-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+@media (min-width: 900px) {
+  .page-hero {
+    max-width: 22ch;
+  }
+
+  .page-hero .lead {
+    max-width: 62ch;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Deroule numerote                                                           */
+/* -------------------------------------------------------------------------- */
+/* Quatre etapes qui se suivent ne sont pas quatre cartes cote a cote : l'ordre
+   fait partie du propos, et une rangee ne le montre pas. */
+.walkthrough {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.walkthrough li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: var(--s-4);
+  align-items: start;
+  position: relative;
+}
+
+/* Le trait relie les etapes : il dit qu'on avance, la ou quatre pastilles
+   isolees diraient qu'on choisit. */
+.walkthrough li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 46px;
+  bottom: calc(-1 * var(--s-5));
+  width: 2px;
+  background: var(--line);
+}
+
+.walkthrough-step {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.walkthrough h3 {
+  margin-bottom: var(--s-1);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Etiquettes                                                                 */
+/* -------------------------------------------------------------------------- */
+.tag-list {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--s-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Seances live                                                               */
+/* -------------------------------------------------------------------------- */
+.session-list {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.session {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.16s var(--ease-soft), transform 0.16s var(--ease-soft);
+}
+
+.session:hover {
+  border-color: var(--primary);
+  transform: translateX(3px);
+}
+
+.session-when {
+  display: flex;
+  flex-direction: column;
+  padding-right: var(--s-4);
+  border-right: 1px solid var(--line);
+}
+
+.session-when strong {
+  font-size: var(--fs-sm);
+  text-transform: capitalize;
+}
+
+.session-when small {
+  color: var(--primary-ink);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.session-what h3 {
+  font-size: var(--fs-h3);
+}
+
+@media (max-width: 620px) {
+  .session {
+    grid-template-columns: 1fr;
+    gap: var(--s-2);
+  }
+
+  .session-when {
+    flex-direction: row;
+    gap: var(--s-3);
+    padding-right: 0;
+    padding-bottom: var(--s-2);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .walkthrough li {
+    grid-template-columns: 36px 1fr;
+    gap: var(--s-3);
+  }
+
+  .walkthrough li:not(:last-child)::before {
+    left: 17px;
+    top: 40px;
+  }
+
+  .walkthrough-step {
+    width: 36px;
+    height: 36px;
+    font-size: 0.95rem;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Motifs des pages non encore reprises                                       */
+/* -------------------------------------------------------------------------- */
+/* Neuf pages s'appuient encore dessus. Elles disparaitront avec la reprise
+   de ces pages, pas avant. */
+
+.page-wrap {
+  padding: 34px 0 70px;
+  display: grid;
+  gap: 24px;
+  animation: rise-up 0.56s ease both;
+}
+
+.page-head {
+  display: grid;
+  gap: 12px;
+}
+
+.page-head h1 {
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+}
+
+.page-head p {
+  color: var(--muted);
+  max-width: 860px;
+  font-size: 1.02rem;
+}
+
+.content-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 9px;
+}
+
+.content-card h3 {
+  font-size: 1.05rem;
+}
+
+.content-card p {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.kicker {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--primary-soft);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
