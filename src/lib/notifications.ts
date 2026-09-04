@@ -109,6 +109,33 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   return token;
 }
 
+/**
+ * Retire ce jeton du compte.
+ *
+ * A appeler a la deconnexion. Sans cela, l'appareil continue de recevoir les
+ * notifications du compte precedent -- sur un telephone partage entre freres et
+ * soeurs, la personne suivante lit les rappels et les messages de la
+ * precedente.
+ */
+export async function forgetPushToken(): Promise<void> {
+  try {
+    // On ne redemande pas l'autorisation en partant : si elle n'a jamais ete
+    // accordee, il n'y a aucun jeton a retirer.
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") return;
+
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    if (!token) return;
+
+    await supabase.rpc("remove_push_token", { p_token: token });
+  } catch {
+    // Une deconnexion ne doit jamais echouer parce que le reseau est tombe :
+    // la session locale est fermee dans tous les cas.
+  }
+}
+
 export async function saveUserPushToken(uid: string, token: string) {
   const { data } = await supabase
     .from("profiles")

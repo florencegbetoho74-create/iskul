@@ -10,6 +10,7 @@ import { useThemedStyles } from "@/theme/useStyles";
 import type { Theme } from "@/theme/ThemeProvider";
 import { uploadOne } from "@/lib/upload";
 import { addBook } from "@/storage/books";
+import { submitForReview } from "@/storage/review";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "expo-router";
 import SelectionSheetField from "@/components/SelectionSheetField";
@@ -232,10 +233,29 @@ export default function NewBook() {
         ownerName: user.name || user.email,
       } as any);
 
+      // Le message promettait un envoi en relecture que rien ne declenchait :
+      // le document restait en brouillon et son auteur le croyait en attente.
       Alert.alert(
         "Document enregistre",
-        "Il part en relecture avant d'etre visible par les eleves.",
-        [{ text: "OK", onPress: () => router.replace(`/(app)/library/${created.id}`) }]
+        "Il est en brouillon. Un relecteur doit le valider avant qu'il soit visible par les eleves.",
+        [
+          {
+            text: "Plus tard",
+            style: "cancel",
+            onPress: () => router.replace(`/(app)/library/${created.id}`),
+          },
+          {
+            text: "Envoyer en relecture",
+            onPress: async () => {
+              try {
+                await submitForReview("book", created.id);
+              } catch (err: any) {
+                Alert.alert("Envoi impossible", err?.message || "Reessayez depuis la bibliotheque.");
+              }
+              router.replace(`/(app)/library/${created.id}`);
+            },
+          },
+        ]
       );
     } catch (e: any) {
       Alert.alert("Erreur", e?.message ?? "Creation impossible.");

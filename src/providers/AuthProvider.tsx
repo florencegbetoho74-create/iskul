@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { AppState } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "@/lib/supabase";
+import { forgetPushToken } from "@/lib/notifications";
 import { addTimeSpent } from "@/storage/usage";
 import { registerForPushNotificationsAsync, saveUserPushToken } from "@/lib/notifications";
 
@@ -424,6 +425,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Avant de fermer la session : l'appareil doit cesser de recevoir les
+    // notifications de ce compte. Une fois deconnecte, plus personne n'a le
+    // droit de retirer ce jeton -- l'ordre compte.
+    await forgetPushToken();
     await supabase.auth.signOut().catch(() => {});
     setUser(null);
     await SecureStore.deleteItemAsync("auth_token").catch(() => {});

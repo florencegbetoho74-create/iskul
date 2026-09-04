@@ -298,6 +298,13 @@ export default function Library() {
                     {[item.subject, item.level, exam || item.author].filter(Boolean).join(" · ") ||
                       "Document"}
                   </Text>
+                  {/* Un document renvoye sans son motif laisse l'auteur
+                      devant un mur : il sait qu'il doit corriger, pas quoi. */}
+                  {scope === "mine" && status === "rejected" && item.reviewNote ? (
+                    <Text variant="caption" tone="danger" style={{ marginTop: space.xs }}>
+                      {item.reviewNote}
+                    </Text>
+                  ) : null}
                   {scope === "mine" ? (
                     <Badge
                       tone={
