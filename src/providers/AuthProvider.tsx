@@ -4,6 +4,7 @@ import { AppState } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "@/lib/supabase";
 import { forgetPushToken } from "@/lib/notifications";
+import { clearMediaCache } from "@/lib/mediaUrl";
 import { addTimeSpent } from "@/storage/usage";
 import { registerForPushNotificationsAsync, saveUserPushToken } from "@/lib/notifications";
 
@@ -429,6 +430,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // notifications de ce compte. Une fois deconnecte, plus personne n'a le
     // droit de retirer ce jeton -- l'ordre compte.
     await forgetPushToken();
+    // Les adresses signees en cache valent pour les droits du compte qui part.
+    clearMediaCache();
     await supabase.auth.signOut().catch(() => {});
     setUser(null);
     await SecureStore.deleteItemAsync("auth_token").catch(() => {});

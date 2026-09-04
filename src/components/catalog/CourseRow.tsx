@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 
 import { useTheme } from "@/theme/ThemeProvider";
 import Text from "@/components/ui/Text";
+import StoredImage from "@/components/ui/StoredImage";
 import Badge from "@/components/ui/Badge";
 import type { Course } from "@/types/course";
 
@@ -67,7 +68,7 @@ export default function CourseRow({ course, progress, showStatus }: CourseRowPro
         ]}
       >
         {course.coverUrl ? (
-          <Image source={{ uri: course.coverUrl }} style={styles.cover} resizeMode="cover" />
+          <StoredImage path={course.coverUrl} style={styles.cover} resizeMode="cover" />
         ) : (
           <Ionicons name="play" size={18} color={color.onMedia} />
         )}

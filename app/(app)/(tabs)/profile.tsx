@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import Text from "@/components/ui/Text";
+import StoredImage from "@/components/ui/StoredImage";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { getProfile } from "@/storage/profile";
@@ -138,7 +139,7 @@ export default function Profile() {
           ]}
         >
           {profile?.avatarUrl ? (
-            <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} resizeMode="cover" />
+            <StoredImage path={profile.avatarUrl} style={styles.avatarImg} resizeMode="cover" />
           ) : (
             <Text variant="title" tone="primary">
               {initials || "?"}

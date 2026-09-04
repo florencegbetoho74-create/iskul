@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import Text from "@/components/ui/Text";
+import StoredImage from "@/components/ui/StoredImage";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -279,7 +280,7 @@ export default function Library() {
                   style={[styles.cover, { backgroundColor: color.surfaceSunk, borderRadius: radius.md }]}
                 >
                   {item.coverUrl ? (
-                    <Image source={{ uri: item.coverUrl }} style={styles.coverImg} resizeMode="cover" />
+                    <StoredImage path={item.coverUrl} style={styles.coverImg} resizeMode="cover" />
                   ) : (
                     <Ionicons name="document-text-outline" size={20} color={color.textMuted} />
                   )}

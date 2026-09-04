@@ -54,24 +54,16 @@ function joinPath(folder: string, filename: string) {
   return f ? `${f}/${filename}` : filename;
 }
 
-async function resolvePublicOrSignedUrl(bucket: string, path: string): Promise<string> {
-  const pub = supabase.storage.from(bucket).getPublicUrl(path);
-  const publicUrl = pub?.data?.publicUrl || "";
-
-  if (publicUrl) {
-    try {
-      const res = await fetch(publicUrl, { method: "HEAD" });
-      if (res.ok) return publicUrl;
-    } catch {
-      // ignore and fallback to signed URL
-    }
-  }
-
-  const signed = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60 * 24 * 7);
-  if (signed.error || !signed.data?.signedUrl) {
-    throw new Error(`Upload OK mais URL introuvable: ${signed.error?.message || "signed URL missing"}`);
-  }
-  return signed.data.signedUrl;
+/**
+ * Rend le chemin du fichier, pas son adresse.
+ *
+ * Le bucket est prive : une adresse publique ne repond plus, et une URL signee
+ * enregistree en base expirerait au bout de quelques heures en laissant une
+ * ligne qui pointe vers rien. Le chemin, lui, ne perime pas -- l'adresse se
+ * demande au moment de lire.
+ */
+function storedPath(_bucket: string, path: string): string {
+  return path;
 }
 
 /**
@@ -231,7 +223,7 @@ export async function uploadVideoSupabase(uri: string, args: UploadVideoArgs): P
       onProgress: args.onProgress,
     });
     // Upload OK -> skip JS payload path
-    const url = await resolvePublicOrSignedUrl(bucket, path);
+    const url = storedPath(bucket, path);
     return { url, path, bucket };
   } catch (e) {
     if (!isFileSystemUnavailable(e)) {
@@ -326,7 +318,7 @@ export async function uploadVideoSupabase(uri: string, args: UploadVideoArgs): P
   }
 
   // 5) URL publique si bucket public, sinon signed URL
-  const url = await resolvePublicOrSignedUrl(bucket, path);
+  const url = storedPath(bucket, path);
 
   args.onProgress?.(100);
 

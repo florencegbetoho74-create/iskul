@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "@/theme/ThemeProvider";
 import Text from "@/components/ui/Text";
+import StoredImage from "@/components/ui/StoredImage";
 import Badge from "@/components/ui/Badge";
 import {
   documentOutline,
@@ -333,8 +334,7 @@ function Block({ block }: { block: DocumentBlock }) {
       return (
         <View style={{ marginTop: space.lg, gap: space.xs }}>
           {block.assetPath ? (
-            <Image
-              source={{ uri: block.assetPath }}
+            <StoredImage path={block.assetPath}
               style={[styles.figure, { borderRadius: radius.md, backgroundColor: color.surfaceSunk }]}
               resizeMode="contain"
               accessibilityLabel={block.description || block.caption || "Figure"}

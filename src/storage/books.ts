@@ -51,8 +51,9 @@ function toPublicUrl(raw?: string | null): string | null {
   if (!raw) return null;
   if (/^https?:\/\//i.test(raw)) return raw;
   const cleaned = raw.replace(/^\/+/, "");
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(cleaned);
-  return data?.publicUrl || raw;
+  // Le bucket est prive : on rend le chemin, l'adresse signee se demande a
+  // l'affichage. Une URL publique ne repondrait plus.
+  return cleaned;
 }
 
 function mapBook(row: BookRow): Book {

@@ -1,9 +1,9 @@
 // app/(app)/library/new.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import StoredImage from "@/components/ui/StoredImage";
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useThemedStyles } from "@/theme/useStyles";
@@ -103,13 +103,6 @@ export default function NewBook() {
     () => (sourceType === "upload" ? fileUrl : normalizedExternalUrl || null),
     [sourceType, fileUrl, normalizedExternalUrl]
   );
-  const viewerUrl = useMemo(() => {
-    if (!previewFileUrl) return null;
-    if (isPdf(previewFileUrl)) {
-      return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(previewFileUrl)}`;
-    }
-    return previewFileUrl;
-  }, [previewFileUrl]);
 
   if (!canPublish) {
     return (
@@ -417,36 +410,28 @@ export default function NewBook() {
       ) : null}
       {sourceType === "upload" && fileProgress != null && <ProgressLine label="Upload fichier" value={fileProgress} />}
 
-      {(coverUrl || viewerUrl) ? (
+      {(coverUrl || previewFileUrl) ? (
         <View style={styles.previewCard}>
           <Text style={styles.previewTitle}>Prévisualisation</Text>
           {coverUrl ? (
             <View style={styles.previewBlock}>
               <Text style={styles.previewLabel}>Couverture</Text>
-              <Image source={{ uri: coverUrl }} style={styles.coverPreview} resizeMode="cover" />
+              <StoredImage path={coverUrl} style={styles.coverPreview} resizeMode="cover" />
             </View>
           ) : null}
-          {viewerUrl ? (
+          {previewFileUrl ? (
             <View style={styles.previewBlock}>
               <Text style={styles.previewLabel}>Document</Text>
-              {isPdf(previewFileUrl || "") ? (
-                <View style={styles.viewer}>
-                  <WebView
-                    source={{ uri: viewerUrl }}
-                    startInLoadingState
-                    renderLoading={() => (
-                      <View style={styles.loader}>
-                        <ActivityIndicator color={theme.color.primary} />
-                        <Text style={styles.loaderText}>Chargement du PDF…</Text>
-                      </View>
-                    )}
-                  />
-                </View>
-              ) : (
-                <Text style={styles.loaderText}>
-                  L'aperçu n'est disponible que pour les PDF.
-                </Text>
-              )}
+              {/*
+                L'apercu passait par le visualiseur de Google, ce qui exigeait
+                que le fichier soit public. Le stockage etant ferme, il n'y a
+                plus d'apercu avant conversion -- et il n'y en a pas besoin :
+                c'est l'equipe bibliotheque qui verra le document au moment de
+                lancer le traitement.
+              */}
+              <Text style={styles.loaderText}>
+                Fichier joint. Il sera converti par l'equipe avant d'atteindre les eleves.
+              </Text>
             </View>
           ) : null}
         </View>

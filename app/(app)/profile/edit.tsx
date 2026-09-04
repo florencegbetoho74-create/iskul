@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import StoredImage from "@/components/ui/StoredImage";
 import {
   View,
   Text,
@@ -155,7 +156,7 @@ export default function EditProfile() {
           <View style={styles.avatarWrap}>
             <LinearGradient colors={accentGradient(theme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatarRing}>
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                <StoredImage path={avatarUrl} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarFallback]}>
                   <Ionicons name="person" size={24} color={theme.color.textOnPrimary} />

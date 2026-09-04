@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 import { useThemedStyles } from "@/theme/useStyles";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
 import type { Theme } from "@/theme/ThemeProvider";
 import { getCourse } from "@/storage/courses";
 import { useAuth } from "@/providers/AuthProvider";
@@ -244,7 +245,19 @@ export default function Play() {
     }
   }
 
-  const selectedUrl = lesson ? getLangUrl(lesson, lang) : null;
+  const storedUrl = lesson ? getLangUrl(lesson, lang) : null;
+  /*
+   * Le bucket est prive : la video ne se lit qu'avec une URL signee. Sa duree
+   * est d'une heure, plus longue que pour un document -- une lecture coupee a
+   * mi-parcours par une adresse expiree serait pire qu'une adresse un peu plus
+   * durable.
+   *
+   * Un lien externe -- cloud, flux tiers -- passe tel quel : il n'est pas dans
+   * notre stockage, il n'y a rien a signer.
+   */
+  const signedUrl = useSignedMedia(storedUrl, "video");
+  const isExternalSource = !!storedUrl && storedUrl.startsWith("http");
+  const selectedUrl = isExternalSource ? storedUrl : signedUrl;
   const isYouTube = !!selectedUrl && /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(selectedUrl);
   const isPlayable = !!selectedUrl && !isYouTube && isDirectMedia(selectedUrl);
   const isExternal = !!selectedUrl && !isYouTube && !isDirectMedia(selectedUrl);
