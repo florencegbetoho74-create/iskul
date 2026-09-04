@@ -23,9 +23,16 @@ type BookRow = {
   exam_year?: number | null;
   exam_session?: string | null;
   author?: string | null;
+  series?: string | null;
+  linked_document_id?: string | null;
+  content?: unknown;
+  reference?: unknown;
+  source_page_count?: number | null;
   price?: number | string | null;
   cover_url?: string | null;
-  file_url: string;
+  // Facultatif depuis la chaine de traitement : un document structure porte
+  // son contenu et n'a plus de fichier a proposer.
+  file_url?: string | null;
   owner_id: string;
   owner_name?: string | null;
   published?: boolean | null;
@@ -62,6 +69,11 @@ function mapBook(row: BookRow): Book {
     examYear: row.exam_year ?? null,
     examSession: row.exam_session ?? null,
     author: row.author ?? null,
+    series: row.series ?? null,
+    linkedDocumentId: row.linked_document_id ?? null,
+    content: row.content ?? null,
+    reference: row.reference ?? null,
+    sourcePageCount: row.source_page_count ?? null,
     price: row.price != null ? Number(row.price) : undefined,
     coverUrl: toPublicUrl(row.cover_url) ?? null,
     fileUrl: toPublicUrl(row.file_url) || "",
