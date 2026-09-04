@@ -9,7 +9,13 @@
  */
 
 .page {
-  padding-block: var(--s-7) var(--s-8);
+  padding-block: var(--s-5) var(--s-7);
+}
+
+@media (min-width: 700px) {
+  .page {
+    padding-block: var(--s-7) var(--s-8);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -19,19 +25,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
-  padding-block: var(--s-5) var(--s-8);
-  /* La mesure vaut pour le titre comme pour l'accroche : une ligne de titre
-     qui traverse un grand ecran ne se lit plus, elle se balaye. */
-  max-width: 34ch;
+  padding-block: var(--s-4) var(--s-6);
 }
 
+/*
+ * La mesure est posee sur le titre, pas sur le bloc. Portee par le conteneur,
+ * elle ecrasait aussi l'accroche et les boutons : tout le hero tenait dans une
+ * colonne de vingt-deux caracteres.
+ */
 .page-hero h1 {
   font-size: var(--fs-display);
   line-height: var(--lh-tight);
+  max-width: 18ch;
 }
 
 .page-hero .lead {
-  max-width: 58ch;
+  max-width: 60ch;
 }
 
 .page-hero-actions {
@@ -41,13 +50,22 @@
   margin-top: var(--s-2);
 }
 
-@media (min-width: 900px) {
+.page-hero-actions .btn {
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+@media (min-width: 700px) {
   .page-hero {
+    padding-block: var(--s-5) var(--s-8);
+  }
+
+  .page-hero h1 {
     max-width: 22ch;
   }
 
-  .page-hero .lead {
-    max-width: 62ch;
+  .page-hero-actions .btn {
+    flex: 0 0 auto;
   }
 }
 
@@ -67,8 +85,8 @@
 
 .walkthrough li {
   display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: var(--s-4);
+  grid-template-columns: 36px 1fr;
+  gap: var(--s-3);
   align-items: start;
   position: relative;
 }
@@ -78,8 +96,8 @@
 .walkthrough li:not(:last-child)::before {
   content: "";
   position: absolute;
-  left: 21px;
-  top: 46px;
+  left: 17px;
+  top: 40px;
   bottom: calc(-1 * var(--s-5));
   width: 2px;
   background: var(--line);
@@ -88,13 +106,13 @@
 .walkthrough-step {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-pill);
   background: var(--primary-soft);
   color: var(--primary-ink);
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 
 .walkthrough h3 {
@@ -127,8 +145,8 @@
 
 .session {
   display: grid;
-  grid-template-columns: 116px 1fr;
-  gap: var(--s-4);
+  grid-template-columns: 1fr;
+  gap: var(--s-2);
   align-items: center;
   padding: var(--s-4);
   background: var(--surface);
@@ -144,9 +162,10 @@
 
 .session-when {
   display: flex;
-  flex-direction: column;
-  padding-right: var(--s-4);
-  border-right: 1px solid var(--line);
+  flex-direction: row;
+  gap: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
 }
 
 .session-when strong {
@@ -164,35 +183,38 @@
   font-size: var(--fs-h3);
 }
 
-@media (max-width: 620px) {
-  .session {
-    grid-template-columns: 1fr;
-    gap: var(--s-2);
-  }
-
-  .session-when {
-    flex-direction: row;
-    gap: var(--s-3);
-    padding-right: 0;
-    padding-bottom: var(--s-2);
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
+/* -------------------------------------------------------------------------- */
+/* Elargissements                                                             */
+/* -------------------------------------------------------------------------- */
+@media (min-width: 620px) {
   .walkthrough li {
-    grid-template-columns: 36px 1fr;
-    gap: var(--s-3);
+    grid-template-columns: 44px 1fr;
+    gap: var(--s-4);
   }
 
   .walkthrough li:not(:last-child)::before {
-    left: 17px;
-    top: 40px;
+    left: 21px;
+    top: 46px;
   }
 
   .walkthrough-step {
-    width: 36px;
-    height: 36px;
-    font-size: 0.95rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1.05rem;
+  }
+
+  .session {
+    grid-template-columns: 116px 1fr;
+    gap: var(--s-4);
+  }
+
+  .session-when {
+    flex-direction: column;
+    gap: 0;
+    padding-right: var(--s-4);
+    padding-bottom: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
   }
 }
 

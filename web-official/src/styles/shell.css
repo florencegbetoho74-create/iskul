@@ -1,13 +1,19 @@
 /*
  * Coquille du site : en-tete et pied de page.
  *
- * Une regle tient tout le reste : ce qui se lit est a gauche, ce dans quoi on
- * entre est a droite. La separation est visuelle autant que structurelle, sans
- * quoi elle ne se voit pas.
+ * Ecrit pour le telephone d'abord. Les regles de base decrivent l'ecran
+ * etroit ; les elargissements viennent ensuite, par `min-width`. L'ordre
+ * inverse -- decrire le bureau puis le corriger pour le mobile -- fait
+ * telecharger a un telephone d'entree de gamme une mise en page qu'il
+ * n'affichera jamais, et laisse les oublis du cote de la majorite des
+ * visiteurs.
+ *
+ * Une regle tient le reste : ce qui se lit est separe de ce dans quoi on
+ * entre.
  */
 
 /* -------------------------------------------------------------------------- */
-/* En-tete                                                                    */
+/* En-tete -- telephone                                                       */
 /* -------------------------------------------------------------------------- */
 .shell-header {
   position: sticky;
@@ -20,7 +26,7 @@
 .shell-header-inner {
   display: flex;
   align-items: center;
-  gap: var(--s-5);
+  gap: var(--s-4);
   min-height: var(--header-h);
 }
 
@@ -34,8 +40,8 @@
 }
 
 .shell-brand-logo {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   object-fit: contain;
 }
@@ -51,51 +57,98 @@
   letter-spacing: var(--tracking-tight);
 }
 
+/* L'accroche prend une ligne entiere sur un petit ecran pour ne rien dire de
+   plus que le nom : elle attend d'avoir la place. */
 .shell-brand-text small {
+  display: none;
   font-size: var(--fs-xs);
   color: var(--muted);
 }
 
-.shell-nav {
+.shell-burger {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
   align-items: center;
-  gap: var(--s-5);
-  flex: 1;
-  min-width: 0;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.shell-burger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.shell-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 90;
+}
+
+/*
+ * Au doigt, pas de menus deroulants : tout se deplie dans un panneau unique ou
+ * le pouce atteint chaque entree sans viser.
+ */
+.shell-nav {
+  position: fixed;
+  inset: var(--header-h) 0 auto 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-4);
+  max-height: calc(100dvh - var(--header-h));
+  overflow-y: auto;
+  padding: var(--s-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  transform: translate3d(0, -12px, 0);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease), visibility 0.18s;
+}
+
+.shell-nav.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 
 .shell-nav-content {
   display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-/* La zone des acces est poussee a droite et separee par un trait : c'est ce
-   trait qui dit qu'on change de nature d'action. */
-.shell-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  margin-left: auto;
-  padding-left: var(--s-5);
-  border-left: 1px solid var(--line);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-1);
 }
 
 .shell-nav-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--s-2);
+  /* 48 px au doigt : la cible tactile confortable, plus haute que le minimum
+     de 44 recommande, parce qu'une entree de menu se vise mal en marchant. */
+  min-height: 48px;
   padding: var(--s-2) var(--s-3);
-  min-height: 40px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
-  font-size: var(--fs-sm);
+  font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  white-space: nowrap;
   transition: background-color 0.16s var(--ease-soft), color 0.16s var(--ease-soft);
 }
 
@@ -109,7 +162,7 @@
 }
 
 .shell-group {
-  position: relative;
+  position: static;
 }
 
 .shell-group-trigger svg {
@@ -120,37 +173,18 @@
   transform: rotate(180deg);
 }
 
+/* Deplie, le panneau pousse le contenu au lieu de le recouvrir : sur un ecran
+   etroit, un menu qui en cache un autre fait perdre le fil. */
 .shell-panel {
-  position: absolute;
-  top: calc(100% + var(--s-2));
-  left: 0;
-  width: max-content;
-  max-width: min(340px, 82vw);
-  display: flex;
+  display: none;
   flex-direction: column;
-  padding: var(--s-2);
-  background: var(--surface-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  /* Ferme, le panneau n'est ni visible ni atteignable au clavier : `hidden`
-     seul le laisserait dans l'ordre de tabulation pendant la transition. */
-  opacity: 0;
-  visibility: hidden;
-  transform: translate3d(0, -6px, 0);
-  transition: opacity 0.16s var(--ease-soft), transform 0.16s var(--ease-soft),
-    visibility 0.16s;
-}
-
-.shell-group--end .shell-panel {
-  left: auto;
-  right: 0;
+  margin-left: var(--s-3);
+  padding-left: var(--s-2);
+  border-left: 2px solid var(--line);
 }
 
 .shell-panel.open {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
+  display: flex;
 }
 
 .shell-panel-link {
@@ -179,38 +213,135 @@
   line-height: 1.35;
 }
 
-.shell-burger {
-  display: none;
+.shell-actions {
+  display: flex;
   flex-direction: column;
-  gap: 4px;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-left: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  cursor: pointer;
+  align-items: stretch;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
 }
 
-.shell-burger span {
-  display: block;
-  width: 18px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--text);
+.shell-actions .btn {
+  width: 100%;
+  min-height: 48px;
 }
 
-.shell-scrim {
-  display: none;
+/* -------------------------------------------------------------------------- */
+/* En-tete -- a partir de la tablette                                         */
+/* -------------------------------------------------------------------------- */
+@media (min-width: 1001px) {
+  .shell-header-inner {
+    gap: var(--s-5);
+  }
+
+  .shell-brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .shell-brand-text small {
+    display: block;
+  }
+
+  .shell-burger,
+  .shell-scrim {
+    display: none;
+  }
+
+  .shell-nav {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s-5);
+    flex: 1;
+    min-width: 0;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .shell-nav-content {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s-2);
+  }
+
+  .shell-nav-link {
+    justify-content: flex-start;
+    min-height: 40px;
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+  }
+
+  .shell-group {
+    position: relative;
+  }
+
+  /* Le trait qui separe les acces du contenu : c'est lui qui dit qu'on change
+     de nature d'action. */
+  .shell-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-left: auto;
+    padding-top: 0;
+    padding-left: var(--s-5);
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .shell-actions .btn {
+    width: auto;
+    min-height: 36px;
+  }
+
+  .shell-panel {
+    display: flex;
+    position: absolute;
+    top: calc(100% + var(--s-2));
+    left: 0;
+    width: max-content;
+    max-width: min(340px, 82vw);
+    margin-left: 0;
+    padding: var(--s-2);
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-left-width: 1px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    /* Ferme, le panneau n'est ni visible ni atteignable au clavier :
+       `visibility` et non `opacity` seule, sans quoi il reste dans l'ordre de
+       tabulation. */
+    opacity: 0;
+    visibility: hidden;
+    transform: translate3d(0, -6px, 0);
+    transition: opacity 0.16s var(--ease-soft), transform 0.16s var(--ease-soft),
+      visibility 0.16s;
+  }
+
+  .shell-group--end .shell-panel {
+    left: auto;
+    right: 0;
+  }
+
+  .shell-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
 /* Pied de page                                                               */
 /* -------------------------------------------------------------------------- */
 .shell-footer {
-  margin-top: var(--s-9);
+  margin-top: var(--s-8);
   background: var(--ink-deep);
   color: var(--n-200);
 }
@@ -218,8 +349,7 @@
 .shell-footer-grid {
   display: grid;
   gap: var(--s-6);
-  grid-template-columns: minmax(260px, 1.4fr) repeat(auto-fit, minmax(150px, 1fr));
-  padding-block: var(--s-8) var(--s-6);
+  padding-block: var(--s-7) var(--s-5);
 }
 
 .shell-footer-mark {
@@ -270,6 +400,8 @@
   font-size: var(--fs-sm);
   text-decoration: none;
   width: fit-content;
+  /* Un lien de pied de page se tape au pouce comme un autre. */
+  padding-block: var(--s-1);
 }
 
 .shell-footer-col a:hover {
@@ -278,14 +410,10 @@
   text-underline-offset: 0.2em;
 }
 
-/* La barre du bas porte ce qui se consulte une fois : elle est plus discrete
-   que les colonnes, et separee par un trait. */
 .shell-footer-bottom {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-3) var(--s-5);
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--s-3);
   padding-block: var(--s-4);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -299,7 +427,7 @@
 .shell-footer-bottom nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-4);
+  gap: var(--s-3) var(--s-4);
 }
 
 .shell-footer-bottom a {
@@ -313,101 +441,27 @@
   text-decoration: underline;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Ecrans etroits                                                             */
-/* -------------------------------------------------------------------------- */
-@media (max-width: 1000px) {
-  .shell-burger {
-    display: flex;
+@media (min-width: 640px) {
+  .shell-footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .shell-footer {
+    margin-top: var(--s-9);
   }
 
-  .shell-scrim {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: var(--scrim);
-    z-index: 90;
+  .shell-footer-grid {
+    grid-template-columns: minmax(260px, 1.4fr) repeat(3, 1fr);
+    padding-block: var(--s-8) var(--s-6);
   }
 
-  /* Au doigt, plus de menus deroulants : tout se deplie dans un panneau
-     unique, ou le pouce atteint chaque entree sans viser. */
-  .shell-nav {
-    position: fixed;
-    inset: var(--header-h) 0 auto 0;
-    z-index: 95;
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--s-4);
-    max-height: calc(100dvh - var(--header-h));
-    overflow-y: auto;
-    padding: var(--s-5);
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-    box-shadow: var(--shadow-lg);
-    transform: translate3d(0, -12px, 0);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease), visibility 0.18s;
-  }
-
-  .shell-nav.open {
-    opacity: 1;
-    visibility: visible;
-    transform: none;
-  }
-
-  .shell-nav-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--s-1);
-  }
-
-  .shell-nav-link {
+  .shell-footer-bottom {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: space-between;
-    min-height: 48px;
-    font-size: 1rem;
-  }
-
-  .shell-actions {
-    flex-direction: column;
-    align-items: stretch;
-    margin-left: 0;
-    padding-left: 0;
-    padding-top: var(--s-4);
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .shell-actions .btn {
-    width: 100%;
-    min-height: 48px;
-  }
-
-  .shell-group,
-  .shell-group--end {
-    position: static;
-  }
-
-  .shell-panel {
-    position: static;
-    width: auto;
-    max-width: none;
-    box-shadow: none;
-    border: 0;
-    border-left: 2px solid var(--line);
-    border-radius: 0;
-    margin-left: var(--s-3);
-    padding: 0 0 0 var(--s-2);
-    transform: none;
-    /* Deplie, le panneau pousse le contenu au lieu de le recouvrir. */
-    display: none;
-  }
-
-  .shell-panel.open {
-    display: flex;
-  }
-
-  .shell-brand-text small {
-    display: none;
+    gap: var(--s-3) var(--s-5);
   }
 }
