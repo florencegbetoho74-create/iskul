@@ -51,6 +51,11 @@ import type {
   WeakQuestionInsight,
 } from "./teacher/types";
 import { BarChart, LineChart } from "../components/teacher/Charts";
+import OverviewPanel from "./teacher/panels/OverviewPanel";
+import CoursesPanel from "./teacher/panels/CoursesPanel";
+import BooksPanel from "./teacher/panels/BooksPanel";
+import LivesPanel from "./teacher/panels/LivesPanel";
+import QuizzesPanel from "./teacher/panels/QuizzesPanel";
 
 import {
   DEFAULT_CONTENT_COUNTRY,
@@ -1047,750 +1052,116 @@ export default function TeacherWorkspacePage() {
       </nav>
 
       {tab === "overview" ? (
-        <>
-          <section className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>Synthese sur {analyticsDays} jours</h2>
-              <div className="teacher-period-switch" role="group" aria-label="Periode d'analyse">
-                {([7, 30, 90] as PeriodDays[]).map((days) => (
-                  <button
-                    key={days}
-                    type="button"
-                    className={analyticsDays === days ? "teacher-period-btn active" : "teacher-period-btn"}
-                    onClick={() => setAnalyticsDays(days)}
-                    disabled={busy}
-                  >
-                    {days}j
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="teacher-kpi-grid">
-              <article className="teacher-kpi-card">
-                <span>Cours</span>
-                <strong>{courses.length}</strong>
-                <small>{publishedCourses} publies</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Documents</span>
-                <strong>{books.length}</strong>
-                <small>{publishedBooks} publies</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Lives</span>
-                <strong>{lives.length}</strong>
-                <small>{activeLives} actifs/programmes</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Quiz</span>
-                <strong>{quizzes.length}</strong>
-                <small>{publishedQuizzes} publies</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Élèves engages</span>
-                <strong>{overview.learners}</strong>
-                <small>Sur vos contenus</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Completion moyenne</span>
-                <strong>{overview.completionRatePct.toFixed(1)}%</strong>
-                <small>{overview.atRiskLearners} eleves a risque</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Tentatives quiz</span>
-                <strong>{overview.quizAttempts}</strong>
-                <small>Historique cumule</small>
-              </article>
-              <article className="teacher-kpi-card">
-                <span>Score quiz moyen</span>
-                <strong>{overview.quizAvgScorePct.toFixed(1)}%</strong>
-                <small>Base sur max_score</small>
-              </article>
-            </div>
-          </section>
-
-          <section className="teacher-panel teacher-overview-grid">
-            <article className="teacher-mini-card">
-              <h3>Actions rapides</h3>
-              <div className="teacher-inline-actions">
-                <button className="btn ghost" type="button" onClick={() => setTab("courses")}>Ajouter un cours</button>
-                <button className="btn ghost" type="button" onClick={() => setTab("quizzes")}>Créer un quiz</button>
-                <button className="btn ghost" type="button" onClick={() => setTab("lives")}>Programmer un live</button>
-              </div>
-            </article>
-            <article className="teacher-mini-card">
-              <h3>Qualite de suivi</h3>
-              <p>Cible recommandee: completion &gt; 65% et score quiz moyen &gt; 60%.</p>
-            </article>
-            <article className="teacher-mini-card">
-              <h3>Prochaines etapes</h3>
-              <p>Publiez vos contenus finalises puis suivez les performances pour renforcer les chapitres faibles.</p>
-            </article>
-          </section>
-
-          <section className="teacher-charts-grid">
-            <article className="teacher-panel teacher-chart-card">
-              <div className="teacher-panel-head">
-                <h3>Evolution quotidienne</h3>
-                <small>Completion vs score quiz moyen</small>
-              </div>
-              {dailyInsights.length ? (
-                <>
-                  <div className="teacher-line-stack">
-                    <LineChart values={completionSeries} maxValue={chartMaxPct} colorClass="completion" />
-                    <LineChart values={quizScoreSeries} maxValue={chartMaxPct} colorClass="score" />
-                  </div>
-                  <div className="teacher-chart-legend">
-                    <span className="completion">Completion</span>
-                    <span className="score">Score quiz moyen</span>
-                  </div>
-                  <div className="teacher-chart-foot">
-                    <span>{dayLabel(dailyInsights[0].day)}</span>
-                    <span>{dayLabel(dailyInsights[dailyInsights.length - 1].day)}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="teacher-empty">Pas encore de données quotidiennes.</p>
-              )}
-            </article>
-
-            <article className="teacher-panel teacher-chart-card">
-              <div className="teacher-panel-head">
-                <h3>Tentatives quiz par jour</h3>
-                <small>Activité sur la période</small>
-              </div>
-              {dailyInsights.length ? (
-                <>
-                  <BarChart values={quizAttemptsSeries} maxValue={chartMaxAttempts} />
-                  <div className="teacher-chart-foot">
-                    <span>{dayLabel(dailyInsights[0].day)}</span>
-                    <span>{dayLabel(dailyInsights[dailyInsights.length - 1].day)}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="teacher-empty">Pas encore de données de tentatives.</p>
-              )}
-            </article>
-          </section>
-
-          <section className="teacher-analytics-grid">
-            <article className="teacher-panel teacher-insight-card">
-              <div className="teacher-panel-head">
-                <h3>Performance par cours</h3>
-                <small>{courseInsights.length} cours analyses</small>
-              </div>
-              {courseInsights.length ? (
-                <div className="teacher-insight-list">
-                  {courseInsights.slice(0, 8).map((insight) => (
-                    <article key={insight.courseId} className="teacher-insight-row">
-                      <div className="teacher-insight-head">
-                        <strong>{insight.title}</strong>
-                        <span>{insight.completionRatePct.toFixed(1)}% completion</span>
-                      </div>
-                      <div className="teacher-insight-meta">
-                        <span>{insight.learners} eleves</span>
-                        <span>{insight.quizAttempts} tentatives quiz</span>
-                        <span>Score moyen {insight.quizAvgScorePct.toFixed(1)}%</span>
-                      </div>
-                      <div className="teacher-insight-bar">
-                        <span style={{ width: `${Math.max(0, Math.min(insight.completionRatePct, 100))}%` }} />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="teacher-empty">Pas encore assez de données pour cette section.</p>
-              )}
-            </article>
-
-            <article className="teacher-panel teacher-insight-card">
-              <div className="teacher-panel-head">
-                <h3>Performance par chapitre</h3>
-                <small>Top 10 chapitres</small>
-              </div>
-              {chapterInsights.length ? (
-                <div className="teacher-insight-list">
-                  {chapterInsights.map((insight) => (
-                    <article key={insight.chapterId} className="teacher-insight-row">
-                      <div className="teacher-insight-head">
-                        <strong>{insight.title}</strong>
-                        <span>{insight.completionRatePct.toFixed(1)}%</span>
-                      </div>
-                      <p className="teacher-insight-sub">{insight.courseTitle}</p>
-                      <div className="teacher-insight-meta">
-                        <span>{insight.learners} eleves</span>
-                        <span>{insight.quizAttempts} tentatives</span>
-                        <span>Score {insight.quizAvgScorePct.toFixed(1)}%</span>
-                      </div>
-                      <div className="teacher-insight-bar">
-                        <span style={{ width: `${Math.max(0, Math.min(insight.completionRatePct, 100))}%` }} />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="teacher-empty">Pas encore assez de données pour cette section.</p>
-              )}
-            </article>
-
-            <article className="teacher-panel teacher-insight-card">
-              <div className="teacher-panel-head">
-                <h3>Questions a renforcer</h3>
-                <small>Faible taux de réussite</small>
-              </div>
-              {weakQuestions.length ? (
-                <div className="teacher-insight-list">
-                  {weakQuestions.map((insight) => (
-                    <article key={insight.key} className="teacher-insight-row">
-                      <div className="teacher-insight-head">
-                        <strong>{insight.quizTitle}</strong>
-                        <span>{insight.accuracyPct.toFixed(1)}% justes</span>
-                      </div>
-                      <p className="teacher-insight-sub">
-                        {insight.courseTitle} {insight.chapterTitle ? `- ${insight.chapterTitle}` : ""}
-                      </p>
-                      <p className="teacher-insight-question" title={insight.prompt}>
-                        {insight.prompt}
-                      </p>
-                      <div className="teacher-insight-meta">
-                        <span>{insight.attempts} tentatives</span>
-                      </div>
-                      <div className="teacher-insight-bar weak">
-                        <span style={{ width: `${Math.max(0, Math.min(insight.accuracyPct, 100))}%` }} />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="teacher-empty">Aucune question faible detectee pour le moment.</p>
-              )}
-            </article>
-          </section>
-        </>
+        <OverviewPanel
+          activeLives={activeLives}
+          analyticsDays={analyticsDays}
+          books={books}
+          busy={busy}
+          chapterInsights={chapterInsights}
+          chartMaxAttempts={chartMaxAttempts}
+          chartMaxPct={chartMaxPct}
+          completionSeries={completionSeries}
+          courseInsights={courseInsights}
+          courses={courses}
+          dailyInsights={dailyInsights}
+          lives={lives}
+          overview={overview}
+          publishedBooks={publishedBooks}
+          publishedCourses={publishedCourses}
+          publishedQuizzes={publishedQuizzes}
+          quizAttemptsSeries={quizAttemptsSeries}
+          quizScoreSeries={quizScoreSeries}
+          quizzes={quizzes}
+          setAnalyticsDays={setAnalyticsDays}
+          setTab={setTab}
+          weakQuestions={weakQuestions}
+        />
       ) : null}
 
       {tab === "courses" ? (
-        <>
-          <section className="teacher-layout-grid">
-            <article className="teacher-panel">
-              <div className="teacher-panel-head">
-                <h2>{courseForm.id ? "Modifier le cours" : "Nouveau cours"}</h2>
-                {courseForm.id ? (
-                  <button className="btn ghost" type="button" onClick={() => setCourseForm(EMPTY_COURSE_FORM)} disabled={busy}>Annuler</button>
-                ) : null}
-              </div>
-
-              <form className="teacher-form-grid" onSubmit={handleCourseSubmit}>
-                <label className="teacher-field">Titre
-                  <input value={courseForm.title} onChange={(event) => setCourseForm((prev) => ({ ...prev, title: event.target.value }))} />
-                </label>
-                <label className="teacher-field">Classe
-                  <select
-                    value={courseForm.gradeLevelId}
-                    onChange={(event) => setCourseForm((prev) => ({ ...prev, gradeLevelId: event.target.value }))}
-                  >
-                    <option value="">Choisir une classe</option>
-                    {gradeLevels.map((item) => (
-                      <option key={item.id} value={item.id}>{item.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="teacher-field">Matière
-                  <select
-                    value={courseForm.subjectId}
-                    onChange={(event) => setCourseForm((prev) => ({ ...prev, subjectId: event.target.value }))}
-                  >
-                    <option value="">Choisir une matière</option>
-                    {subjects.map((item) => (
-                      <option key={item.id} value={item.id}>{item.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="teacher-field teacher-field-wide">Description
-                  <textarea rows={3} value={courseForm.description} onChange={(event) => setCourseForm((prev) => ({ ...prev, description: event.target.value }))} />
-                </label>
-                <label className="teacher-field teacher-field-wide">URL image de couverture (optionnel)
-                  <input value={courseForm.coverUrl} onChange={(event) => setCourseForm((prev) => ({ ...prev, coverUrl: event.target.value }))} placeholder="https://..." />
-                </label>
-                <button className="btn primary" type="submit" disabled={busy}>{courseForm.id ? "Mettre a jour" : "Ajouter le cours"}</button>
-              </form>
-            </article>
-
-            <article className="teacher-panel">
-              <div className="teacher-panel-head">
-                <h2>Mes cours</h2>
-                <input className="teacher-search-input" placeholder="Rechercher un cours..." value={courseSearch} onChange={(event) => setCourseSearch(event.target.value)} />
-              </div>
-
-              {filteredCourses.length ? (
-                <div className="teacher-list">
-                  {filteredCourses.map((course) => (
-                    <article key={course.id} className="teacher-item-card">
-                      <div className="teacher-item-title">
-                        <h3>{course.title}</h3>
-                        <p>{course.level} - {course.subject}</p>
-                        <div className="teacher-meta-row">
-                          <span className="teacher-pill">{course.published ? "Publie" : "Brouillon"}</span>
-                          <span>Mise a jour: {toDateLabel(course.updated_at_ms)}</span>
-                        </div>
-                      </div>
-                      <div className="teacher-item-actions">
-                        <button className="btn ghost" type="button" onClick={() => editCourse(course)} disabled={busy}>Modifier</button>
-                        <button className="btn ghost" type="button" onClick={() =>
-                          void runAction(async () => {
-                            const { error } = course.published
-                              ? await supabase.rpc("review_content", {
-                                  p_kind: "course",
-                                  p_content_id: course.id,
-                                  p_decision: "rejected",
-                                  p_note: "Depublie depuis l'espace professeur.",
-                                })
-                              : await supabase.rpc("submit_content_for_review", {
-                                  p_kind: "course",
-                                  p_content_id: course.id,
-                                });
-                            if (error) throw error;
-                          }, "Publication du cours mise a jour.")
-                        } disabled={busy}>{course.published ? "Depublier" : "Publier"}</button>
-                        <button className="btn ghost" type="button" onClick={() => { setSelectedCourseId(course.id); setTab("courses"); }} disabled={busy}>Chapitres</button>
-                        <button className="btn ghost danger-outline" type="button" onClick={() =>
-                          onDelete(`le cours "${course.title}"`, async () => {
-                            const { error } = await supabase.from("courses").delete().eq("id", course.id);
-                            if (error) throw error;
-                          }, "Cours supprime.")
-                        } disabled={busy}>Supprimer</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="teacher-empty">Aucun cours correspondant.</p>
-              )}
-            </article>
-          </section>
-
-          <section className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h3>Gestion des chapitres</h3>
-              <select value={selectedCourseId} onChange={(event) => { setSelectedCourseId(event.target.value); setChapterForm(EMPTY_CHAPTER_FORM); }}>
-                <option value="">Selectionner un cours</option>
-                {courses.map((course) => (<option key={course.id} value={course.id}>{course.title}</option>))}
-              </select>
-            </div>
-
-            <form className="teacher-form-grid" onSubmit={handleChapterSubmit}>
-              <label className="teacher-field">Titre du chapitre
-                <input value={chapterForm.title} onChange={(event) => setChapterForm((prev) => ({ ...prev, title: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Ordre
-                <input type="number" min="1" value={chapterForm.order} onChange={(event) => setChapterForm((prev) => ({ ...prev, order: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Video en français
-                <input
-                  value={chapterForm.videoUrl}
-                  onChange={(event) => setChapterForm((prev) => ({ ...prev, videoUrl: event.target.value }))}
-                  placeholder="https://... (.mp4, .m3u8, .mpd)"
-                />
-                {chapterForm.videoUrl.trim() &&
-                /^https?:\/\//i.test(chapterForm.videoUrl.trim()) &&
-                !isDirectMediaUrl(chapterForm.videoUrl.trim()) ? (
-                  <small className="teacher-field-warning">
-                    Ce lien ne ressemble pas a un flux direct : il s'ouvrira hors de l'application
-                    au lieu d'être lu dans le lecteur.
-                  </small>
-                ) : null}
-              </label>
-
-              {/* La lecon en langue locale est la raison d'etre d'iSkul : le web
-                  ne pouvait pas la renseigner, l'application si. */}
-              <fieldset className="teacher-field teacher-field-wide teacher-langs">
-                <legend>Versions en langue locale (optionnel)</legend>
-                {LOCAL_LANGUAGES.map((lang) => (
-                  <label key={lang.key} className="teacher-lang-row">
-                    <span>{lang.label}</span>
-                    <input
-                      value={chapterForm.videoByLang[lang.key] || ""}
-                      onChange={(event) =>
-                        setChapterForm((prev) => ({
-                          ...prev,
-                          videoByLang: { ...prev.videoByLang, [lang.key]: event.target.value },
-                        }))
-                      }
-                      placeholder="https://..."
-                    />
-                  </label>
-                ))}
-              </fieldset>
-              <div className="teacher-inline-actions">
-                {chapterForm.id ? (<button className="btn ghost" type="button" onClick={() => setChapterForm(EMPTY_CHAPTER_FORM)} disabled={busy}>Annuler</button>) : null}
-                <button className="btn primary" type="submit" disabled={busy}>{chapterForm.id ? "Mettre a jour chapitre" : "Ajouter chapitre"}</button>
-              </div>
-            </form>
-
-            {selectedCourseId ? (
-              chapterRows.length ? (
-                <div className="teacher-list">
-                  {chapterRows.map((chapter) => (
-                    <article key={chapter.id} className="teacher-item-card">
-                      <div className="teacher-item-title">
-                        <h3>{chapter.title}</h3>
-                        <p>Ordre: {chapter.order_index}</p>
-                        <div className="teacher-meta-row">
-                          <span>Maj: {toDateLabel(chapter.updated_at_ms)}</span>
-                          {chapter.video_url ? (
-                            <a className="teacher-link" href={chapter.video_url} target="_blank" rel="noreferrer">Ouvrir la video</a>
-                          ) : (
-                            <span className="muted">Aucune video</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="teacher-item-actions">
-                        <button className="btn ghost" type="button" onClick={() => editChapter(chapter)} disabled={busy}>Modifier</button>
-                        <button className="btn ghost danger-outline" type="button" onClick={() =>
-                          onDelete(`le chapitre "${chapter.title}"`, async () => {
-                            const { error } = await supabase.from("chapters").delete().eq("id", chapter.id);
-                            if (error) throw error;
-                          }, "Chapitre supprime.")
-                        } disabled={busy}>Supprimer</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="teacher-empty">Aucun chapitre pour ce cours.</p>
-              )
-            ) : (
-              <p className="teacher-empty">Selectionnez un cours pour gerer ses chapitres.</p>
-            )}
-          </section>
-        </>
+        <CoursesPanel
+          busy={busy}
+          chapterForm={chapterForm}
+          chapterRows={chapterRows}
+          courseForm={courseForm}
+          courseSearch={courseSearch}
+          courses={courses}
+          editChapter={editChapter}
+          editCourse={editCourse}
+          filteredCourses={filteredCourses}
+          gradeLevels={gradeLevels}
+          handleChapterSubmit={handleChapterSubmit}
+          handleCourseSubmit={handleCourseSubmit}
+          onDelete={onDelete}
+          runAction={runAction}
+          selectedCourseId={selectedCourseId}
+          setChapterForm={setChapterForm}
+          setCourseForm={setCourseForm}
+          setCourseSearch={setCourseSearch}
+          setSelectedCourseId={setSelectedCourseId}
+          setTab={setTab}
+          subjects={subjects}
+        />
       ) : null}
 
       {tab === "books" ? (
-        <section className="teacher-layout-grid">
-          <article className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>{bookForm.id ? "Modifier le document" : "Nouveau document"}</h2>
-              {bookForm.id ? (<button className="btn ghost" type="button" onClick={() => setBookForm(EMPTY_BOOK_FORM)} disabled={busy}>Annuler</button>) : null}
-            </div>
-
-            <form className="teacher-form-grid" onSubmit={handleBookSubmit}>
-              <label className="teacher-field">Titre
-                <input value={bookForm.title} onChange={(event) => setBookForm((prev) => ({ ...prev, title: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Niveau
-                <input value={bookForm.level} onChange={(event) => setBookForm((prev) => ({ ...prev, level: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Matière
-                <input value={bookForm.subject} onChange={(event) => setBookForm((prev) => ({ ...prev, subject: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Prix (FCFA)
-                <input type="number" min="0" value={bookForm.price} onChange={(event) => setBookForm((prev) => ({ ...prev, price: event.target.value }))} />
-              </label>
-              <label className="teacher-field teacher-field-wide">URL couverture (optionnel)
-                <input value={bookForm.coverUrl} onChange={(event) => setBookForm((prev) => ({ ...prev, coverUrl: event.target.value }))} placeholder="https://..." />
-              </label>
-              <label className="teacher-field teacher-field-wide">URL du fichier
-                <input value={bookForm.fileUrl} onChange={(event) => setBookForm((prev) => ({ ...prev, fileUrl: event.target.value }))} placeholder="https://..." />
-              </label>
-              <button className="btn primary" type="submit" disabled={busy}>{bookForm.id ? "Mettre a jour" : "Ajouter le document"}</button>
-            </form>
-          </article>
-
-          <article className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>Mes documents</h2>
-              <input className="teacher-search-input" placeholder="Rechercher un document..." value={bookSearch} onChange={(event) => setBookSearch(event.target.value)} />
-            </div>
-
-            {filteredBooks.length ? (
-              <div className="teacher-list">
-                {filteredBooks.map((book) => (
-                  <article key={book.id} className="teacher-item-card">
-                    <div className="teacher-item-title">
-                      <h3>{book.title}</h3>
-                      <p>{book.level || "-"} - {book.subject || "-"}</p>
-                      <div className="teacher-meta-row">
-                        <span className="teacher-pill">{book.published ? "Publie" : "Brouillon"}</span>
-                        <span>{safeNumber(book.price).toLocaleString("fr-FR")} FCFA</span>
-                        <a className="teacher-link" href={book.file_url} target="_blank" rel="noreferrer">Ouvrir le fichier</a>
-                      </div>
-                    </div>
-                    <div className="teacher-item-actions">
-                      <button className="btn ghost" type="button" onClick={() => editBook(book)} disabled={busy}>Modifier</button>
-                      <button className="btn ghost" type="button" onClick={() =>
-                        void runAction(async () => {
-                          const { error } = book.published
-                              ? await supabase.rpc("review_content", {
-                                  p_kind: "book",
-                                  p_content_id: book.id,
-                                  p_decision: "rejected",
-                                  p_note: "Depublie depuis l'espace professeur.",
-                                })
-                              : await supabase.rpc("submit_content_for_review", {
-                                  p_kind: "book",
-                                  p_content_id: book.id,
-                                });
-                          if (error) throw error;
-                        }, "Publication du document mise a jour.")
-                      } disabled={busy}>{book.published ? "Depublier" : "Publier"}</button>
-                      <button className="btn ghost danger-outline" type="button" onClick={() =>
-                        onDelete(`le document "${book.title}"`, async () => {
-                          const { error } = await supabase.from("books").delete().eq("id", book.id);
-                          if (error) throw error;
-                        }, "Document supprime.")
-                      } disabled={busy}>Supprimer</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="teacher-empty">Aucun document correspondant.</p>
-            )}
-          </article>
-        </section>
+        <BooksPanel
+          bookForm={bookForm}
+          bookSearch={bookSearch}
+          books={books}
+          busy={busy}
+          editBook={editBook}
+          filteredBooks={filteredBooks}
+          handleBookSubmit={handleBookSubmit}
+          onDelete={onDelete}
+          runAction={runAction}
+          setBookForm={setBookForm}
+          setBookSearch={setBookSearch}
+        />
       ) : null}
 
       {tab === "lives" ? (
-        <section className="teacher-layout-grid">
-          <article className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>{liveForm.id ? "Modifier le live" : "Programmer un live"}</h2>
-              {liveForm.id ? (<button className="btn ghost" type="button" onClick={() => setLiveForm(EMPTY_LIVE_FORM)} disabled={busy}>Annuler</button>) : null}
-            </div>
-
-            <form className="teacher-form-grid" onSubmit={handleLiveSubmit}>
-              <label className="teacher-field">Titre
-                <input value={liveForm.title} onChange={(event) => setLiveForm((prev) => ({ ...prev, title: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Date / heure
-                <input type="datetime-local" value={liveForm.startAt} onChange={(event) => setLiveForm((prev) => ({ ...prev, startAt: event.target.value }))} />
-              </label>
-              <label className="teacher-field">Statut
-                <select value={liveForm.status} onChange={(event) => setLiveForm((prev) => ({ ...prev, status: event.target.value as LiveStatus }))}>
-                  <option value="scheduled">Programmee</option>
-                  <option value="live">En direct</option>
-                  <option value="ended">Terminee</option>
-                </select>
-              </label>
-              <label className="teacher-field teacher-field-wide">Description (optionnel)
-                <textarea rows={3} value={liveForm.description} onChange={(event) => setLiveForm((prev) => ({ ...prev, description: event.target.value }))} />
-              </label>
-              <label className="teacher-field teacher-field-wide">URL streaming (optionnel)
-                <input value={liveForm.streamingUrl} onChange={(event) => setLiveForm((prev) => ({ ...prev, streamingUrl: event.target.value }))} placeholder="https://..." />
-              </label>
-              <button className="btn primary" type="submit" disabled={busy}>{liveForm.id ? "Mettre a jour" : "Planifier le live"}</button>
-            </form>
-          </article>
-
-          <article className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>Mes lives</h2>
-              <input className="teacher-search-input" placeholder="Rechercher un live..." value={liveSearch} onChange={(event) => setLiveSearch(event.target.value)} />
-            </div>
-
-            {filteredLives.length ? (
-              <div className="teacher-list">
-                {filteredLives.map((live) => (
-                  <article key={live.id} className="teacher-item-card">
-                    <div className="teacher-item-title">
-                      <h3>{live.title}</h3>
-                      <p>{toDateLabel(live.start_at_ms)}</p>
-                      <div className="teacher-meta-row">
-                        <span className="teacher-pill">{live.status}</span>
-                        {live.streaming_url ? (
-                          <a className="teacher-link" href={live.streaming_url} target="_blank" rel="noreferrer">Ouvrir le stream</a>
-                        ) : (
-                          <span className="muted">Pas de lien de streaming</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="teacher-item-actions">
-                      <button className="btn ghost" type="button" onClick={() => editLive(live)} disabled={busy}>Modifier</button>
-                      <button className="btn ghost" type="button" onClick={() => {
-                        const nextStatus: LiveStatus = live.status === "scheduled" ? "live" : live.status === "live" ? "ended" : "scheduled";
-                        void runAction(async () => {
-                          const { error } = await supabase.from("lives").update({ status: nextStatus, updated_at_ms: Date.now() }).eq("id", live.id);
-                          if (error) throw error;
-                        }, "Statut du live mis a jour.");
-                      }} disabled={busy}>Changer statut</button>
-                      <button className="btn ghost danger-outline" type="button" onClick={() =>
-                        onDelete(`le live "${live.title}"`, async () => {
-                          const { error } = await supabase.from("lives").delete().eq("id", live.id);
-                          if (error) throw error;
-                        }, "Live supprime.")
-                      } disabled={busy}>Supprimer</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="teacher-empty">Aucun live correspondant.</p>
-            )}
-          </article>
-        </section>
+        <LivesPanel
+          busy={busy}
+          editLive={editLive}
+          filteredLives={filteredLives}
+          handleLiveSubmit={handleLiveSubmit}
+          liveForm={liveForm}
+          liveSearch={liveSearch}
+          lives={lives}
+          onDelete={onDelete}
+          runAction={runAction}
+          setLiveForm={setLiveForm}
+          setLiveSearch={setLiveSearch}
+        />
       ) : null}
 
       {tab === "quizzes" ? (
-        <section className="teacher-layout-grid">
-          <article className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>{quizForm.id ? "Modifier le quiz" : "Nouveau quiz"}</h2>
-              {quizForm.id ? (<button className="btn ghost" type="button" onClick={() => setQuizForm(makeEmptyQuizForm())} disabled={busy}>Annuler</button>) : null}
-            </div>
-
-            <form className="teacher-form-grid" onSubmit={handleQuizSubmit}>
-              <label className="teacher-field">Portee
-                <select value={quizForm.scope} onChange={(event) => handleQuizScopeChange(event.target.value as QuizScope)}>
-                  <option value="standalone">Standalone</option>
-                  <option value="lesson">Quiz de lecon</option>
-                </select>
-              </label>
-
-              {quizForm.scope === "lesson" ? (
-                <>
-                  <label className="teacher-field">Cours
-                    <select value={quizForm.courseId} onChange={(event) => {
-                      const nextCourseId = event.target.value;
-                      const nextChapterId = allChapters.find((chapter) => chapter.course_id === nextCourseId)?.id || "";
-                      setQuizForm((previous) => ({ ...previous, courseId: nextCourseId, chapterId: nextChapterId }));
-                    }}>
-                      <option value="">Selectionner un cours</option>
-                      {courses.map((course) => (<option key={course.id} value={course.id}>{course.title}</option>))}
-                    </select>
-                  </label>
-                  <label className="teacher-field">Chapitre
-                    <select value={quizForm.chapterId} onChange={(event) => setQuizForm((previous) => ({ ...previous, chapterId: event.target.value }))}>
-                      <option value="">Selectionner un chapitre</option>
-                      {quizCourseChapters.map((chapter) => (<option key={chapter.id} value={chapter.id}>{chapter.title}</option>))}
-                    </select>
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label className="teacher-field">Niveau
-                    <input value={quizForm.level} onChange={(event) => setQuizForm((previous) => ({ ...previous, level: event.target.value }))} />
-                  </label>
-                  <label className="teacher-field">Matière
-                    <input value={quizForm.subject} onChange={(event) => setQuizForm((previous) => ({ ...previous, subject: event.target.value }))} />
-                  </label>
-                </>
-              )}
-
-              <label className="teacher-field">Titre du quiz
-                <input value={quizForm.title} onChange={(event) => setQuizForm((previous) => ({ ...previous, title: event.target.value }))} />
-              </label>
-              <label className="teacher-field teacher-field-wide">Description (optionnel)
-                <textarea rows={2} value={quizForm.description} onChange={(event) => setQuizForm((previous) => ({ ...previous, description: event.target.value }))} />
-              </label>
-
-              <div className="teacher-question-list teacher-field-wide">
-                {quizForm.questions.map((question, questionIndex) => (
-                  <article key={question.localId} className="teacher-question-card">
-                    <div className="teacher-question-head">
-                      <h3>Question {questionIndex + 1}</h3>
-                      <button className="btn ghost danger-outline" type="button" onClick={() => removeQuizQuestion(question.localId)} disabled={busy || quizForm.questions.length <= 1}>Supprimer</button>
-                    </div>
-
-                    <label className="teacher-field teacher-field-wide">Intitule
-                      <textarea rows={2} value={question.prompt} onChange={(event) => updateQuizQuestion(question.localId, { prompt: event.target.value })} />
-                    </label>
-
-                    <div className="teacher-option-list">
-                      {question.options.map((option, optionIndex) => (
-                        <div key={`${question.localId}-${optionIndex}`} className="teacher-option-row">
-                          <label className="teacher-option-correct">
-                            <input type="radio" name={`correct-${question.localId}`} checked={question.correctIndex === optionIndex} onChange={() => updateQuizQuestion(question.localId, { correctIndex: optionIndex })} />
-                            <span>Bonne</span>
-                          </label>
-                          <input value={option} onChange={(event) => {
-                            const nextOptions = question.options.map((item, idx) => idx === optionIndex ? event.target.value : item);
-                            updateQuizQuestion(question.localId, { options: nextOptions });
-                          }} placeholder={`Option ${optionIndex + 1}`} />
-                          <button className="btn ghost" type="button" onClick={() => removeQuizOption(question.localId, optionIndex)} disabled={busy || question.options.length <= 2}>Retirer</button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="teacher-inline-actions">
-                      <button className="btn ghost" type="button" onClick={() => addQuizOption(question.localId)} disabled={busy}>Ajouter une option</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <div className="teacher-inline-actions teacher-field-wide">
-                <button className="btn ghost" type="button" onClick={addQuizQuestion} disabled={busy}>Ajouter une question</button>
-                <button className="btn primary" type="submit" disabled={busy}>{quizForm.id ? "Mettre a jour le quiz" : "Creer le quiz"}</button>
-              </div>
-            </form>
-          </article>
-
-          <article className="teacher-panel">
-            <div className="teacher-panel-head">
-              <h2>Mes quiz</h2>
-              <input className="teacher-search-input" placeholder="Rechercher un quiz..." value={quizSearch} onChange={(event) => setQuizSearch(event.target.value)} />
-            </div>
-
-            {filteredQuizzes.length ? (
-              <div className="teacher-list">
-                {filteredQuizzes.map((quiz) => {
-                  const scope: QuizScope = quiz.course_id && quiz.chapter_id ? "lesson" : "standalone";
-                  const metric = quizMetrics[quiz.id] || { attempts: 0, avgScorePct: 0, bestScorePct: 0 };
-                  const course = quiz.course_id ? courseMap.get(quiz.course_id) : null;
-                  const chapter = quiz.chapter_id ? chapterMap.get(quiz.chapter_id) : null;
-                  const questionsCount = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
-
-                  return (
-                    <article key={quiz.id} className="teacher-item-card">
-                      <div className="teacher-item-title">
-                        <h3>{quiz.title}</h3>
-                        <p>
-                          {scope === "lesson"
-                            ? `${course?.title || "Cours"} / ${chapter?.title || "Chapitre"}`
-                            : `${quiz.level || "-"} - ${quiz.subject || "-"}`}
-                        </p>
-                        <div className="teacher-meta-row">
-                          <span className="teacher-pill">{quiz.published ? "Publie" : "Brouillon"}</span>
-                          <span>{questionsCount} questions</span>
-                          <span>{metric.attempts} tentatives</span>
-                          <span>Score moyen: {metric.avgScorePct.toFixed(1)}%</span>
-                        </div>
-                      </div>
-                      <div className="teacher-item-actions">
-                        <button className="btn ghost" type="button" onClick={() => editQuiz(quiz)} disabled={busy}>Modifier</button>
-                        <button className="btn ghost" type="button" onClick={() =>
-                          void runAction(async () => {
-                            const { error } = quiz.published
-                              ? await supabase.rpc("review_content", {
-                                  p_kind: "quiz",
-                                  p_content_id: quiz.id,
-                                  p_decision: "rejected",
-                                  p_note: "Depublie depuis l'espace professeur.",
-                                })
-                              : await supabase.rpc("submit_content_for_review", {
-                                  p_kind: "quiz",
-                                  p_content_id: quiz.id,
-                                });
-                            if (error) throw error;
-                          }, "Publication du quiz mise a jour.")
-                        } disabled={busy}>{quiz.published ? "Depublier" : "Publier"}</button>
-                        <button className="btn ghost danger-outline" type="button" onClick={() =>
-                          onDelete(`le quiz "${quiz.title}"`, async () => {
-                            const { error } = await supabase.from("quizzes").delete().eq("id", quiz.id);
-                            if (error) throw error;
-                          }, "Quiz supprime.")
-                        } disabled={busy}>Supprimer</button>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="teacher-empty">Aucun quiz correspondant.</p>
-            )}
-          </article>
-        </section>
+        <QuizzesPanel
+          addQuizOption={addQuizOption}
+          addQuizQuestion={addQuizQuestion}
+          allChapters={allChapters}
+          busy={busy}
+          chapterMap={chapterMap}
+          courseMap={courseMap}
+          courses={courses}
+          editQuiz={editQuiz}
+          filteredQuizzes={filteredQuizzes}
+          handleQuizScopeChange={handleQuizScopeChange}
+          handleQuizSubmit={handleQuizSubmit}
+          onDelete={onDelete}
+          quizCourseChapters={quizCourseChapters}
+          quizForm={quizForm}
+          quizMetrics={quizMetrics}
+          quizSearch={quizSearch}
+          quizzes={quizzes}
+          removeQuizOption={removeQuizOption}
+          removeQuizQuestion={removeQuizQuestion}
+          runAction={runAction}
+          setQuizForm={setQuizForm}
+          setQuizSearch={setQuizSearch}
+          updateQuizQuestion={updateQuizQuestion}
+        />
       ) : null}
     </div>
   );
