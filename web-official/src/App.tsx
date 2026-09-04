@@ -20,7 +20,6 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TeacherSignupPage from "./pages/TeacherSignupPage";
 const ParentTrackingPage = lazy(() => import("./pages/ParentTrackingPage"));
 const TeacherWorkspacePage = lazy(() => import("./pages/TeacherWorkspacePage"));
-const ConsolePage = lazy(() => import("./pages/admin/ConsolePage"));
 
 import "./styles.css";
 
@@ -41,12 +40,6 @@ export function App() {
     return (
       <>
         <ScrollToTop />
-        <Suspense fallback={<div className="console-gate">Chargement de la console…</div>}>
-          <Routes>
-            <Route path="/console" element={<ConsolePage />} />
-            <Route path="/console/*" element={<Navigate to="/console" replace />} />
-          </Routes>
-        </Suspense>
       </>
     );
   }
