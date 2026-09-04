@@ -429,3 +429,69 @@
     display: none;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Attribution des droits                                                     */
+/* -------------------------------------------------------------------------- */
+.cell-roles {
+  position: relative;
+}
+
+/* Le choix s'ouvre par-dessus le tableau : l'inserer dans la ligne ferait
+   sauter toutes les suivantes a chaque ouverture. */
+.role-picker {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--s-2));
+  right: 0;
+  width: min(360px, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.role-option {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: var(--s-3);
+  align-items: start;
+  cursor: pointer;
+}
+
+.role-option input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
+
+.role-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.role-option strong {
+  font-size: var(--fs-sm);
+}
+
+.role-option small {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.role-option input:disabled + span {
+  opacity: 0.6;
+}
+
+.role-full {
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}

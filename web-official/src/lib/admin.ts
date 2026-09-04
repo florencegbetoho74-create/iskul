@@ -275,3 +275,46 @@ export function updatePortalSettings(open: boolean, message: string | null) {
     p_message: message?.trim() || null,
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/* Roles d'equipe                                                             */
+/* -------------------------------------------------------------------------- */
+
+export type StaffRole = "course_reviewer" | "librarian" | "quiz_reviewer" | "live_moderator";
+
+/**
+ * Les quatre roles nommes, avec ce qu'ils autorisent en toutes lettres.
+ *
+ * Le libelle seul ne suffit pas : celui qui attribue un droit doit lire ce
+ * qu'il ouvre, pas le deviner.
+ */
+export const STAFF_ROLES: { key: StaffRole; label: string; grants: string }[] = [
+  {
+    key: "course_reviewer",
+    label: "Relecteur cours",
+    grants: "Valide ou renvoie les cours. Ne voit que les cours dans sa file.",
+  },
+  {
+    key: "librarian",
+    label: "Bibliothécaire",
+    grants: "Valide, publie et dépublie les documents. N'a aucun droit sur les cours.",
+  },
+  {
+    key: "quiz_reviewer",
+    label: "Relecteur quiz",
+    grants: "Valide ou renvoie les quiz.",
+  },
+  {
+    key: "live_moderator",
+    label: "Modérateur live",
+    grants: "Change l'état des séances : programmée, en cours, terminée.",
+  },
+];
+
+export function listStaffRoles() {
+  return rpc<{ user_id: string; staff_roles: StaffRole[] }[]>("admin_list_staff_roles");
+}
+
+export function setStaffRoles(userId: string, roles: StaffRole[]) {
+  return rpc<StaffRole[]>("admin_set_staff_roles", { p_user_id: userId, p_roles: roles });
+}
