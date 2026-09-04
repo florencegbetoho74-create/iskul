@@ -597,6 +597,43 @@ export default function EditCourse() {
                 Previsualiser le cours
               </Button>
             ) : null}
+
+            {/* La publication se decide ou le travail se fait. Reservee a
+                l'onglet Fiche, elle restait introuvable pour un professeur qui
+                n'en change jamais. */}
+            {chapters.length && reviewAction ? (
+              <View
+                style={[
+                  styles.review,
+                  {
+                    backgroundColor: color.surfaceSunk,
+                    borderColor: note ? color.danger : color.border,
+                    borderRadius: radius.lg,
+                    padding: space.lg,
+                    gap: space.sm,
+                  },
+                ]}
+              >
+                <Text variant="bodyStrong">{view.label}</Text>
+                <Text variant="caption" tone="muted">
+                  {view.hint}
+                </Text>
+                {note ? (
+                  <Text variant="caption" tone="danger">
+                    {note}
+                  </Text>
+                ) : null}
+                <Button
+                  onPress={onReviewAction}
+                  icon={canSubmit(status) ? "send-outline" : "arrow-undo-outline"}
+                  variant={canSubmit(status) ? "primary" : "secondary"}
+                  loading={reviewBusy}
+                  block
+                >
+                  {reviewAction}
+                </Button>
+              </View>
+            ) : null}
           </>
         ) : (
           <>
