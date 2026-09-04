@@ -1462,11 +1462,11 @@ button:focus-visible {
 
 @media (max-width: 1150px) {
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .app-cta-band {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     text-align: left;
   }
 
@@ -1489,7 +1489,7 @@ button:focus-visible {
   }
 
   .signup-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .teacher-kpi-grid,
@@ -1500,12 +1500,12 @@ button:focus-visible {
   .teacher-overview-grid,
   .teacher-analytics-grid,
   .teacher-charts-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .parent-charts-grid,
   .parent-highlight-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1624,11 +1624,11 @@ button:focus-visible {
   }
 
   .three-cols {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .teacher-layout-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .teacher-form-grid,
@@ -1637,7 +1637,7 @@ button:focus-visible {
   }
 
   .parent-filter-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .footer-grid {
@@ -1689,14 +1689,14 @@ button:focus-visible {
   }
 
   .visual-thumbs {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .form-grid-two,
   .signup-pill-grid,
   .teacher-form-grid,
   .parent-form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .page-wrap {
@@ -1713,7 +1713,7 @@ button:focus-visible {
   }
 
   .teacher-item-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .teacher-item-actions {
@@ -1721,7 +1721,7 @@ button:focus-visible {
   }
 
   .teacher-option-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
@@ -1857,11 +1857,11 @@ button:focus-visible {
 
   .teacher-kpi-grid,
   .parent-stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .footer-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 22px;
   }
 }
@@ -1869,7 +1869,7 @@ button:focus-visible {
 
 /* HERO trust */
 @media (max-width: 900px){
-  .hero-trust{ grid-template-columns: 1fr; }
+  .hero-trust{ grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Mobile menu drawer + backdrop */
@@ -2467,7 +2467,7 @@ button:focus-visible {
   .split,
   .live-board,
   .download {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hero2-photo,
@@ -2490,7 +2490,7 @@ button:focus-visible {
   .stats-strip,
   .steps,
   .quotes {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hero2-floatcard {
@@ -2639,7 +2639,7 @@ button:focus-visible {
 
 @media (max-width: 560px) {
   .teacher-lang-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-2);
   }
 }
