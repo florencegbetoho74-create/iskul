@@ -4,6 +4,55 @@ import { Link } from "react-router-dom";
 
 import { supabase } from "../lib/supabase";
 import {
+  EMPTY_BOOK_FORM,
+  EMPTY_CHAPTER_FORM,
+  EMPTY_COURSE_FORM,
+  EMPTY_LIVE_FORM,
+  EMPTY_OVERVIEW,
+  TAB_LABELS,
+} from "./teacher/constants";
+import {
+  clamp01,
+  createLocalId,
+  dayLabel,
+  makeEmptyQuestion,
+  makeEmptyQuizForm,
+  normalizeQuizQuestions,
+  parseDatetimeLocalInput,
+  prepareQuizQuestions,
+  safeNumber,
+  toDateLabel,
+  toDatetimeLocalInput,
+  toErrorMessage,
+} from "./teacher/helpers";
+import type {
+  BookForm,
+  BookRow,
+  ChapterForm,
+  ChapterInsight,
+  ChapterRow,
+  CourseForm,
+  CourseInsight,
+  CourseRow,
+  DailyInsight,
+  LiveForm,
+  LiveRow,
+  LiveStatus,
+  Notice,
+  OverviewMetrics,
+  PeriodDays,
+  ProfileRow,
+  QuizEditorQuestion,
+  QuizForm,
+  QuizMetrics,
+  QuizRow,
+  QuizScope,
+  TabKey,
+  WeakQuestionInsight,
+} from "./teacher/types";
+import { BarChart, LineChart } from "../components/teacher/Charts";
+
+import {
   DEFAULT_CONTENT_COUNTRY,
   LOCAL_LANGUAGES,
   checkVideoUrl,
@@ -16,476 +65,6 @@ import {
   type Subject,
   type VideoByLang,
 } from "../lib/referentials";
-
-type TabKey = "overview" | "courses" | "books" | "lives" | "quizzes";
-type QuizScope = "standalone" | "lesson";
-
-type ProfileRow = {
-  id: string;
-  name: string | null;
-  role: string | null;
-  school: string | null;
-  email: string | null;
-  is_admin: boolean | null;
-};
-
-type CourseRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  level: string;
-  subject: string;
-  grade_level_id: string | null;
-  subject_id: string | null;
-  cover_url: string | null;
-  published: boolean;
-  owner_id: string;
-  owner_name: string | null;
-  updated_at_ms: number | null;
-};
-
-type ChapterRow = {
-  id: string;
-  course_id: string;
-  title: string;
-  order_index: number;
-  video_url: string | null;
-  video_by_lang: Record<string, string> | null;
-  updated_at_ms: number | null;
-};
-
-type BookRow = {
-  id: string;
-  title: string;
-  level: string | null;
-  subject: string | null;
-  price: number | null;
-  cover_url: string | null;
-  file_url: string;
-  published: boolean;
-  updated_at_ms: number | null;
-};
-
-type LiveStatus = "scheduled" | "live" | "ended";
-
-type LiveRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: LiveStatus;
-  start_at_ms: number;
-  streaming_url: string | null;
-  updated_at_ms: number | null;
-};
-
-type QuizRawQuestion = {
-  id?: string;
-  prompt?: string;
-  options?: unknown;
-  correctIndices?: unknown;
-  correctIndex?: unknown;
-};
-
-type QuizRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  level: string | null;
-  subject: string | null;
-  course_id: string | null;
-  chapter_id: string | null;
-  published: boolean;
-  questions: unknown;
-  updated_at_ms: number | null;
-};
-
-type QuizMetrics = {
-  attempts: number;
-  avgScorePct: number;
-  bestScorePct: number;
-};
-
-type OverviewMetrics = {
-  learners: number;
-  completionRatePct: number;
-  quizAttempts: number;
-  quizAvgScorePct: number;
-  atRiskLearners: number;
-};
-
-type DailyInsight = {
-  day: string;
-  completionRatePct: number;
-  quizAttempts: number;
-  quizAvgScorePct: number;
-  activeLearners: number;
-};
-
-type CourseInsight = {
-  courseId: string;
-  title: string;
-  learners: number;
-  completionRatePct: number;
-  quizAttempts: number;
-  quizAvgScorePct: number;
-};
-
-type ChapterInsight = {
-  chapterId: string;
-  courseId: string;
-  title: string;
-  courseTitle: string;
-  learners: number;
-  completionRatePct: number;
-  quizAttempts: number;
-  quizAvgScorePct: number;
-};
-
-type WeakQuestionInsight = {
-  key: string;
-  quizId: string;
-  quizTitle: string;
-  courseTitle: string;
-  chapterTitle: string;
-  prompt: string;
-  attempts: number;
-  accuracyPct: number;
-};
-
-type PeriodDays = 7 | 30 | 90;
-
-type CourseForm = {
-  id: string | null;
-  title: string;
-  /** Libelles derives du referentiel, conserves pour les colonnes non nulles. */
-  level: string;
-  subject: string;
-  gradeLevelId: string;
-  subjectId: string;
-  description: string;
-  coverUrl: string;
-  published: boolean;
-};
-
-type ChapterForm = {
-  id: string | null;
-  title: string;
-  order: string;
-  videoUrl: string;
-  videoByLang: VideoByLang;
-};
-
-type BookForm = {
-  id: string | null;
-  title: string;
-  level: string;
-  subject: string;
-  price: string;
-  coverUrl: string;
-  fileUrl: string;
-  published: boolean;
-};
-
-type LiveForm = {
-  id: string | null;
-  title: string;
-  description: string;
-  startAt: string;
-  streamingUrl: string;
-  status: LiveStatus;
-};
-
-type QuizEditorQuestion = {
-  localId: string;
-  prompt: string;
-  options: string[];
-  correctIndex: number;
-};
-
-type QuizForm = {
-  id: string | null;
-  scope: QuizScope;
-  courseId: string;
-  chapterId: string;
-  title: string;
-  description: string;
-  level: string;
-  subject: string;
-  published: boolean;
-  questions: QuizEditorQuestion[];
-};
-
-type Notice = {
-  kind: "success" | "error";
-  text: string;
-} | null;
-
-const TAB_LABELS: Record<TabKey, string> = {
-  overview: "Vue d'ensemble",
-  courses: "Cours",
-  books: "Bibliotheque",
-  lives: "Lives",
-  quizzes: "Quiz",
-};
-
-const EMPTY_OVERVIEW: OverviewMetrics = {
-  learners: 0,
-  completionRatePct: 0,
-  quizAttempts: 0,
-  quizAvgScorePct: 0,
-  atRiskLearners: 0,
-};
-
-const EMPTY_COURSE_FORM: CourseForm = {
-  gradeLevelId: "",
-  subjectId: "",
-  id: null,
-  title: "",
-  level: "",
-  subject: "",
-  description: "",
-  coverUrl: "",
-  published: false,
-};
-
-const EMPTY_CHAPTER_FORM: ChapterForm = {
-  videoByLang: {},
-  id: null,
-  title: "",
-  order: "",
-  videoUrl: "",
-};
-
-const EMPTY_BOOK_FORM: BookForm = {
-  id: null,
-  title: "",
-  level: "",
-  subject: "",
-  price: "0",
-  coverUrl: "",
-  fileUrl: "",
-  published: false,
-};
-
-const EMPTY_LIVE_FORM: LiveForm = {
-  id: null,
-  title: "",
-  description: "",
-  startAt: "",
-  streamingUrl: "",
-  status: "scheduled",
-};
-
-function clamp01(value: number) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(1, value));
-}
-
-function safeNumber(value: unknown) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
-}
-
-function createLocalId(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function makeEmptyQuestion(): QuizEditorQuestion {
-  return {
-    localId: createLocalId("q"),
-    prompt: "",
-    options: ["", ""],
-    correctIndex: 0,
-  };
-}
-
-function makeEmptyQuizForm(): QuizForm {
-  return {
-    id: null,
-    scope: "standalone",
-    courseId: "",
-    chapterId: "",
-    title: "",
-    description: "",
-    level: "",
-    subject: "",
-    published: false,
-    questions: [makeEmptyQuestion()],
-  };
-}
-
-function toErrorMessage(error: unknown): string {
-  const anyError = error as { message?: string; code?: string };
-  const code = String(anyError?.code || "");
-  const message = String(anyError?.message || "");
-  const lower = message.toLowerCase();
-
-  if (code === "PGRST202") return "Backend indisponible. Verifiez les migrations Supabase.";
-  if (code === "23505") return "Un quiz existe deja pour cette lecon.";
-  if (lower.includes("invalid login credentials")) return "Identifiants invalides.";
-  if (lower.includes("row-level security")) return "Action refusee par la politique de securite.";
-  if (lower.includes("networkerror") || lower.includes("failed to fetch")) {
-    return "Connexion reseau impossible. Verifiez votre connexion puis reessayez.";
-  }
-  return message || "Une erreur est survenue.";
-}
-
-function toDateLabel(ms?: number | null) {
-  if (!ms || !Number.isFinite(ms)) return "-";
-  return new Date(ms).toLocaleString();
-}
-
-function toDatetimeLocalInput(ms?: number | null) {
-  if (!ms || !Number.isFinite(ms)) return "";
-  const offsetMs = new Date(ms).getTimezoneOffset() * 60000;
-  return new Date(ms - offsetMs).toISOString().slice(0, 16);
-}
-
-function parseDatetimeLocalInput(value: string) {
-  const ms = new Date(value).getTime();
-  return Number.isFinite(ms) ? ms : Number.NaN;
-}
-
-function normalizeQuizQuestions(raw: unknown): QuizEditorQuestion[] {
-  if (!Array.isArray(raw)) return [makeEmptyQuestion()];
-
-  const result = raw
-    .map((item) => {
-      const q = (item || {}) as QuizRawQuestion;
-      const prompt = String(q.prompt || "").trim();
-      const baseOptions = Array.isArray(q.options)
-        ? q.options.map((opt) => String(opt || ""))
-        : [];
-      const options = baseOptions.length >= 2 ? baseOptions : [...baseOptions, "", ""].slice(0, 2);
-
-      const correctFromArray = Array.isArray(q.correctIndices)
-        ? q.correctIndices
-            .map((idx) => Number(idx))
-            .filter((idx) => Number.isFinite(idx))
-            .map((idx) => Math.floor(idx))
-            .filter((idx) => idx >= 0 && idx < options.length)
-        : [];
-
-      const singleRaw = Number(q.correctIndex);
-      const correctFromSingle =
-        Number.isFinite(singleRaw) && singleRaw >= 0 && singleRaw < options.length
-          ? Math.floor(singleRaw)
-          : null;
-
-      const correctIndex = correctFromArray[0] ?? correctFromSingle ?? 0;
-
-      return {
-        localId: q.id ? String(q.id) : createLocalId("q"),
-        prompt,
-        options,
-        correctIndex,
-      } as QuizEditorQuestion;
-    })
-    .filter((question) => question.prompt || question.options.some((option) => option.trim().length > 0));
-
-  return result.length ? result : [makeEmptyQuestion()];
-}
-
-function prepareQuizQuestions(
-  questions: QuizEditorQuestion[]
-): { ok: true; value: Array<{ id: string; prompt: string; options: string[]; correctIndices: number[] }> } | { ok: false; error: string } {
-  const prepared: Array<{ id: string; prompt: string; options: string[]; correctIndices: number[] }> = [];
-
-  for (let index = 0; index < questions.length; index += 1) {
-    const question = questions[index];
-    const prompt = question.prompt.trim();
-
-    if (!prompt) {
-      return { ok: false, error: `La question ${index + 1} n'a pas d'intitule.` };
-    }
-
-    const optionMap = new Map<number, number>();
-    const cleanedOptions: string[] = [];
-
-    question.options.forEach((option, optionIndex) => {
-      const trimmed = option.trim();
-      if (!trimmed) return;
-      optionMap.set(optionIndex, cleanedOptions.length);
-      cleanedOptions.push(trimmed);
-    });
-
-    if (cleanedOptions.length < 2) {
-      return { ok: false, error: `La question ${index + 1} doit avoir au moins 2 options.` };
-    }
-
-    const mappedCorrect = optionMap.get(question.correctIndex);
-    if (mappedCorrect === undefined) {
-      return { ok: false, error: `La reponse correcte de la question ${index + 1} est invalide.` };
-    }
-
-    prepared.push({
-      id: question.localId || createLocalId("q"),
-      prompt,
-      options: cleanedOptions,
-      correctIndices: [mappedCorrect],
-    });
-  }
-
-  return { ok: true, value: prepared };
-}
-
-function dayLabel(dayKey: string) {
-  const parsed = new Date(`${dayKey}T00:00:00`);
-  return parsed.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-}
-
-function polylinePoints(values: number[], maxValue: number, width: number, height: number) {
-  if (!values.length || maxValue <= 0) return "";
-  if (values.length === 1) return `0,${height / 2}`;
-  return values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const y = height - (Math.max(0, value) / maxValue) * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
-}
-
-function LineChart({
-  values,
-  maxValue,
-  colorClass,
-}: {
-  values: number[];
-  maxValue: number;
-  colorClass: string;
-}) {
-  const width = 280;
-  const height = 84;
-  const points = polylinePoints(values, maxValue, width, height);
-  return (
-    <svg className={`teacher-line-chart ${colorClass}`} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      <line x1="0" y1={height} x2={width} y2={height} />
-      {points ? <polyline points={points} /> : null}
-    </svg>
-  );
-}
-
-function BarChart({
-  values,
-  maxValue,
-}: {
-  values: number[];
-  maxValue: number;
-}) {
-  return (
-    <div className="teacher-bar-chart">
-      {values.map((value, index) => {
-        const heightPct = maxValue > 0 ? (Math.max(0, value) / maxValue) * 100 : 0;
-        return (
-          <span key={`${index}-${value}`} className="teacher-bar-chart-col">
-            <i style={{ height: `${heightPct}%` }} />
-          </span>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function TeacherWorkspacePage() {
   const [session, setSession] = useState<Session | null>(null);
