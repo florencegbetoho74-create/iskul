@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import PageHero from "../components/page/PageHero";
 import { Link } from "react-router-dom";
 import { supabase, OFFICIAL_WEB_ENV_ERROR } from "../lib/supabase";
 import StoreButton from "../components/brand/StoreButton";
@@ -82,48 +83,47 @@ export default function TeacherSignupPage() {
   };
 
   return (
-    <div className="page-wrap container signup-page">
-      <header className="page-head">
-        <span className="kicker">Espace professeur</span>
-        <h1>Devenir professeur iSkul</h1>
-        <p>
-          Inscription dediee aux enseignants. Le web donne accès a des statistiques détaillées ; l'experience complète de
-          création/organisation de contenus est pensee pour l'application iSkul.
-        </p>
-      </header>
+    <div className="page container signup-page">
+      <PageHero
+        eyebrow="Enseigner sur iSkul"
+        title="Vos cours, vus par vos élèves et par d'autres."
+        lead="Un compte professeur donne accès à la création de cours, de quiz et de séances en direct. Ce formulaire crée le compte ; le travail se fait ensuite depuis l'application."
+      />
 
       <section className="signup-grid" data-reveal="up">
         <article className="signup-showcase">
-          <span className="kicker signup-kicker">Portail enseignant</span>
-          <h2>Un onboarding clair, sécurisé et rapide.</h2>
-          <p>
-            Ce portail centralise la création de compte professeur et garantit un contrôle qualite avant accès aux outils.
-          </p>
+          <h2>Ce qu'il faut savoir avant de commencer</h2>
 
-          <div className="signup-pill-grid">
-            <div className="signup-pill">
-              <strong>3 min</strong>
-              <span>Temps moyen</span>
-            </div>
-            <div className="signup-pill">
-              <strong>100%</strong>
-              <span>Tracabilite</span>
-            </div>
-            <div className="signup-pill">
-              <strong>Sécurisé</strong>
-              <span>Validation</span>
-            </div>
-          </div>
-
+          {/*
+            Les trois pastilles annoncaient "3 min de temps moyen", "100 % de
+            tracabilite" et "Securise" : deux chiffres que personne ne mesure et
+            un adjectif presente comme une metrique. La liste ci-dessous ne dit
+            que des choses verifiables.
+          */}
           <ul className="signup-list">
-            <li>Création automatique du profil avec role enseignant.</li>
-            <li>Contrôle via politique d'ouverture du portail et domaine autorise.</li>
-            <li>Journalisation pour audit et suivi operationnel.</li>
-            <li>Activation et fermeture du portail depuis la console admin.</li>
+            <li>
+              <strong>Vos contenus passent par une relecture.</strong> Un cours, un quiz ou un
+              document n'est visible par les élèves qu'une fois validé. Un contenu renvoyé revient
+              avec le motif écrit.
+            </li>
+            <li>
+              <strong>La création se fait dans l'application.</strong> Chapitres, vidéos et
+              versions en langue locale s'ajoutent depuis le téléphone. Le web sert à suivre
+              l'activité de vos classes et à corriger vos fiches.
+            </li>
+            <li>
+              <strong>Vous gardez vos contenus.</strong> Ce que vous déposez reste à vous ; le
+              publier sur iSkul en autorise la diffusion auprès des élèves.
+            </li>
+            <li>
+              <strong>Les inscriptions peuvent être fermées.</strong> L'équipe ouvre le portail par
+              périodes. Si le formulaire refuse votre demande, écrivez-nous.
+            </li>
           </ul>
 
           <p className="signup-contact">
-            Besoin d'assistance : <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            Une question avant de vous inscrire :{" "}
+            <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
           </p>
         </article>
 
@@ -242,7 +242,7 @@ export default function TeacherSignupPage() {
               OK
             </span>
             <div>
-              <strong>Inscription finalisee</strong>
+              <strong>Inscription finalisée</strong>
               <p>{success || "Le compte professeur a été créé avec succès."}</p>
             </div>
             <button
@@ -258,7 +258,7 @@ export default function TeacherSignupPage() {
           <p className="signup-success-email">{successEmail}</p>
 
           <div className="signup-success-tags">
-            <span>Role : Professeur</span>
+            <span>Rôle : Professeur</span>
             <span>Statut : Actif</span>
             <span>Accès : Web + App</span>
           </div>

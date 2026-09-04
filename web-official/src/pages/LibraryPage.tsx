@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import PageHero from "../components/page/PageHero";
 
 /**
- * Bibliotheque.
+ * Bibliothèque.
  *
- * "Documents pedagogiques" ne dit rien : chacun imagine autre chose. La page
- * enonce les types reels de la bibliotheque, ceux du modele de donnees, parce
+ * "Documents pédagogiques" ne dit rien : chacun imagine autre chose. La page
+ * enonce les types reels de la bibliothèque, ceux du modele de données, parce
  * qu'un eleve qui cherche une epreuve du BEPC 2023 veut savoir s'il la
  * trouvera, pas qu'il existe des ressources.
  */

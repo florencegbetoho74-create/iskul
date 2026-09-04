@@ -341,3 +341,59 @@
   color: var(--muted);
   max-width: 68ch;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Documents juridiques                                                       */
+/* -------------------------------------------------------------------------- */
+/* Une liste de definitions plutot qu'un tableau : ce sont des paires
+   etiquette-valeur, pas des donnees a comparer entre elles. */
+.legal-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+  margin: var(--s-4) 0 0;
+}
+
+.legal-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.legal-list > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.legal-list dt {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.legal-list dd {
+  margin: 0;
+  font-size: var(--fs-body);
+}
+
+@media (min-width: 640px) {
+  .legal-list > div {
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: var(--s-4);
+    align-items: baseline;
+  }
+}
+
+/* Les paragraphes d'un document juridique se suivent : ils ont besoin d'air
+   entre eux, pas d'une carte chacun. */
+.page .card > * + * {
+  margin-top: var(--s-3);
+}
+
+.page .card h2 {
+  font-size: var(--fs-h3);
+}

@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import PageHero from "../components/page/PageHero";
 import { Link } from "react-router-dom";
 import { supabase, OFFICIAL_WEB_ENV_ERROR } from "../lib/supabase";
 import { resolveAccountDeletionRequestError } from "../lib/errors";
@@ -56,26 +57,23 @@ export default function DeleteAccountPage() {
   };
 
   return (
-    <div className="page-wrap container">
-      <header className="page-head">
-        <span className="kicker">Suppression de compte</span>
-        <h1>Demander la suppression de votre compte iSkul</h1>
-        <p>
-          Utilisez ce formulaire si vous n'avez plus accès a l'application. Si vous etes connecte dans l'app iSkul,
-          utilisez en priorite le menu <strong>Réglages &gt; Supprimer mon compte</strong>.
-        </p>
-      </header>
+    <div className="page container container--narrow">
+      <PageHero
+        eyebrow="Suppression de compte"
+        title="Effacer votre compte iSkul."
+        lead="La demande se fait depuis cette page. Elle entraîne la suppression du compte et des données associées."
+      />
 
-      <section className="content-card" data-reveal="up">
+      <section className="card" data-reveal="up">
         <h3>Ce que traite cette demande</h3>
         <ul className="policy-list">
           <li>fermeture du compte utilisateur iSkul concerne ;</li>
-          <li>suppression ou anonymisation des données associees, sous réservé des obligations legales ou de securite ;</li>
+          <li>suppression ou anonymisation des données associées, sous réservé des obligations légales ou de sécurité ;</li>
           <li>prise en charge par l'équipe iSkul a partir de l'email fourni.</li>
         </ul>
         <p className="policy-note">
           Pour toute autre question, utilisez aussi la page <Link to="/contact">Contact</Link> ou consultez la{" "}
-          <Link to="/politique-confidentialite">Politique de confidentialite</Link>.
+          <Link to="/politique-confidentialite">Politique de confidentialité</Link>.
         </p>
       </section>
 
@@ -87,7 +85,7 @@ export default function DeleteAccountPage() {
           supplementaire est nécessaire.
         </p>
       ) : (
-        <form className="content-card" onSubmit={submit}>
+        <form className="card" onSubmit={submit}>
           <label className="form-field">
             Nom (optionnel)
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Votre nom" />
@@ -115,7 +113,7 @@ export default function DeleteAccountPage() {
 
           <label className="consent-check">
             <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
-            <span>Je confirme être autorise a demander la suppression de ce compte et comprendre que cette action est irreversible une fois traitee.</span>
+            <span>Je confirme être autorise a demander la suppression de ce compte et comprendre que cette action est irreversible une fois traitée.</span>
           </label>
 
           {error ? <p className="notice error">{error}</p> : null}
