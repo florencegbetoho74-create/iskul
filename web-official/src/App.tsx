@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import ScrollToTop from "./components/layout/ScrollToTop";
 import SeoHead from "./components/layout/SeoHead";
@@ -32,17 +32,6 @@ import "./styles.css";
  */
 export function App() {
   useMotionRuntime();
-  const { pathname } = useLocation();
-
-  // La console occupe tout l'ecran : l'en-tete marketing et le pied de page du
-  // site n'y ont pas leur place.
-  if (pathname.startsWith("/console")) {
-    return (
-      <>
-        <ScrollToTop />
-      </>
-    );
-  }
 
   return (
     <div className="site-root">
