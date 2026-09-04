@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 import { useThemedStyles } from "@/theme/useStyles";
@@ -489,17 +488,6 @@ export default function Play() {
     bumpControls();
   };
 
-  const onLangLongPress = async (k: PlayerLangKey) => {
-    const url = getLangUrl(lesson, k);
-    if (!url) return;
-    try {
-      await Clipboard.setStringAsync(url);
-      Alert.alert("Lien copie", "Le lien de la video a ete copie.");
-    } catch {
-      Alert.alert("Erreur", "Impossible de copier le lien.");
-    }
-  };
-
   const openExternal = async () => {
     if (!selectedUrl) return;
     try {
@@ -665,7 +653,6 @@ export default function Play() {
                 <Pressable
                   key={k}
                   onPress={() => onLangPress(k)}
-                  onLongPress={() => onLangLongPress(k)}
                   delayLongPress={300}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}

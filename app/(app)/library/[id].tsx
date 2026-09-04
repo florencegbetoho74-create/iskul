@@ -3,7 +3,6 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as WebBrowser from "expo-web-browser";
 import { WebView } from "react-native-webview";
 
 import { useTheme } from "@/theme/ThemeProvider";
@@ -77,12 +76,6 @@ export default function DocumentDetail() {
     return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`;
   }, [fileUrl]);
 
-  const openExternally = async () => {
-    if (!fileUrl) return;
-    setReading(false);
-    await WebBrowser.openBrowserAsync(fileUrl);
-  };
-
   if (loading) {
     return <View style={{ flex: 1, backgroundColor: color.bg }} />;
   }
@@ -118,11 +111,6 @@ export default function DocumentDetail() {
       <Text variant="bodyStrong" numberOfLines={1} style={styles.flex}>
         {reading ? book.title : "Document"}
       </Text>
-      {reading && fileUrl ? (
-        <Pressable onPress={openExternally} hitSlop={8} accessibilityLabel="Ouvrir hors de l'application">
-          <Ionicons name="open-outline" size={20} color={color.textMuted} />
-        </Pressable>
-      ) : null}
     </View>
   );
 
@@ -175,12 +163,9 @@ export default function DocumentDetail() {
               { backgroundColor: color.dangerSoft, padding: space.md, gap: space.sm },
             ]}
           >
-            <Text variant="caption" tone="danger" style={styles.flex} numberOfLines={2}>
+            <Text variant="caption" tone="danger" style={styles.flex}>
               {webError}
             </Text>
-            <Button onPress={openExternally} variant="ghost" size="sm">
-              Ouvrir
-            </Button>
           </View>
         ) : null}
       </View>
@@ -232,21 +217,11 @@ export default function DocumentDetail() {
           <Button onPress={() => setReading(true)} icon="book-outline" block>
             Lire
           </Button>
-        ) : null}
-        {fileUrl ? (
-          <Button
-            onPress={openExternally}
-            icon="open-outline"
-            variant={viewerSrc ? "ghost" : "primary"}
-            block
-          >
-            Ouvrir hors de l'application
-          </Button>
         ) : (
           <EmptyState
             icon="hourglass-outline"
-            title="Document en preparation"
-            message="Ce document n'a pas encore de contenu lisible. Revenez bientot."
+            title="Lecture indisponible"
+            message="Ce document n'est pas encore lisible dans l'application. Il le deviendra une fois traite."
           />
         )}
       </ScrollView>

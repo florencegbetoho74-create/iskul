@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
 import * as DocumentPicker from "expo-document-picker";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -424,10 +423,9 @@ export default function NewBook() {
                   />
                 </View>
               ) : (
-                <Pressable style={styles.openBtn} onPress={() => viewerUrl && WebBrowser.openBrowserAsync(viewerUrl)}>
-                  <Ionicons name="link" size={14} color={theme.color.textOnPrimary} />
-                  <Text style={styles.openBtnText}>Ouvrir l'aperçu</Text>
-                </Pressable>
+                <Text style={styles.loaderText}>
+                  L'aperçu n'est disponible que pour les PDF.
+                </Text>
               )}
             </View>
           ) : null}
@@ -572,17 +570,6 @@ const makeStyles = (t: Theme) =>
   viewer: { height: 280, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: t.color.border },
   loader: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: t.color.surfaceSunk },
   loaderText: { color: t.color.textMuted, fontFamily: t.type.body.fontFamily },
-  openBtn: {
-    alignSelf: "flex-start",
-    backgroundColor: t.color.primary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  openBtnText: { color: t.color.textOnPrimary, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 12 },
 
   progressWrap: { marginTop: 6, gap: 4 },
   progressLabel: { color: t.color.textMuted, fontFamily: t.type.bodyStrong.fontFamily, fontSize: 11 },
