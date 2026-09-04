@@ -3,6 +3,7 @@
 @import "./styles/base.css";
 @import "./styles/components.css";
 @import "./styles/motion.css";
+@import "./styles/admin.css";
 
 * {
   box-sizing: border-box;

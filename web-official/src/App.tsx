@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import ScrollToTop from "./components/layout/ScrollToTop";
 import SeoHead from "./components/layout/SeoHead";
@@ -17,8 +18,9 @@ import DeleteAccountPage from "./pages/DeleteAccountPage";
 import LegalPage from "./pages/LegalPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TeacherSignupPage from "./pages/TeacherSignupPage";
-import ParentTrackingPage from "./pages/ParentTrackingPage";
-import TeacherWorkspacePage from "./pages/TeacherWorkspacePage";
+const ParentTrackingPage = lazy(() => import("./pages/ParentTrackingPage"));
+const TeacherWorkspacePage = lazy(() => import("./pages/TeacherWorkspacePage"));
+const ConsolePage = lazy(() => import("./pages/admin/ConsolePage"));
 
 import "./styles.css";
 
@@ -31,6 +33,23 @@ import "./styles.css";
  */
 export function App() {
   useMotionRuntime();
+  const { pathname } = useLocation();
+
+  // La console occupe tout l'ecran : l'en-tete marketing et le pied de page du
+  // site n'y ont pas leur place.
+  if (pathname.startsWith("/console")) {
+    return (
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<div className="console-gate">Chargement de la console…</div>}>
+          <Routes>
+            <Route path="/console" element={<ConsolePage />} />
+            <Route path="/console/*" element={<Navigate to="/console" replace />} />
+          </Routes>
+        </Suspense>
+      </>
+    );
+  }
 
   return (
     <div className="site-root">
@@ -45,7 +64,8 @@ export function App() {
       <SiteHeader />
 
       <main id="contenu" tabIndex={-1}>
-        <Routes>
+        <Suspense fallback={<div className="section container">Chargement…</div>}>
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/cours" element={<CoursesPage />} />
           <Route path="/bibliotheque" element={<LibraryPage />} />
@@ -62,8 +82,9 @@ export function App() {
           <Route path="/mentions-legales" element={<LegalPage />} />
           <Route path="/delete-account" element={<DeleteAccountPage />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <SiteFooter />
