@@ -129,7 +129,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-
-/** ---------------------------
- *  Teacher Signup (CTA clarifie)
- *  --------------------------*/

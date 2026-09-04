@@ -4,10 +4,6 @@ import { supabase, OFFICIAL_WEB_ENV_ERROR } from "../lib/supabase";
 import { resolveContactError } from "../lib/errors";
 import { isEmail } from "../lib/validation";
 
-/** ---------------------------
- *  Contact (email invisible)
- *  - Necessite une Edge Function: "contact-message"
- *  --------------------------*/
 export default function ContactPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

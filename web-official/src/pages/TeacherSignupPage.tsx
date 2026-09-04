@@ -6,9 +6,6 @@ import { SUPPORT_EMAIL } from "../config";
 import { resolveTeacherSignupError } from "../lib/errors";
 import { getPasswordStrength, isEmail } from "../lib/validation";
 
-/** ---------------------------
- *  Teacher Signup (CTA clarifie)
- *  --------------------------*/
 export default function TeacherSignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -277,7 +274,3 @@ export default function TeacherSignupPage() {
     </div>
   );
 }
-
-/** ---------------------------
- *  App
- *  --------------------------*/
