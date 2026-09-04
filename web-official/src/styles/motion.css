@@ -129,6 +129,10 @@
 /* -------------------------------------------------------------------------- */
 .marquee {
   display: flex;
+  /* Les deux pistes font chacune 100% de large : sans borne explicite, le
+     bandeau annonce une largeur maximale du double et entraine ses ancetres. */
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   gap: var(--s-6);
   user-select: none;

@@ -67,9 +67,22 @@ select:focus {
 }
 
 .site-root {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /*
+   * `minmax(0, 1fr)` et non `1fr` : une piste de grille vaut `auto` par
+   * defaut, c'est-a-dire la largeur du contenu le plus large qu'elle porte.
+   * Un seul enfant trop large -- ici le bandeau defilant -- etirait donc la
+   * page entiere, et tout ce qui se centre a l'interieur partait avec.
+   */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Meme raison : un element de grille refuse de retrecir sous son contenu tant
+   qu'on ne l'y autorise pas. */
+.site-root > * {
+  min-width: 0;
 }
 
 .btn {
@@ -226,7 +239,7 @@ button:focus-visible {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: 24px;
   align-items: stretch;
 }
@@ -527,7 +540,7 @@ button:focus-visible {
 
 .signup-success-head {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: start;
   gap: 10px;
 }
@@ -751,7 +764,7 @@ button:focus-visible {
 
 .teacher-charts-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -996,7 +1009,7 @@ button:focus-visible {
   background: var(--n-0);
   padding: 12px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: start;
 }
@@ -1071,7 +1084,7 @@ button:focus-visible {
 
 .teacher-option-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
 }
@@ -1150,7 +1163,7 @@ button:focus-visible {
 
 .parent-filter-row {
   display: grid;
-  grid-template-columns: 1.2fr 1fr auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
   gap: 10px;
   align-items: end;
 }
@@ -1207,7 +1220,7 @@ button:focus-visible {
 
 .parent-charts-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -1462,7 +1475,7 @@ button:focus-visible {
   }
 
   .footer-grid {
-    grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .footer-brand {
@@ -1559,7 +1572,7 @@ button:focus-visible {
   }
 
   .header-content {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
   }
 
@@ -1620,7 +1633,7 @@ button:focus-visible {
 
   .teacher-form-grid,
   .parent-form-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .parent-filter-row {
@@ -1628,7 +1641,7 @@ button:focus-visible {
   }
 
   .footer-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -1696,7 +1709,7 @@ button:focus-visible {
 
   .teacher-kpi-grid,
   .parent-stats-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .teacher-item-card {
@@ -1906,7 +1919,7 @@ button:focus-visible {
 /* ---- Hero ---- */
 .hero2 {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: clamp(24px, 4vw, 56px);
   align-items: center;
 }
@@ -2038,7 +2051,7 @@ button:focus-visible {
 /* ---- Bande de statistiques ---- */
 .stats-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
@@ -2109,7 +2122,7 @@ button:focus-visible {
 /* ---- Split éditorial (texte + photo) ---- */
 .split {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: clamp(24px, 4vw, 56px);
   align-items: center;
 }
@@ -2164,7 +2177,7 @@ button:focus-visible {
 /* ---- Étapes ---- */
 .steps {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -2252,7 +2265,7 @@ button:focus-visible {
 /* ---- Open Classroom (live board) ---- */
 .live-board {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--green-900);
@@ -2278,7 +2291,7 @@ button:focus-visible {
 
 .live-row {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
   align-items: center;
   padding: 13px 16px;
@@ -2327,7 +2340,7 @@ button:focus-visible {
 /* ---- Témoignages ---- */
 .quotes {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -2392,7 +2405,7 @@ button:focus-visible {
   color: var(--ok-50);
   padding: clamp(28px, 4vw, 54px);
   display: grid;
-  grid-template-columns: 1.4fr 0.8fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr);
   gap: 24px;
   align-items: center;
   box-shadow: var(--shadow-soft);
@@ -2465,7 +2478,7 @@ button:focus-visible {
   .stats-strip,
   .steps,
   .quotes {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .download-art {
@@ -2617,7 +2630,7 @@ button:focus-visible {
 
 .teacher-lang-row {
   display: grid;
-  grid-template-columns: 90px 1fr;
+  grid-template-columns: 90px minmax(0, 1fr);
   align-items: center;
   gap: var(--s-3);
   font-size: var(--fs-sm);
