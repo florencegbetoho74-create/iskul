@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 import { useTheme } from "@/theme/ThemeProvider";
+import { useAuth } from "@/providers/AuthProvider";
 import Text from "@/components/ui/Text";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -14,6 +15,7 @@ import DocumentReader from "@/components/library/DocumentReader";
 import { getBook } from "@/storage/books";
 import { formatExamLabel } from "@/lib/documentTaxonomy";
 import { parseDocument, parseReference } from "@/lib/documentFormat";
+import { getIngestionStatus, type IngestionStatus } from "@/storage/documentIngestion";
 import type { Book } from "@/types/book";
 
 /**
@@ -65,6 +67,32 @@ export default function DocumentDetail() {
       active = false;
     };
   }, [id]);
+
+  const { user } = useAuth();
+  const isOwner = !!user?.id && book?.ownerId === user.id;
+
+  /*
+   * L'auteur d'un depot doit savoir ou en est son document.
+   *
+   * Le traitement ne part plus au depot : l'equipe bibliotheque le declenche
+   * apres avoir vu de quoi il s'agit. Sans ce qui suit, le professeur depose
+   * un fichier, ne voit rien se passer, et conclut a un echec.
+   */
+  const [ingestion, setIngestion] = useState<IngestionStatus | null>(null);
+
+  useEffect(() => {
+    if (!isOwner || !book?.id) return;
+    let active = true;
+    getIngestionStatus(book.id)
+      .then((status) => active && setIngestion(status))
+      .catch(() => {
+        // L'etat du traitement est une information de confort : son absence ne
+        // doit pas empecher la fiche de s'afficher.
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOwner, book?.id]);
 
   const doc = useMemo(() => parseDocument(book?.content ?? null), [book?.content]);
   const reference = useMemo(() => parseReference(book?.reference ?? null), [book?.reference]);
@@ -217,11 +245,13 @@ export default function DocumentDetail() {
           <Button onPress={() => setReading(true)} icon="book-outline" block>
             Lire
           </Button>
+        ) : isOwner ? (
+          <EmptyState {...ownerWaitingState(ingestion)} />
         ) : (
           <EmptyState
             icon="hourglass-outline"
             title="Lecture indisponible"
-            message="Ce document n'est pas encore lisible dans l'application. Il le deviendra une fois traite."
+            message="Ce document n'est pas encore lisible dans l'application. Il le deviendra une fois traité."
           />
         )}
       </ScrollView>
@@ -238,3 +268,41 @@ const styles = StyleSheet.create({
   coverImg: { width: "100%", height: "100%" },
   errorBar: { flexDirection: "row", alignItems: "center" },
 });
+
+/**
+ * Ce que l'auteur doit lire selon l'etat de son depot.
+ *
+ * Quatre situations, quatre phrases. "En attente" n'est pas une panne et doit
+ * le dire : c'est l'equipe qui declenche la conversion, pas le depot.
+ */
+function ownerWaitingState(status: IngestionStatus | null): {
+  icon: "hourglass-outline" | "sync-outline" | "alert-circle-outline";
+  title: string;
+  message: string;
+} {
+  if (status?.state === "queued" || status?.state === "running") {
+    return {
+      icon: "sync-outline",
+      title: "Conversion en cours",
+      message:
+        "Votre document est en train d'être converti. Revenez dans quelques minutes : il sera alors lisible dans l'application.",
+    };
+  }
+
+  if (status?.state === "failed") {
+    return {
+      icon: "alert-circle-outline",
+      title: "La conversion a échoué",
+      message: status.error
+        ? `${status.error} L'équipe est prévenue et peut relancer le traitement.`
+        : "L'équipe est prévenue et peut relancer le traitement. Vous n'avez rien à refaire.",
+    };
+  }
+
+  return {
+    icon: "hourglass-outline",
+    title: "En attente de traitement",
+    message:
+      "Votre fichier est bien enregistré. L'équipe bibliothèque le convertit en document lisible avant qu'il n'atteigne les élèves — cette étape se fait à la main et prend un peu de temps.",
+  };
+}

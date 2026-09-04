@@ -237,7 +237,7 @@ export default function NewBook() {
       // le document restait en brouillon et son auteur le croyait en attente.
       Alert.alert(
         "Document enregistré",
-        "Il est en brouillon. Un relecteur doit le valider avant qu'il soit visible par les eleves.",
+        "Il est en brouillon. L'équipe bibliothèque le convertit d'abord en document lisible, puis un relecteur le valide avant qu'il atteigne les élèves.",
         [
           {
             text: "Plus tard",
