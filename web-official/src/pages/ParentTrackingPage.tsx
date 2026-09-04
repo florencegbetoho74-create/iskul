@@ -95,6 +95,11 @@ function mapError(error: unknown) {
   if (code === "PGRST202") {
     return "Suivi parental non active en base. Executez la migration SQL puis reessayez.";
   }
+  // Le bornage des tentatives protege les donnees d'un mineur : le message le
+  // dit sans laisser croire a une panne.
+  if (lower.includes("trop_de_tentatives")) {
+    return "Trop de tentatives ont été faites récemment. Patientez une minute avant de réessayer.";
+  }
   if (lower.includes("invalid_code")) {
     return "Code invalide ou expire. Demandez-en un nouveau a votre enfant.";
   }
