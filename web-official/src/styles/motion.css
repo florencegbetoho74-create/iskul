@@ -1,0 +1,304 @@
+/*
+ * Mouvement.
+ *
+ * Une seule courbe et trois durees pour tout le site : le desordre des
+ * transitions est ce qui fait qu'une interface paraite bricolee, bien avant le
+ * choix des couleurs.
+ *
+ * Rien n'anime la geometrie. Uniquement `transform` et `opacity`, les deux
+ * proprietes que le compositeur traite sans recalculer la mise en page -- c'est
+ * la difference entre soixante images par seconde et une saccade sur un
+ * telephone d'entree de gamme.
+ */
+
+:root {
+  /* Depart franc, arrivee douce : le mouvement semble porte par un elan
+     plutot que par une horloge. */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 180ms;
+  --dur: 620ms;
+  --dur-slow: 900ms;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Apparitions                                                                */
+/* -------------------------------------------------------------------------- */
+[data-reveal] {
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease),
+    clip-path var(--dur-slow) var(--ease);
+}
+
+[data-reveal="up"] {
+  transform: translate3d(0, 34px, 0);
+}
+[data-reveal="down"] {
+  transform: translate3d(0, -28px, 0);
+}
+[data-reveal="left"] {
+  transform: translate3d(-40px, 0, 0);
+}
+[data-reveal="right"] {
+  transform: translate3d(40px, 0, 0);
+}
+[data-reveal="scale"] {
+  transform: scale(0.94);
+}
+/* Le volet decouvre l'image par le bas plutot que de la faire apparaitre :
+   c'est ce qui donne l'impression d'un cadre qui s'ouvre. */
+[data-reveal="clip"] {
+  clip-path: inset(100% 0 0 0);
+  transform: scale(1.04);
+}
+[data-reveal="fade"] {
+  transform: none;
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 0 0);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Texte revele mot a mot                                                     */
+/* -------------------------------------------------------------------------- */
+/* Chaque mot monte derriere une ligne de masque. Le debordement cache du
+   conteneur est ce qui produit l'effet de rideau. */
+.split-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  /* Sans cette marge, les jambages des lettres se font couper. */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.split-word > span {
+  display: inline-block;
+  transform: translate3d(0, 105%, 0);
+  transition: transform var(--dur-slow) var(--ease);
+  transition-delay: var(--word-delay, 0ms);
+}
+
+.split-text.is-revealed .split-word > span {
+  transform: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Barre de progression de lecture                                            */
+/* -------------------------------------------------------------------------- */
+.scroll-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 3px;
+  z-index: 120;
+  transform-origin: 0 50%;
+  /* La variable est ecrite par la couche de mouvement a chaque image. */
+  transform: scaleX(var(--scroll-progress, 0));
+  background: linear-gradient(90deg, var(--blue-500), var(--blue-300));
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* En-tete qui se compacte                                                    */
+/* -------------------------------------------------------------------------- */
+.site-header {
+  transition: box-shadow var(--dur-fast) var(--ease-soft),
+    background-color var(--dur-fast) var(--ease-soft);
+}
+
+:root[data-scrolled="true"] .site-header {
+  box-shadow: var(--shadow-md);
+  /* Le fond se voile plutot que de devenir opaque : le contenu qui passe
+     dessous reste devine. */
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: saturate(1.6) blur(12px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bandeau defilant                                                           */
+/* -------------------------------------------------------------------------- */
+.marquee {
+  display: flex;
+  overflow: hidden;
+  gap: var(--s-6);
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee__track {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--s-6);
+  padding-right: var(--s-6);
+  min-width: 100%;
+  animation: marquee-slide var(--marquee-duration, 38s) linear infinite;
+}
+
+.marquee:hover .marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-slide {
+  to {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Micro-interactions                                                         */
+/* -------------------------------------------------------------------------- */
+.magnetic {
+  transition: transform var(--dur-fast) var(--ease-soft);
+}
+
+/* Un lien dont le trait se deploie depuis la gauche, et se retire du meme
+   cote : un aller-retour symetrique parait mecanique. */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.link-underline:hover::after,
+.link-underline:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Transitions entre pages                                                    */
+/* -------------------------------------------------------------------------- */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: vt-out 220ms var(--ease-soft) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-in 380ms var(--ease) both;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+/*
+ * Le systeme a le dernier mot. Une page doit rester entierement lisible sans
+ * qu'aucune de ces regles ne se joue.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    transition: none;
+  }
+
+  .split-word > span {
+    transform: none;
+    transition: none;
+  }
+
+  .marquee__track {
+    animation: none;
+  }
+
+  .scroll-progress {
+    display: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* Bandeau des matieres : le trait separe les entrees sans ajouter de balise. */
+.subject-marquee {
+  padding-block: var(--s-4);
+  border-block: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.marquee__item {
+  font-size: clamp(1.1rem, 0.9rem + 0.9vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.marquee__item::after {
+  content: "·";
+  margin-left: var(--s-6);
+  color: var(--primary);
+}
+
+.download-cta {
+  align-self: flex-start;
+  margin-top: var(--s-4);
+}
+
+/* Le trait de la navigation suit la meme regle que les liens de contenu, sans
+   toucher au balisage : la classe active garde son trait deploye. */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.nav-link:hover::after,
+.nav-link:focus-visible::after,
+.nav-link.active::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link::after {
+    transition: none;
+  }
+}
