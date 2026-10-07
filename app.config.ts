@@ -40,7 +40,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     permissions: ["CAMERA", "RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"]
   },
 
-  web: { bundler: "metro" },
+  // Web : une seule page servie pour toutes les routes (SPA).
+  // Le deploiement renvoie donc index.html sur chaque URL (cf. vercel.json).
+  web: {
+    bundler: "metro",
+    output: "single",
+    favicon: "./assets/logo.png"
+  },
   plugins: [
     "expo-router",
     ["expo-build-properties", { android: { minSdkVersion: 28 } }]

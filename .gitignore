@@ -5,6 +5,7 @@ dist
 build
 *.log
 .env*
+!.env.example
 *.keystore
 .DS_Store
 Thumbs.db

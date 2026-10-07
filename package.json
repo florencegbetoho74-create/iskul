@@ -11,8 +11,12 @@
     "site:build": "npm run build --prefix web-official",
     "site:preview": "npm run preview --prefix web-official",
     "web:app": "expo start --web",
+    "web:build": "expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"tests/**/*.test.ts\""
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.3.0",
